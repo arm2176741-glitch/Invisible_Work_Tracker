@@ -1,0 +1,114 @@
+package com.iwt.invisibleworktracker;
+
+import com.iwt.invisibleworktracker.repository.SessionRepository;
+import com.iwt.invisibleworktracker.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@SpringBootTest
+@AutoConfigureMockMvc
+class AuthIntegrationTests {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private SessionRepository sessionRepository;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @BeforeEach
+    void cleanDatabase() {
+        sessionRepository.deleteAll();
+        userRepository.deleteAll();
+    }
+
+    @Test
+    void authFlowRegistersLogsInReadsCurrentUserAndLogsOut() throws Exception {
+        String registerJson = """
+                {
+                  "email": "test@example.com",
+                  "password": "Password123!",
+                  "name": "Test User"
+                }
+                """;
+
+        String loginJson = """
+                {
+                  "email": "test@example.com",
+                  "password": "Password123!"
+                }
+                """;
+
+        mockMvc.perform(get("/auth/me"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Unauthorized"));
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.message").value("Account created successfully"));
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerJson))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+
+        MvcResult loginResult = mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Login successful"))
+                .andExpect(jsonPath("$.token").isString())
+                .andReturn();
+
+        String token = extractToken(loginResult.getResponse().getContentAsString());
+
+        mockMvc.perform(get("/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.name").value("Test User"))
+                .andExpect(jsonPath("$.role").value("USER"));
+
+        mockMvc.perform(post("/auth/logout")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isNoContent());
+
+        mockMvc.perform(get("/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Unauthorized"));
+    }
+
+    private String extractToken(String responseBody) {
+        Matcher matcher = Pattern
+                .compile("\"token\"\\s*:\\s*\"([^\"]+)\"")
+                .matcher(responseBody);
+
+        if (!matcher.find()) {
+            throw new AssertionError("Login response did not contain a token: " + responseBody);
+        }
+
+        return matcher.group(1);
+    }
+}
