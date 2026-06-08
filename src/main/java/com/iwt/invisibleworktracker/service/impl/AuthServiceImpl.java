@@ -7,35 +7,40 @@ import com.iwt.invisibleworktracker.repository.UserRepository;
 import com.iwt.invisibleworktracker.service.AuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
 
-import static org.springframework.http.HttpStatus.*;
+import static org.springframework.http.HttpStatus.CONFLICT;
+import static org.springframework.http.HttpStatus.FORBIDDEN;
+import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
+import static org.springframework.http.HttpStatus.UNAUTHORIZED;
 
 @Service
 public class AuthServiceImpl implements AuthService {
 
     private static final Logger log = LoggerFactory.getLogger(AuthServiceImpl.class);
 
-    private final UserRepository userRepository;
-    private final SessionRepository sessionRepository;
-    private final BCryptPasswordEncoder passwordEncoder;
-
     private static final int MAX_ATTEMPTS = 5;
     private static final int LOCKOUT_MINUTES = 15;
     private static final int SESSION_DAYS = 1;
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
+
+    private final UserRepository userRepository;
+    private final SessionRepository sessionRepository;
+    private final PasswordEncoder passwordEncoder;
 
     public AuthServiceImpl(
             UserRepository userRepository,
             SessionRepository sessionRepository,
-            BCryptPasswordEncoder passwordEncoder
+            PasswordEncoder passwordEncoder
     ) {
         this.userRepository = userRepository;
         this.sessionRepository = sessionRepository;
@@ -45,28 +50,31 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public User register(String email, String password, String name) {
+        String normalizedEmail = normalizeEmail(email);
 
-        if (userRepository.existsByEmail(email)) {
+        if (userRepository.existsByEmail(normalizedEmail)) {
             throw new ResponseStatusException(CONFLICT, "Email already registered");
         }
 
         User user = User.builder()
-                .email(email)
+                .email(normalizedEmail)
                 .passwordHash(passwordEncoder.encode(password))
                 .name(name)
                 .role("USER")
                 .build();
 
-        return userRepository.save(user);
+        User savedUser = userRepository.save(user);
+        log.info("Registered user: {}", savedUser.getEmail());
+        return savedUser;
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = ResponseStatusException.class)
     public String login(String email, String password) {
+        String normalizedEmail = normalizeEmail(email);
 
-        User user = userRepository.findByEmail(email)
-                .orElseThrow(() ->
-                        new ResponseStatusException(UNAUTHORIZED, "Invalid credentials"));
+        User user = userRepository.findByEmail(normalizedEmail)
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Invalid credentials"));
 
         if (!user.isActive()) {
             throw new ResponseStatusException(FORBIDDEN, "Account disabled");
@@ -93,20 +101,17 @@ public class AuthServiceImpl implements AuthService {
                 .expiresAt(LocalDateTime.now().plusDays(SESSION_DAYS))
                 .build());
 
-        log.info("User logged in: {}", email);
-
+        log.info("User logged in: {}", user.getEmail());
         return rawToken;
     }
 
     @Override
-    @Transactional
+    @Transactional(noRollbackFor = ResponseStatusException.class)
     public User validate(String rawToken) {
-
         String hashedToken = hashToken(rawToken);
 
         Session session = sessionRepository.findByTokenAndValidTrue(hashedToken)
-                .orElseThrow(() ->
-                        new ResponseStatusException(UNAUTHORIZED, "Invalid session"));
+                .orElseThrow(() -> new ResponseStatusException(UNAUTHORIZED, "Invalid session"));
 
         if (session.getExpiresAt().isBefore(LocalDateTime.now())) {
             session.setValid(false);
@@ -116,10 +121,10 @@ public class AuthServiceImpl implements AuthService {
 
         return session.getUser();
     }
-    @Transactional
-    @Override
-    public void logout(String rawToken) {
 
+    @Override
+    @Transactional
+    public void logout(String rawToken) {
         String hashedToken = hashToken(rawToken);
 
         sessionRepository.findByToken(hashedToken).ifPresent(session -> {
@@ -127,7 +132,6 @@ public class AuthServiceImpl implements AuthService {
             sessionRepository.save(session);
         });
     }
-
 
     private boolean isLocked(User user) {
         return user.getAccountUnlockedUntil() != null
@@ -139,9 +143,7 @@ public class AuthServiceImpl implements AuthService {
         user.setLastFailedLogin(LocalDateTime.now());
 
         if (user.getFailedAttempts() >= MAX_ATTEMPTS) {
-            user.setAccountUnlockedUntil(
-                    LocalDateTime.now().plusMinutes(LOCKOUT_MINUTES)
-            );
+            user.setAccountUnlockedUntil(LocalDateTime.now().plusMinutes(LOCKOUT_MINUTES));
         }
 
         userRepository.save(user);
@@ -152,24 +154,26 @@ public class AuthServiceImpl implements AuthService {
         user.setLastFailedLogin(null);
         user.setAccountUnlockedUntil(null);
         user.setLastLogin(LocalDateTime.now());
-        user.setUpdatedAt(LocalDateTime.now());
         userRepository.save(user);
     }
 
     private String generateRawToken() {
-        SecureRandom random = new SecureRandom();
         byte[] bytes = new byte[32];
-        random.nextBytes(bytes);
+        SECURE_RANDOM.nextBytes(bytes);
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     private String hashToken(String token) {
         try {
             MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hash = digest.digest(token.getBytes());
+            byte[] hash = digest.digest(token.getBytes(StandardCharsets.UTF_8));
             return Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
         } catch (Exception e) {
-            throw new RuntimeException("Token hashing failed", e);
+            throw new IllegalStateException("Token hashing failed", e);
         }
+    }
+
+    private String normalizeEmail(String email) {
+        return email.trim().toLowerCase();
     }
 }

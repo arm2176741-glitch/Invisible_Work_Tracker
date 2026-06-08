@@ -100,6 +100,103 @@ class AuthIntegrationTests {
                 .andExpect(jsonPath("$.message").value("Unauthorized"));
     }
 
+    @Test
+    void registerRejectsInvalidRequestBody() throws Exception {
+        String invalidRegisterJson = """
+                {
+                  "email": "not-an-email",
+                  "password": "short",
+                  "name": ""
+                }
+                """;
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(invalidRegisterJson))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void loginRejectsUnknownEmail() throws Exception {
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("missing@example.com", "Password123!")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    void loginRejectsWrongPassword() throws Exception {
+        registerUser("wrong-password@example.com", "Password123!", "Wrong Password User");
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("wrong-password@example.com", "BadPassword123!")))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    void protectedEndpointRejectsInvalidBearerToken() throws Exception {
+        mockMvc.perform(get("/auth/me")
+                        .header("Authorization", "Bearer invalid-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401))
+                .andExpect(jsonPath("$.message").value("Unauthorized"));
+    }
+
+    @Test
+    void logoutRejectsMissingBearerToken() throws Exception {
+        mockMvc.perform(post("/auth/logout"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginLocksAccountAfterTooManyFailedAttempts() throws Exception {
+        registerUser("locked@example.com", "Password123!", "Locked User");
+
+        for (int attempt = 0; attempt < 5; attempt++) {
+            mockMvc.perform(post("/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("locked@example.com", "WrongPassword123!")))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.status").value(401));
+        }
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("locked@example.com", "Password123!")))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.status").value(429));
+    }
+
+    private void registerUser(String email, String password, String name) throws Exception {
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerJson(email, password, name)))
+                .andExpect(status().isCreated());
+    }
+
+    private String registerJson(String email, String password, String name) {
+        return """
+                {
+                  "email": "%s",
+                  "password": "%s",
+                  "name": "%s"
+                }
+                """.formatted(email, password, name);
+    }
+
+    private String loginJson(String email, String password) {
+        return """
+                {
+                  "email": "%s",
+                  "password": "%s"
+                }
+                """.formatted(email, password);
+    }
+
     private String extractToken(String responseBody) {
         Matcher matcher = Pattern
                 .compile("\"token\"\\s*:\\s*\"([^\"]+)\"")
