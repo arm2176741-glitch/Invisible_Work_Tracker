@@ -1,4 +1,5 @@
 package com.iwt.invisibleworktracker.service;
+
 import com.iwt.invisibleworktracker.entity.User;
 
 public interface AuthService {

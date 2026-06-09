@@ -7,6 +7,7 @@ import com.iwt.invisibleworktracker.repository.UserRepository;
 import com.iwt.invisibleworktracker.service.AuthService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,10 +19,7 @@ import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.util.Base64;
 
-import static org.springframework.http.HttpStatus.CONFLICT;
-import static org.springframework.http.HttpStatus.FORBIDDEN;
-import static org.springframework.http.HttpStatus.TOO_MANY_REQUESTS;
-import static org.springframework.http.HttpStatus.UNAUTHORIZED;
+import static org.springframework.http.HttpStatus.*;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -63,9 +61,13 @@ public class AuthServiceImpl implements AuthService {
                 .role("USER")
                 .build();
 
-        User savedUser = userRepository.save(user);
-        log.info("Registered user: {}", savedUser.getEmail());
-        return savedUser;
+        try {
+            User savedUser = userRepository.saveAndFlush(user);
+            log.info("Registered user: {}", savedUser.getEmail());
+            return savedUser;
+        } catch (DataIntegrityViolationException ex) {
+            throw new ResponseStatusException(CONFLICT, "Email is already registered", ex);
+        }
     }
 
     @Override
@@ -83,6 +85,8 @@ public class AuthServiceImpl implements AuthService {
         if (isLocked(user)) {
             throw new ResponseStatusException(TOO_MANY_REQUESTS, "Account temporarily locked");
         }
+
+        resetExpiredLockout(user);
 
         if (!passwordEncoder.matches(password, user.getPasswordHash())) {
             handleFailedLogin(user);
@@ -136,6 +140,15 @@ public class AuthServiceImpl implements AuthService {
     private boolean isLocked(User user) {
         return user.getAccountUnlockedUntil() != null
                 && LocalDateTime.now().isBefore(user.getAccountUnlockedUntil());
+    }
+
+    private void resetExpiredLockout(User user) {
+        if (user.getAccountUnlockedUntil() != null
+                && !LocalDateTime.now().isBefore(user.getAccountUnlockedUntil())) {
+            user.setFailedAttempts(0);
+            user.setAccountUnlockedUntil(null);
+            userRepository.save(user);
+        }
     }
 
     private void handleFailedLogin(User user) {

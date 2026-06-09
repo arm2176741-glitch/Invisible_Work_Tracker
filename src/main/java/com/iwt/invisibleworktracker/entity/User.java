@@ -1,6 +1,8 @@
 package com.iwt.invisibleworktracker.entity;
-import lombok.*;
+
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
+import lombok.*;
 
 import java.time.LocalDateTime;
 
@@ -23,7 +25,7 @@ public class User {
     private String email; //creates a column that cant be null and has to be unqiue
     //prevents users from registering with the same account
 
-
+    @JsonIgnore
     @Column(nullable = false, name = "password_hash")
     private String passwordHash;//password cant be null, make pw secure
 
@@ -55,17 +57,18 @@ public class User {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-@PrePersist
-    protected void onCreate(){
-    this.createdAt = LocalDateTime.now();
-    this.updatedAt = LocalDateTime.now();
-    this.isActive = true;
-    this.failedAttempts = 0 ;
+    @PrePersist
+    protected void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+        this.isActive = true;
+        this.failedAttempts = 0;
 
-}
-@PreUpdate
+    }
+
+    @PreUpdate
     protected void onUpdated() {
-    this.updatedAt = LocalDateTime.now();
-}
+        this.updatedAt = LocalDateTime.now();
+    }
 
 }

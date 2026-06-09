@@ -13,15 +13,12 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
-
-//file defines the security rules
-//make endpoints public or protected
-//disable unused default spring system
-//register the sessiontokenfilter
-//also configure stateless api security
-
-
-public class SecurityConfig{
+// file defines the security rules
+// make endpoints public or protected
+// disable unused default spring system
+// register the sessiontokenfilter
+// also configure stateless api security
+public class SecurityConfig {
 
     private final SessionTokenFilter sessionTokenFilter;
     private final SecurityErrorResponseWriter securityErrorResponseWriter;
@@ -33,15 +30,14 @@ public class SecurityConfig{
         this.sessionTokenFilter = sessionTokenFilter;
         this.securityErrorResponseWriter = securityErrorResponseWriter;
     }
+
     @Bean
-    public SecurityFilterChain securityFilterChain(HttpSecurity http)
-        throws Exception {
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-                .csrf(csrf->csrf.disable())
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
                 )
-
                 .formLogin(form -> form.disable())
                 .httpBasic(basic -> basic.disable())
                 .exceptionHandling(exception -> exception

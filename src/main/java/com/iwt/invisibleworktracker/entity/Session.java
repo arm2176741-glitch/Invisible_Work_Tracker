@@ -1,23 +1,27 @@
 package com.iwt.invisibleworktracker.entity;
-import lombok.*;
+
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name ="sessions")
+@Table(name = "sessions")
 @NoArgsConstructor
 @Data
 @AllArgsConstructor
 @Builder
 
 public class Session {
-   @Id
+    @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false, unique = true)
-   private String token; //identifies the user login session
+    private String token; //identifies the user login session
 
     private boolean valid;
     //true = user logged in
@@ -26,11 +30,11 @@ public class Session {
 
     //many sessions can come from one user
     @ManyToOne
-    @JoinColumn(name ="user_id")
+    @JoinColumn(name = "user_id")
     private User user;
     //foreign key column named user_id
 
-//when the session expires
+    //when the session expires
     @Column(name = "expires_at")
     private LocalDateTime expiresAt;
 

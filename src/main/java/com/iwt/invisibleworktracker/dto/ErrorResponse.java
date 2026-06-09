@@ -4,13 +4,13 @@ import java.time.LocalDateTime;
 //store error info in a template and send back to user
 //er = errorresponse
 
-public class ErrorResponse{
-    private int status ;
+public class ErrorResponse {
+    private int status;
     private String message;
     private LocalDateTime timestamp;
 
 
-    public static ErrorResponse of(int status, String message){
+    public static ErrorResponse of(int status, String message) {
 
         ErrorResponse er = new ErrorResponse();
 
@@ -23,8 +23,7 @@ public class ErrorResponse{
     }
 
 
-
-    public int getStatus(){
+    public int getStatus() {
         return status;
     }
 

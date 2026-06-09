@@ -10,8 +10,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.*;
 
 
 //traffic incoming authentication API requests
@@ -66,8 +66,8 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-  public ResponseEntity<Void> logout(
-          @RequestHeader(value = "Authorization", required = false) String authHeader) {
+    public ResponseEntity<Void> logout(
+            @RequestHeader(value = "Authorization", required = false) String authHeader) {
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -95,5 +95,6 @@ public class AuthController {
     }
 
 
-    public record UserInfo(Long id, String email, String name, String role) {}
+    public record UserInfo(Long id, String email, String name, String role) {
+    }
 }

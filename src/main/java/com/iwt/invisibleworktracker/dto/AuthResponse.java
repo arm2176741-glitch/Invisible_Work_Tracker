@@ -1,4 +1,5 @@
 package com.iwt.invisibleworktracker.dto;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 
 
@@ -9,29 +10,30 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public class AuthResponse {
 
 
+    private String token;
+    private String message;
 
+    public static AuthResponse of(String token, String message) {
+        AuthResponse response = new AuthResponse();
+        response.token = token;
+        response.message = message;
+        return response;
 
-        private String token;
-        private String message;
-
-        public static AuthResponse of(String token, String message){
-          AuthResponse response = new AuthResponse();
-          response.token = token;
-          response.message = message;
-          return response;
-
-        }
-        public static AuthResponse message(String message){
-            AuthResponse response = new AuthResponse();
-            response.message = message;
-            return response;
-
-        }
-        public String getToken() {
-            return token;
-        }
-        public String getMessage(){
-            return message;
-        }
     }
+
+    public static AuthResponse message(String message) {
+        AuthResponse response = new AuthResponse();
+        response.message = message;
+        return response;
+
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public String getMessage() {
+        return message;
+    }
+}
 

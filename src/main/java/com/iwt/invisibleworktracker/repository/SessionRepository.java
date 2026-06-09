@@ -1,4 +1,5 @@
 package com.iwt.invisibleworktracker.repository;
+
 import com.iwt.invisibleworktracker.entity.Session;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -7,15 +8,16 @@ import java.util.Optional;
 
 //DB access for the Session table
 public interface SessionRepository extends JpaRepository<Session, Long> {
-//find a session by its token (login and during authentication)
+    //find a session by its token (login and during authentication)
     Optional<Session> findByToken(String token);
 
 
-    Optional <Session> findByTokenAndValidTrue (String token);
+    Optional<Session> findByTokenAndValidTrue(String token);
 
-    Optional <Session> findByTokenAndValidTrueAndExpiresAtAfter(
+    Optional<Session> findByTokenAndValidTrueAndExpiresAtAfter(
             String token,
             LocalDateTime now
     );
-        void deleteByExpiresAtBefore(LocalDateTime cutoff);
+
+    void deleteByExpiresAtBefore(LocalDateTime cutoff);
 }

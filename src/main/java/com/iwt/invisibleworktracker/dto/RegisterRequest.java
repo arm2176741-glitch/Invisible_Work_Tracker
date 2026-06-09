@@ -10,58 +10,50 @@ public class RegisterRequest {
     @Email(message = "Must be a valid email address")
     private String email;
 
-
     @NotBlank(message = "Password is required")
-    @Size(min = 8, message = "Password must be 8 or more characters")
+    @Size(min = 8, max = 72, message = "Password must be between 8 and 72 characters")
     private String password;
 
-
-    @NotBlank (message = "Name is required")
+    @NotBlank(message = "Name is required")
     @Size(max = 100, message = "Name cant exceed 100 characters")
     private String name;
 
     public RegisterRequest() {
+    }
 
+    public RegisterRequest(String email, String password, String name) {
+        this.email = email;
+        this.password = password;
+        this.name = name;
+    }
 
-}
-public RegisterRequest(String email, String password, String name){
+    // getter for email
+    public String getEmail() {
+        return email;
+    }
 
-    this.email = email;
-    this.password = password;
-    this.name = name;
-}
+    // setter for email
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-
-//getter for email
-public String getEmail() {
-    return email;
-}
-
-//setter for email
-public void setEmail(String email) {
-    this.email = email;
-
-}
-
-//getter for password
-public String getPassword(){
+    // getter for password
+    public String getPassword() {
         return password;
-}
+    }
 
-//setter for password
-public void setPassword(String password) {
-    this.password = password;
-}
+    // setter for password
+    public void setPassword(String password) {
+        this.password = password;
+    }
 
-//getter for name
-public String getName() {
-    return name;
-}
+    // getter for name
+    public String getName() {
+        return name;
+    }
 
-
-//setter for name
-public void setName(String name) {
-    this.name = name;
-
-}
+    // setter for name
+    public void setName(String name) {
+        this.name = name;
+    }
 }

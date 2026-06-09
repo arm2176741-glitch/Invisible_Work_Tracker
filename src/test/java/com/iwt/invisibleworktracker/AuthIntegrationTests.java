@@ -118,12 +118,45 @@ class AuthIntegrationTests {
     }
 
     @Test
+    void registerRejectsPasswordLongerThan72Characters() throws Exception {
+        String longPassword = "A".repeat(73);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerJson("long-register@example.com", longPassword, "Long Password User")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void registerRejectsDuplicateEmailIgnoringCase() throws Exception {
+        registerUser("Case@Test.com", "Password123!", "Case User");
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerJson("case@test.com", "Password123!", "Duplicate Case User")))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.status").value(409));
+    }
+
+    @Test
     void loginRejectsUnknownEmail() throws Exception {
         mockMvc.perform(post("/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginJson("missing@example.com", "Password123!")))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    void loginRejectsPasswordLongerThan72Characters() throws Exception {
+        String longPassword = "A".repeat(73);
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("long-login@example.com", longPassword)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
     }
 
     @Test
@@ -169,6 +202,25 @@ class AuthIntegrationTests {
                         .content(loginJson("locked@example.com", "Password123!")))
                 .andExpect(status().isTooManyRequests())
                 .andExpect(jsonPath("$.status").value(429));
+    }
+
+    @Test
+    void currentUserDoesNotExposePasswordHash() throws Exception {
+        registerUser("safe-user@example.com", "Password123!", "Safe User");
+
+        MvcResult loginResult = mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("safe-user@example.com", "Password123!")))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String token = extractToken(loginResult.getResponse().getContentAsString());
+
+        mockMvc.perform(get("/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.email").value("safe-user@example.com"))
+                .andExpect(jsonPath("$.passwordHash").doesNotExist());
     }
 
     private void registerUser(String email, String password, String name) throws Exception {
