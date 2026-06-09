@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FieldProof</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+<main class="app-shell">
+    <section class="auth-panel" id="authView" aria-labelledby="authTitle">
+        <div class="brand-row">
+            <div class="brand-mark" aria-hidden="true">
+                <span></span>
+            </div>
+            <div>
+                <h1 id="authTitle">FieldProof</h1>
+                <p>Roofing field documentation</p>
+            </div>
+        </div>
+
+        <div class="mode-tabs" role="tablist" aria-label="Authentication mode">
+            <button class="mode-tab active" type="button" data-mode="login">Sign in</button>
+            <button class="mode-tab" type="button" data-mode="register">Create account</button>
+        </div>
+
+        <form class="auth-form active" id="loginForm" autocomplete="on">
+            <label for="loginEmail">Email</label>
+            <input id="loginEmail" name="email" type="email" autocomplete="email" required>
+
+            <label for="loginPassword">Password</label>
+            <input id="loginPassword" name="password" type="password" autocomplete="current-password" maxlength="72" required>
+
+            <button class="primary-button" type="submit">Sign in</button>
+        </form>
+
+        <form class="auth-form" id="registerForm" autocomplete="on">
+            <label for="registerName">Name</label>
+            <input id="registerName" name="name" type="text" autocomplete="name" maxlength="100" required>
+
+            <label for="registerEmail">Email</label>
+            <input id="registerEmail" name="email" type="email" autocomplete="email" required>
+
+            <label for="registerPassword">Password</label>
+            <input id="registerPassword" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="72" required>
+
+            <button class="primary-button" type="submit">Create account</button>
+        </form>
+
+        <p class="status-message" id="authMessage" role="status" aria-live="polite"></p>
+    </section>
+
+    <section class="workspace-panel hidden" id="workspaceView" aria-labelledby="workspaceTitle">
+        <header class="workspace-header">
+            <div>
+                <p class="eyebrow">Signed in</p>
+                <h2 id="workspaceTitle">FieldProof</h2>
+            </div>
+            <button class="secondary-button" id="logoutButton" type="button">Logout</button>
+        </header>
+
+        <dl class="user-summary">
+            <div>
+                <dt>Name</dt>
+                <dd id="currentName">-</dd>
+            </div>
+            <div>
+                <dt>Email</dt>
+                <dd id="currentEmail">-</dd>
+            </div>
+            <div>
+                <dt>Role</dt>
+                <dd id="currentRole">-</dd>
+            </div>
+        </dl>
+
+        <div class="next-panel">
+            <h3>Next</h3>
+            <p>WorkEntry will connect this account to roofing job documentation.</p>
+        </div>
+    </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

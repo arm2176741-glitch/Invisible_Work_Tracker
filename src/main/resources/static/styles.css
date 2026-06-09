@@ -1,0 +1,270 @@
+:root {
+    --background: #16404d;
+    --surface: #fbfcfb;
+    --surface-muted: #f1f4f3;
+    --border: #c9d4d7;
+    --text: #16404d;
+    --muted: #64777d;
+    --primary: #16404d;
+    --primary-hover: #0f2f39;
+    --warning: #94662f;
+    --danger: #a33f3f;
+    --focus: #2c7be5;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html {
+    min-height: 100%;
+}
+
+body {
+    min-height: 100vh;
+    margin: 0;
+    background:
+            linear-gradient(180deg, #16404d 0 48%, #070909 48% 54%, #fbfcfb 54% 100%);
+    color: var(--text);
+    font-family: Arial, Helvetica, sans-serif;
+    line-height: 1.5;
+}
+
+button,
+input {
+    font: inherit;
+}
+
+button {
+    cursor: pointer;
+}
+
+.app-shell {
+    width: min(100%, 520px);
+    min-height: 100vh;
+    margin: 0 auto;
+    padding: 24px 16px;
+    display: grid;
+    align-content: center;
+}
+
+.auth-panel,
+.workspace-panel {
+    width: 100%;
+    padding: 24px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 20px 48px rgba(7, 9, 9, 0.18);
+}
+
+.brand-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.brand-mark {
+    width: 44px;
+    height: 44px;
+    flex: 0 0 auto;
+    border-radius: 8px;
+    background: var(--primary);
+    border: 1px solid var(--primary);
+    display: grid;
+    place-items: center;
+}
+
+.brand-mark span {
+    width: 22px;
+    height: 18px;
+    border-left: 4px solid #fbfcfb;
+    border-bottom: 4px solid #fbfcfb;
+    transform: skewX(-18deg);
+}
+
+h1,
+h2,
+h3,
+p {
+    margin: 0;
+}
+
+h1,
+h2 {
+    font-size: 1.5rem;
+    line-height: 1.2;
+}
+
+h3 {
+    font-size: 1rem;
+    line-height: 1.3;
+    margin-bottom: 6px;
+}
+
+.brand-row p,
+.next-panel p,
+.eyebrow {
+    color: var(--muted);
+}
+
+.mode-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    padding: 4px;
+    margin-bottom: 18px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #e7ecea;
+}
+
+.mode-tab {
+    min-height: 40px;
+    border: 0;
+    border-radius: 6px;
+    color: var(--muted);
+    background: transparent;
+}
+
+.mode-tab.active {
+    color: var(--text);
+    background: var(--surface);
+    box-shadow: 0 1px 3px rgba(22, 64, 77, 0.14);
+}
+
+.auth-form {
+    display: none;
+}
+
+.auth-form.active {
+    display: grid;
+    gap: 10px;
+}
+
+label {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+input {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #ffffff;
+    color: var(--text);
+}
+
+input:focus,
+button:focus-visible {
+    outline: 3px solid rgba(44, 123, 229, 0.24);
+    outline-offset: 2px;
+    border-color: var(--focus);
+}
+
+.primary-button,
+.secondary-button {
+    min-height: 44px;
+    border-radius: 6px;
+    font-weight: 700;
+}
+
+.primary-button {
+    margin-top: 8px;
+    border: 1px solid var(--primary);
+    background: var(--primary);
+    color: #ffffff;
+}
+
+.primary-button:hover {
+    background: var(--primary-hover);
+}
+
+.secondary-button {
+    padding: 0 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text);
+}
+
+.status-message {
+    min-height: 24px;
+    margin-top: 14px;
+    color: var(--muted);
+}
+
+.status-message.error {
+    color: var(--danger);
+}
+
+.status-message.success {
+    color: var(--primary);
+}
+
+.hidden {
+    display: none;
+}
+
+.workspace-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.eyebrow {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+.user-summary {
+    display: grid;
+    gap: 10px;
+    margin: 0;
+}
+
+.user-summary div,
+.next-panel {
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #f1f4f3;
+}
+
+dt {
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+}
+
+dd {
+    margin: 4px 0 0;
+    overflow-wrap: anywhere;
+}
+
+.next-panel {
+    margin-top: 14px;
+}
+
+@media (max-width: 420px) {
+    .app-shell {
+        padding: 12px;
+        align-content: start;
+    }
+
+    .auth-panel,
+    .workspace-panel {
+        padding: 18px;
+    }
+
+    .workspace-header {
+        align-items: stretch;
+        flex-direction: column;
+    }
+}
