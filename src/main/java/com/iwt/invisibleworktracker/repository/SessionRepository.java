@@ -1,5 +1,5 @@
 package com.iwt.invisibleworktracker.repository;
-
+import com.iwt.invisibleworktracker.entity.User;
 import com.iwt.invisibleworktracker.entity.Session;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -18,6 +18,7 @@ public interface SessionRepository extends JpaRepository<Session, Long> {
             String token,
             LocalDateTime now
     );
+    Optional<Session> findByUserAndValidTrue(User user);
 
     void deleteByExpiresAtBefore(LocalDateTime cutoff);
 }

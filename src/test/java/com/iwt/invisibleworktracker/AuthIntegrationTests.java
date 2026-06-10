@@ -1,5 +1,8 @@
 package com.iwt.invisibleworktracker;
-
+import com.iwt.invisibleworktracker.entity.Session;
+import com.iwt.invisibleworktracker.entity.User;
+import java.time.LocalDateTime;
+import static org.assertj.core.api.Assertions.assertThat;
 import com.iwt.invisibleworktracker.repository.SessionRepository;
 import com.iwt.invisibleworktracker.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -168,6 +171,28 @@ class AuthIntegrationTests {
                         .content(loginJson("wrong-password@example.com", "BadPassword123!")))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.status").value(401));
+    }
+
+
+    @Test
+    void loginCreatesSessionThatExpiresAboutThirtyDaysLater() throws Exception {
+        registerUser("session-days@example.com", "Password123!", "Session User");
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("session-days@example.com", "Password123!")))
+                .andExpect(status().isOk());
+
+        User user = userRepository.findByEmail("session-days@example.com")
+                .orElseThrow();
+
+        Session session = sessionRepository.findByUserAndValidTrue(user)
+                .orElseThrow();
+
+        LocalDateTime now = LocalDateTime.now();
+
+        assertThat(session.getExpiresAt()).isAfter(now.plusDays(29));
+        assertThat(session.getExpiresAt()).isBefore(now.plusDays(31));
     }
 
     @Test

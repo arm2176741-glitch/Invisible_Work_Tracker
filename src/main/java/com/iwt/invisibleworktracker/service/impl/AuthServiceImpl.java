@@ -28,7 +28,7 @@ public class AuthServiceImpl implements AuthService {
 
     private static final int MAX_ATTEMPTS = 5;
     private static final int LOCKOUT_MINUTES = 15;
-    private static final int SESSION_DAYS = 1;
+    private static final int SESSION_DAYS = 30;
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     private final UserRepository userRepository;

@@ -8,16 +8,18 @@ import java.time.LocalDateTime;
 
 @Entity//makes the class a JPA entity
 @Table(name = "users")//names the table
+@Getter
+@Setter
 @NoArgsConstructor//makes a no-argument cosntructor
 @ToString(exclude = "passwordHash")
-@Data//generates hashCode, equals, toString, setterrs, getters
 @AllArgsConstructor//generates a constructor with  ALL fields
-@Builder// allows buiding User objects
+@Builder// allows building User objects
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
 
 
 public class User {
     @Id// primary key
-
+    @EqualsAndHashCode.Include
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id; //automatically assigns increasing IDs in the DB
 
