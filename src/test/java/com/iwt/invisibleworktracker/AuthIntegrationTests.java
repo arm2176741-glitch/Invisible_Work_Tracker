@@ -3,6 +3,8 @@ import com.iwt.invisibleworktracker.entity.Session;
 import com.iwt.invisibleworktracker.entity.User;
 import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
+import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;
+import com.iwt.invisibleworktracker.repository.OrganizationRepository;
 import com.iwt.invisibleworktracker.repository.SessionRepository;
 import com.iwt.invisibleworktracker.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +32,12 @@ class AuthIntegrationTests {
     private MockMvc mockMvc;
 
     @Autowired
+    private OrganizationMembershipRepository membershipRepository;
+
+    @Autowired
+    private OrganizationRepository organizationRepository;
+
+    @Autowired
     private SessionRepository sessionRepository;
 
     @Autowired
@@ -37,6 +45,8 @@ class AuthIntegrationTests {
 
     @BeforeEach
     void cleanDatabase() {
+        membershipRepository.deleteAll();
+        organizationRepository.deleteAll();
         sessionRepository.deleteAll();
         userRepository.deleteAll();
     }
