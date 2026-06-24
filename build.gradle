@@ -1,3 +1,15 @@
+buildscript {
+    configurations.classpath {
+        resolutionStrategy.eachDependency { details ->
+            if (details.requested.group == 'org.apache.commons'
+                    && details.requested.name == 'commons-lang3') {
+                details.useVersion '3.18.0'
+                details.because 'Fix GHSA Uncontrolled Recursion alert in Commons Lang'
+            }
+        }
+    }
+}
+
 plugins {
     id 'java'
     id 'org.springframework.boot' version '4.0.7'
