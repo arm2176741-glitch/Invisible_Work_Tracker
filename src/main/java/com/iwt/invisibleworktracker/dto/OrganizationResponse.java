@@ -1,6 +1,7 @@
 package com.iwt.invisibleworktracker.dto;
 
 import com.iwt.invisibleworktracker.entity.MembershipRole;
+import com.iwt.invisibleworktracker.entity.MembershipStatus;
 import com.iwt.invisibleworktracker.entity.Organization;
 import com.iwt.invisibleworktracker.entity.OrganizationMembership;
 
@@ -13,6 +14,7 @@ public class OrganizationResponse {
     private boolean active;
     private Long createdByUserId;
     private MembershipRole role;
+    private MembershipStatus membershipStatus;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -25,6 +27,7 @@ public class OrganizationResponse {
         response.active = organization.isActive();
         response.createdByUserId = organization.getCreatedBy().getId();
         response.role = membership.getRole();
+        response.membershipStatus = membership.getStatus();
         response.createdAt = organization.getCreatedAt();
         response.updatedAt = organization.getUpdatedAt();
         return response;
@@ -48,6 +51,10 @@ public class OrganizationResponse {
 
     public MembershipRole getRole() {
         return role;
+    }
+
+    public MembershipStatus getMembershipStatus() {
+        return membershipStatus;
     }
 
     public LocalDateTime getCreatedAt() {

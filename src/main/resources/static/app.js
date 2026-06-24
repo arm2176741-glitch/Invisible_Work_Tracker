@@ -1,4 +1,5 @@
 const tokenKey = "fieldproofToken";
+const selectedOrganizationKeyPrefix = "fieldproofSelectedOrganizationId";
 
 const authView = document.querySelector("#authView");
 const workspaceView = document.querySelector("#workspaceView");
@@ -11,10 +12,15 @@ const modeTabs = document.querySelectorAll(".mode-tab");
 const currentName = document.querySelector("#currentName");
 const currentEmail = document.querySelector("#currentEmail");
 const currentRole = document.querySelector("#currentRole");
+const currentOrganizationName = document.querySelector("#currentOrganizationName");
+const currentOrganizationHelp = document.querySelector("#currentOrganizationHelp");
 const organizationForm = document.querySelector("#organizationForm");
 const organizationName = document.querySelector("#organizationName");
 const organizationMessage = document.querySelector("#organizationMessage");
 const organizationList = document.querySelector("#organizationList");
+
+let currentUserId = null;
+let currentOrganizations = [];
 
 modeTabs.forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -85,6 +91,7 @@ logoutButton.addEventListener("click", async () => {
     }
 
     sessionStorage.removeItem(tokenKey);
+    currentUserId = null;
     clearOrganizations();
     showAuth();
 });
@@ -94,7 +101,7 @@ organizationForm.addEventListener("submit", async (event) => {
     setOrganizationMessage("");
 
     try {
-        await requestJson("/organizations", {
+        const organization = await requestJson("/organizations", {
             method: "POST",
             headers: authHeaders(),
             body: JSON.stringify({
@@ -102,8 +109,9 @@ organizationForm.addEventListener("submit", async (event) => {
             })
         });
 
+        setSelectedOrganizationId(organization.id);
         organizationForm.reset();
-        setOrganizationMessage("Organization created.", "success");
+        setOrganizationMessage("Organization created and selected.", "success");
         await loadOrganizations();
     } catch (error) {
         setOrganizationMessage(error.message, "error");
@@ -163,6 +171,7 @@ async function loadCurrentUser() {
             }
         });
 
+        currentUserId = user.id;
         currentName.textContent = user.name || "-";
         currentEmail.textContent = user.email || "-";
         currentRole.textContent = user.role || "-";
@@ -171,6 +180,7 @@ async function loadCurrentUser() {
         await loadOrganizations();
     } catch (error) {
         sessionStorage.removeItem(tokenKey);
+        currentUserId = null;
         clearOrganizations();
         showAuth();
         setMessage("Session expired. Sign in again.", "error");
@@ -184,6 +194,9 @@ async function loadOrganizations() {
             headers: authHeaders()
         });
 
+        currentOrganizations = organizations;
+        removeStaleSelectedOrganization(organizations);
+        renderSelectedOrganization(organizations);
         renderOrganizations(organizations);
     } catch (error) {
         setOrganizationMessage(error.message, "error");
@@ -192,35 +205,140 @@ async function loadOrganizations() {
 
 function renderOrganizations(organizations) {
     organizationList.innerHTML = "";
+    const selectedOrganizationId = getSelectedOrganizationId();
 
     if (organizations.length === 0) {
         const item = document.createElement("li");
         item.className = "organization-empty";
-        item.textContent = "No organizations yet.";
+        item.textContent = "No organizations yet. Create one to start work entry setup.";
         organizationList.appendChild(item);
         return;
     }
 
     organizations.forEach((organization) => {
+        const organizationId = String(organization.id);
+        const isSelected = selectedOrganizationId === organizationId;
         const item = document.createElement("li");
         item.className = "organization-item";
 
+        const button = document.createElement("button");
+        button.className = "organization-select-button";
+        button.type = "button";
+        button.setAttribute("aria-pressed", String(isSelected));
+
+        if (isSelected) {
+            button.classList.add("selected");
+        }
+
         const name = document.createElement("span");
+        name.className = "organization-name";
         name.textContent = organization.name || "Unnamed organization";
 
-        const role = document.createElement("span");
-        role.className = "organization-role";
-        role.textContent = organization.role || "-";
+        const details = document.createElement("span");
+        details.className = "organization-details";
+        details.textContent = [
+            organization.role || "-",
+            organization.membershipStatus || "-"
+        ].join(" - ");
 
-        item.append(name, role);
+        const badge = document.createElement("span");
+        badge.className = "organization-selected-badge";
+        badge.textContent = isSelected ? "Selected" : "Select";
+
+        button.append(name, details, badge);
+
+        button.addEventListener("click", () => {
+            setSelectedOrganizationId(organization.id);
+            renderSelectedOrganization(currentOrganizations);
+            renderOrganizations(currentOrganizations);
+            setOrganizationMessage(`${organization.name || "Organization"} selected.`, "success");
+        });
+
+        item.appendChild(button);
         organizationList.appendChild(item);
     });
 }
 
 function clearOrganizations() {
     organizationForm.reset();
+    currentOrganizations = [];
     organizationList.innerHTML = "";
+    renderSelectedOrganization([]);
     setOrganizationMessage("");
+}
+
+function renderSelectedOrganization(organizations) {
+    const selectedOrganizationId = getSelectedOrganizationId();
+    const selectedOrganization = organizations.find((organization) => {
+        return String(organization.id) === selectedOrganizationId;
+    });
+
+    if (!selectedOrganization) {
+        currentOrganizationName.textContent = "None selected";
+        currentOrganizationHelp.textContent = "Select an organization before creating work entries.";
+        return;
+    }
+
+    currentOrganizationName.textContent = selectedOrganization.name || "Unnamed organization";
+    currentOrganizationHelp.textContent = [
+        `Organization ID: ${selectedOrganization.id}`,
+        `Role: ${selectedOrganization.role || "-"}`,
+        `Membership: ${selectedOrganization.membershipStatus || "-"}`
+    ].join(" - ");
+}
+
+function selectedOrganizationStorageKey() {
+    if (!currentUserId) {
+        return null;
+    }
+
+    return `${selectedOrganizationKeyPrefix}:${currentUserId}`;
+}
+
+function getSelectedOrganizationId() {
+    const storageKey = selectedOrganizationStorageKey();
+
+    if (!storageKey) {
+        return null;
+    }
+
+    return localStorage.getItem(storageKey);
+}
+
+function setSelectedOrganizationId(organizationId) {
+    const storageKey = selectedOrganizationStorageKey();
+
+    if (!storageKey || organizationId === null || organizationId === undefined) {
+        return;
+    }
+
+    localStorage.setItem(storageKey, String(organizationId));
+}
+
+function removeSelectedOrganizationId() {
+    const storageKey = selectedOrganizationStorageKey();
+
+    if (!storageKey) {
+        return;
+    }
+
+    localStorage.removeItem(storageKey);
+}
+
+function removeStaleSelectedOrganization(organizations) {
+    const selectedOrganizationId = getSelectedOrganizationId();
+
+    if (!selectedOrganizationId) {
+        return;
+    }
+
+    const selectedOrganizationExists = organizations.some((organization) => {
+        return String(organization.id) === selectedOrganizationId;
+    });
+
+    if (!selectedOrganizationExists) {
+        removeSelectedOrganizationId();
+    }
 }
 
 function showAuth() {

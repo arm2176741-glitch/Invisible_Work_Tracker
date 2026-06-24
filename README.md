@@ -33,6 +33,7 @@ Built so far:
 - Local H2 profile for browser testing without MySQL
 - Basic static login/register/logout frontend
 - Static organization create/list frontend panel
+- Browser-side selected organization state for the next WorkEntry slice
 
 The next backend milestone is WorkEntry, the first core proof-of-work feature. Work entries will belong to organizations so access can be limited to users with active organization memberships.
 
@@ -195,6 +196,7 @@ Example response:
   "active": true,
   "createdByUserId": 1,
   "role": "OWNER",
+  "membershipStatus": "ACTIVE",
   "createdAt": "2026-06-23T10:00:00",
   "updatedAt": "2026-06-23T10:00:00"
 }
@@ -225,6 +227,7 @@ Example response:
     "active": true,
     "createdByUserId": 1,
     "role": "OWNER",
+    "membershipStatus": "ACTIVE",
     "createdAt": "2026-06-23T10:00:00",
     "updatedAt": "2026-06-23T10:00:00"
   }
@@ -288,6 +291,7 @@ The static frontend supports:
 - Current user display
 - Organization creation
 - Organization listing
+- Organization selection persisted in browser `localStorage`
 
 Browser flow:
 
@@ -296,9 +300,11 @@ Start the app
 Open http://localhost:8080
 Create an account or sign in
 Create an organization
-Confirm it appears as "Organization Name — OWNER"
+Confirm it appears in the organization list
+Select an organization
+Confirm "Current organization" shows the selected organization
 Refresh the page
-Confirm organizations load again
+Confirm the selected organization is still selected
 Logout
 ```
 

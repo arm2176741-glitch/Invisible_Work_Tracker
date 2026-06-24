@@ -90,6 +90,7 @@ class OrganizationIntegrationTests {
                 .andExpect(jsonPath("$.name").value("Desert Roofing"))
                 .andExpect(jsonPath("$.active").value(true))
                 .andExpect(jsonPath("$.role").value("OWNER"))
+                .andExpect(jsonPath("$.membershipStatus").value("ACTIVE"))
                 .andExpect(jsonPath("$.createdByUserId").isNumber());
 
         User user = userRepository.findByEmail("owner@example.com")
@@ -230,7 +231,8 @@ class OrganizationIntegrationTests {
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$.length()").value(2))
                 .andExpect(jsonPath("$[*].name", containsInAnyOrder("First Roofing", "Second Roofing")))
-                .andExpect(jsonPath("$[*].role", containsInAnyOrder("OWNER", "OWNER")));
+                .andExpect(jsonPath("$[*].role", containsInAnyOrder("OWNER", "OWNER")))
+                .andExpect(jsonPath("$[*].membershipStatus", containsInAnyOrder("ACTIVE", "ACTIVE")));
     }
 
     @Test
