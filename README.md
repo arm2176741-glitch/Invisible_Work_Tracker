@@ -8,7 +8,9 @@ FieldProof is being built to give crews a simple way to record job-site activity
 
 ## Current Status
 
-The project is in active development. The authentication foundation is implemented and covered by integration tests. A small static login/register page is also included so the auth flow can be tested from the browser.
+The project is in active development. The authentication foundation is implemented and covered by integration tests. The first organization foundation slice is also implemented, so authenticated users can create companies, automatically become organization owners, and list their active organizations.
+
+A small static frontend is included so the auth flow and organization flow can be tested from the browser.
 
 Built so far:
 
@@ -25,9 +27,14 @@ Built so far:
 - MySQL runtime configuration
 - H2 test configuration
 - Auth integration tests
+- Organization creation and listing
+- Creator automatically receives an active `OWNER` membership
+- Organization integration tests
+- Local H2 profile for browser testing without MySQL
 - Basic static login/register/logout frontend
+- Static organization create/list frontend panel
 
-The next backend milestone is the organization foundation, so users can belong to one or more companies before work entries are added.
+The next backend milestone is WorkEntry, the first core proof-of-work feature. Work entries will belong to organizations so access can be limited to users with active organization memberships.
 
 ## Tech Stack
 
@@ -37,7 +44,7 @@ The next backend milestone is the organization foundation, so users can belong t
 - Spring Data JPA
 - Hibernate
 - MySQL
-- H2 for tests
+- H2 for tests and local browser testing
 - Gradle
 - Lombok
 - HTML, CSS, and vanilla JavaScript for the current static frontend
@@ -164,9 +171,89 @@ Expected response:
 204 No Content
 ```
 
+### Create Organization
+
+```http
+POST /organizations
+Authorization: Bearer <token>
+```
+
+Request body:
+
+```json
+{
+  "name": "Desert Roofing"
+}
+```
+
+Example response:
+
+```json
+{
+  "id": 1,
+  "name": "Desert Roofing",
+  "active": true,
+  "createdByUserId": 1,
+  "role": "OWNER",
+  "createdAt": "2026-06-23T10:00:00",
+  "updatedAt": "2026-06-23T10:00:00"
+}
+```
+
+Rules:
+
+- The request must be authenticated.
+- Organization names are trimmed before storage.
+- Organization names cannot be blank or longer than 150 characters.
+- Duplicate organization names are allowed.
+- The creator automatically becomes an active `OWNER`.
+
+### List Organizations
+
+```http
+GET /organizations
+Authorization: Bearer <token>
+```
+
+Example response:
+
+```json
+[
+  {
+    "id": 1,
+    "name": "Desert Roofing",
+    "active": true,
+    "createdByUserId": 1,
+    "role": "OWNER",
+    "createdAt": "2026-06-23T10:00:00",
+    "updatedAt": "2026-06-23T10:00:00"
+  }
+]
+```
+
+Only organizations where the authenticated user has an active membership are returned.
+
 ## Running Locally
 
 The app uses environment variables for local database credentials. Do not commit real database passwords.
+
+### Option 1: Run with local H2
+
+This is the fastest way to test the browser frontend. It does not require MySQL.
+
+```powershell
+.\gradlew.bat bootRun --args="--spring.profiles.active=local"
+```
+
+Then open:
+
+```text
+http://localhost:8080
+```
+
+The `local` profile uses an in-memory H2 database. Data is reset when the app stops.
+
+### Option 2: Run with MySQL
 
 Example `application.properties` pattern:
 
@@ -191,6 +278,30 @@ Then open:
 http://localhost:8080
 ```
 
+## Frontend Browser Testing
+
+The static frontend supports:
+
+- Register
+- Login
+- Logout
+- Current user display
+- Organization creation
+- Organization listing
+
+Browser flow:
+
+```text
+Start the app
+Open http://localhost:8080
+Create an account or sign in
+Create an organization
+Confirm it appears as "Organization Name — OWNER"
+Refresh the page
+Confirm organizations load again
+Logout
+```
+
 ## Running Tests
 
 ```powershell
@@ -213,6 +324,15 @@ Current tests cover:
 - Logout
 - Token rejection after logout
 - Password hash not being exposed by `/auth/me`
+- Organization endpoints requiring authentication
+- Organization name validation
+- Organization name trimming
+- Duplicate organization names
+- Automatic active owner membership creation
+- Listing organizations for the authenticated user
+- Empty organization list responses
+- Tenant isolation between users
+- Excluding inactive memberships from organization listing
 
 ## Roadmap
 
@@ -222,17 +342,18 @@ Status: implemented and covered by integration tests.
 
 ### Phase 2: Organization Foundation
 
-Planned next.
+Status: first slice implemented and covered by integration tests.
 
-The goal is to support multiple companies before building work entries. A user should be able to belong to more than one organization, and the user who creates an organization should become its owner.
+The goal is to support multiple companies before building work entries. A user can belong to more than one organization, and the user who creates an organization becomes its owner.
 
-Planned model:
+Implemented model:
 
 ```text
 User
 Organization
 OrganizationMembership
-OrganizationRole
+MembershipRole
+MembershipStatus
 ```
 
 Initial roles:
@@ -294,4 +415,4 @@ Later versions may add:
 
 ## Current Goal
 
-The immediate goal is to move from authentication into the company and crew foundation that FieldProof needs before real work documentation can be built.
+The immediate goal is to move from the completed authentication and organization foundations into WorkEntry, where real job-site documentation can be tied to the correct organization and user.

@@ -11,6 +11,10 @@ const modeTabs = document.querySelectorAll(".mode-tab");
 const currentName = document.querySelector("#currentName");
 const currentEmail = document.querySelector("#currentEmail");
 const currentRole = document.querySelector("#currentRole");
+const organizationForm = document.querySelector("#organizationForm");
+const organizationName = document.querySelector("#organizationName");
+const organizationMessage = document.querySelector("#organizationMessage");
+const organizationList = document.querySelector("#organizationList");
 
 modeTabs.forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -81,7 +85,29 @@ logoutButton.addEventListener("click", async () => {
     }
 
     sessionStorage.removeItem(tokenKey);
+    clearOrganizations();
     showAuth();
+});
+
+organizationForm.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    setOrganizationMessage("");
+
+    try {
+        await requestJson("/organizations", {
+            method: "POST",
+            headers: authHeaders(),
+            body: JSON.stringify({
+                name: organizationName.value
+            })
+        });
+
+        organizationForm.reset();
+        setOrganizationMessage("Organization created.", "success");
+        await loadOrganizations();
+    } catch (error) {
+        setOrganizationMessage(error.message, "error");
+    }
 });
 
 async function requestJson(url, options = {}) {
@@ -103,6 +129,14 @@ async function requestJson(url, options = {}) {
     }
 
     return readJson(response);
+}
+
+function authHeaders() {
+    const token = sessionStorage.getItem(tokenKey);
+
+    return {
+        Authorization: `Bearer ${token}`
+    };
 }
 
 async function readJson(response) {
@@ -134,11 +168,59 @@ async function loadCurrentUser() {
         currentRole.textContent = user.role || "-";
         authView.classList.add("hidden");
         workspaceView.classList.remove("hidden");
+        await loadOrganizations();
     } catch (error) {
         sessionStorage.removeItem(tokenKey);
+        clearOrganizations();
         showAuth();
         setMessage("Session expired. Sign in again.", "error");
     }
+}
+
+async function loadOrganizations() {
+    try {
+        const organizations = await requestJson("/organizations", {
+            method: "GET",
+            headers: authHeaders()
+        });
+
+        renderOrganizations(organizations);
+    } catch (error) {
+        setOrganizationMessage(error.message, "error");
+    }
+}
+
+function renderOrganizations(organizations) {
+    organizationList.innerHTML = "";
+
+    if (organizations.length === 0) {
+        const item = document.createElement("li");
+        item.className = "organization-empty";
+        item.textContent = "No organizations yet.";
+        organizationList.appendChild(item);
+        return;
+    }
+
+    organizations.forEach((organization) => {
+        const item = document.createElement("li");
+        item.className = "organization-item";
+
+        const name = document.createElement("span");
+        name.textContent = organization.name || "Unnamed organization";
+
+        const role = document.createElement("span");
+        role.className = "organization-role";
+        role.textContent = organization.role || "-";
+
+        item.append(name, role);
+        organizationList.appendChild(item);
+    });
+}
+
+function clearOrganizations() {
+    organizationForm.reset();
+    organizationList.innerHTML = "";
+    setOrganizationMessage("");
 }
 
 function showAuth() {
@@ -166,6 +248,15 @@ function setMessage(message, type = "") {
 
     if (type) {
         authMessage.classList.add(type);
+    }
+}
+
+function setOrganizationMessage(message, type = "") {
+    organizationMessage.textContent = message;
+    organizationMessage.className = "status-message";
+
+    if (type) {
+        organizationMessage.classList.add(type);
     }
 }
 
