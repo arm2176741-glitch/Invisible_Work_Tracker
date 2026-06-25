@@ -29,6 +29,7 @@ Built so far:
 - Auth integration tests
 - Organization creation and listing
 - Creator automatically receives an active `OWNER` membership
+- Reusable organization access helper for future organization-scoped features
 - Organization integration tests
 - Local H2 profile for browser testing without MySQL
 - Basic static login/register/logout frontend
@@ -36,6 +37,19 @@ Built so far:
 - Browser-side selected organization state for the next WorkEntry slice
 
 The next backend milestone is WorkEntry, the first core proof-of-work feature. Work entries will belong to organizations so access can be limited to users with active organization memberships.
+
+## Product Direction
+
+The product is evolving toward a roofing-focused proof-of-work operating layer. The near-term product direction is based around:
+
+- Jobs and work entries
+- Before, during, and after field documentation
+- Photo-backed proof capture
+- Organization-scoped access control
+- Proof reports for customers, managers, warranty questions, and disputes
+- Audit-style proof history over time
+
+Later dashboards such as scorecards, gap roadmaps, lead pipelines, and monthly summaries should be built after enough job and proof data exists to make those views useful.
 
 ## Tech Stack
 
@@ -236,6 +250,24 @@ Example response:
 
 Only organizations where the authenticated user has an active membership are returned.
 
+### Organization Access Rule
+
+Future organization-owned features use a shared service rule:
+
+```text
+requireActiveOrganizationMember(currentUser, organizationId)
+```
+
+This rule:
+
+- Finds the organization by id.
+- Requires the organization to be active.
+- Requires the authenticated user to have an active membership.
+- Returns `404 Not Found` when the organization does not exist or is inactive.
+- Returns `403 Forbidden` when the user does not have access.
+
+WorkEntry, Jobs, Photos, Proof Reports, and future dashboards should use this rule before reading or writing organization-owned data.
+
 ## Running Locally
 
 The app uses environment variables for local database credentials. Do not commit real database passwords.
@@ -339,6 +371,9 @@ Current tests cover:
 - Empty organization list responses
 - Tenant isolation between users
 - Excluding inactive memberships from organization listing
+- Organization access helper allowing active members
+- Organization access helper rejecting unknown or inactive organizations
+- Organization access helper rejecting users without active membership
 
 ## Roadmap
 
@@ -371,9 +406,11 @@ FOREMAN
 WORKER
 ```
 
+Organization access control is also implemented through a reusable service helper. This is the backend gate that future job, work-entry, photo, report, and dashboard features will use to enforce tenant isolation.
+
 ### Phase 3: WorkEntry Backend
 
-After the organization foundation, WorkEntry will become the first core product feature.
+After the organization foundation, WorkEntry will become the first core product feature. This phase starts the path toward the job/work-entry/proof-capture mockups by recording real field activity against the selected organization.
 
 Planned fields:
 

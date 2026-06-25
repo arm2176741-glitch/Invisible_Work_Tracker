@@ -1,5 +1,6 @@
 package com.iwt.invisibleworktracker.service;
 
+import com.iwt.invisibleworktracker.entity.Organization;
 import com.iwt.invisibleworktracker.entity.OrganizationMembership;
 import com.iwt.invisibleworktracker.entity.User;
 
@@ -13,6 +14,11 @@ public interface OrganizationService {
 
     List<OrganizationMembership> listOrganizations(
             User currentUser
+    );
+
+    Organization requireActiveOrganizationMember(
+            User currentUser,
+            Long organizationId
     );
 
 }

@@ -8,8 +8,10 @@ import com.iwt.invisibleworktracker.entity.User;
 import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;
 import com.iwt.invisibleworktracker.repository.OrganizationRepository;
 import com.iwt.invisibleworktracker.service.OrganizationService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -64,6 +66,44 @@ public class OrganizationServiceImpl implements OrganizationService {
                         currentUser,
                         MembershipStatus.ACTIVE
                 );
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Organization requireActiveOrganizationMember(
+            User currentUser,
+            Long organizationId
+    ) {
+        if (currentUser == null) {
+            throw new IllegalArgumentException("Current user is required");
+        }
+
+        if (organizationId == null) {
+            throw new IllegalArgumentException("Organization id is required");
+        }
+
+        Organization organization = organizationRepository
+                .findByIdAndActiveTrue(organizationId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Organization not found"
+                ));
+
+        boolean hasActiveMembership =
+                membershipRepository.existsByUserAndOrganizationAndStatus(
+                        currentUser,
+                        organization,
+                        MembershipStatus.ACTIVE
+                );
+
+        if (!hasActiveMembership) {
+            throw new ResponseStatusException(
+                    HttpStatus.FORBIDDEN,
+                    "You do not have access to this organization"
+            );
+        }
+
+        return organization;
     }
 
     private String normalizeName(String name) {

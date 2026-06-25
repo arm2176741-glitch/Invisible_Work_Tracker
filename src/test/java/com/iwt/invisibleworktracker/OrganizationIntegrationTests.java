@@ -9,20 +9,24 @@ import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;
 import com.iwt.invisibleworktracker.repository.OrganizationRepository;
 import com.iwt.invisibleworktracker.repository.SessionRepository;
 import com.iwt.invisibleworktracker.repository.UserRepository;
+import com.iwt.invisibleworktracker.service.OrganizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.hamcrest.Matchers.containsInAnyOrder;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -41,6 +45,9 @@ class OrganizationIntegrationTests {
 
     @Autowired
     private OrganizationRepository organizationRepository;
+
+    @Autowired
+    private OrganizationService organizationService;
 
     @Autowired
     private SessionRepository sessionRepository;
@@ -291,6 +298,154 @@ class OrganizationIntegrationTests {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$").isArray())
                 .andExpect(jsonPath("$").isEmpty());
+    }
+
+    @Test
+    void requireActiveOrganizationMemberReturnsOrganizationForActiveMember() throws Exception {
+        String token = registerLoginAndGetToken(
+                "access@example.com",
+                "Password123!",
+                "Access User"
+        );
+
+        mockMvc.perform(post("/organizations")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(organizationJson("Access Roofing")))
+                .andExpect(status().isCreated());
+
+        User user = userRepository.findByEmail("access@example.com")
+                .orElseThrow();
+
+        Organization organization = organizationRepository.findAll().get(0);
+
+        Organization allowedOrganization =
+                organizationService.requireActiveOrganizationMember(
+                        user,
+                        organization.getId()
+                );
+
+        assertThat(allowedOrganization.getId()).isEqualTo(organization.getId());
+        assertThat(allowedOrganization.getName()).isEqualTo("Access Roofing");
+    }
+
+    @Test
+    void requireActiveOrganizationMemberRejectsUnknownOrganization() throws Exception {
+        registerLoginAndGetToken(
+                "missing-org@example.com",
+                "Password123!",
+                "Missing Org User"
+        );
+
+        User user = userRepository.findByEmail("missing-org@example.com")
+                .orElseThrow();
+
+        assertThatThrownBy(() -> organizationService.requireActiveOrganizationMember(user, 999L))
+                .isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+                    assertThat(exception.getStatusCode().value()).isEqualTo(HttpStatus.NOT_FOUND.value());
+                    assertThat(exception.getReason()).isEqualTo("Organization not found");
+                });
+    }
+
+    @Test
+    void requireActiveOrganizationMemberRejectsInactiveOrganization() throws Exception {
+        String token = registerLoginAndGetToken(
+                "inactive-org-access@example.com",
+                "Password123!",
+                "Inactive Org Access User"
+        );
+
+        mockMvc.perform(post("/organizations")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(organizationJson("Inactive Org Roofing")))
+                .andExpect(status().isCreated());
+
+        User user = userRepository.findByEmail("inactive-org-access@example.com")
+                .orElseThrow();
+
+        Organization organization = organizationRepository.findAll().get(0);
+        organization.setActive(false);
+        organizationRepository.save(organization);
+
+        assertThatThrownBy(
+                () -> organizationService.requireActiveOrganizationMember(
+                        user,
+                        organization.getId()
+                ))
+                .isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+                    assertThat(exception.getStatusCode().value()).isEqualTo(HttpStatus.NOT_FOUND.value());
+                    assertThat(exception.getReason()).isEqualTo("Organization not found");
+                });
+    }
+
+    @Test
+    void requireActiveOrganizationMemberRejectsUserWithoutMembership() throws Exception {
+        String ownerToken = registerLoginAndGetToken(
+                "owner-access@example.com",
+                "Password123!",
+                "Owner Access User"
+        );
+
+        mockMvc.perform(post("/organizations")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(organizationJson("Owner Roofing")))
+                .andExpect(status().isCreated());
+
+        registerLoginAndGetToken(
+                "outsider@example.com",
+                "Password123!",
+                "Outsider User"
+        );
+
+        User outsider = userRepository.findByEmail("outsider@example.com")
+                .orElseThrow();
+
+        Organization organization = organizationRepository.findAll().get(0);
+
+        assertThatThrownBy(
+                () -> organizationService.requireActiveOrganizationMember(
+                        outsider,
+                        organization.getId()
+                ))
+                .isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+                    assertThat(exception.getStatusCode().value()).isEqualTo(HttpStatus.FORBIDDEN.value());
+                    assertThat(exception.getReason()).isEqualTo("You do not have access to this organization");
+                });
+    }
+
+    @Test
+    void requireActiveOrganizationMemberRejectsInactiveMembership() throws Exception {
+        String token = registerLoginAndGetToken(
+                "removed-access@example.com",
+                "Password123!",
+                "Removed Access User"
+        );
+
+        mockMvc.perform(post("/organizations")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(organizationJson("Removed Roofing")))
+                .andExpect(status().isCreated());
+
+        User user = userRepository.findByEmail("removed-access@example.com")
+                .orElseThrow();
+
+        Organization organization = organizationRepository.findAll().get(0);
+        OrganizationMembership membership = membershipRepository.findAll().get(0);
+        membership.setStatus(MembershipStatus.REMOVED);
+        membershipRepository.save(membership);
+
+        assertThatThrownBy(
+                () -> organizationService.requireActiveOrganizationMember(
+                        user,
+                        organization.getId()
+                ))
+                .isInstanceOfSatisfying(ResponseStatusException.class, exception -> {
+                    assertThat(exception.getStatusCode().value()).isEqualTo(HttpStatus.FORBIDDEN.value());
+                    assertThat(exception.getReason()).isEqualTo("You do not have access to this organization");
+                });
     }
 
     private String registerLoginAndGetToken(
