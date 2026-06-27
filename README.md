@@ -1,5 +1,11 @@
 # InvisibleWorkTracker / FieldProof
 
+## Rights Notice
+
+Copyright © 2026 Arman. All rights reserved.
+
+This project is proprietary. The source code is not licensed for copying, modification, distribution, or commercial use without written permission.
+
 Spring Boot backend for FieldProof, a roofing contractor field documentation and proof-of-work app.
 
 Roofing crews often track field work through texts, camera rolls, and verbal updates. That works in the moment, but it becomes hard to verify later when there is a warranty question, insurance issue, customer dispute, or manager review.
