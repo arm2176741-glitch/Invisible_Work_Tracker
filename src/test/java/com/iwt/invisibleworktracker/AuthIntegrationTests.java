@@ -7,6 +7,7 @@ import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;
 import com.iwt.invisibleworktracker.repository.OrganizationRepository;
 import com.iwt.invisibleworktracker.repository.SessionRepository;
 import com.iwt.invisibleworktracker.repository.UserRepository;
+import com.iwt.invisibleworktracker.repository.WorkEntryRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,9 @@ class AuthIntegrationTests {
     private OrganizationRepository organizationRepository;
 
     @Autowired
+    private WorkEntryRepository workEntryRepository;
+
+    @Autowired
     private SessionRepository sessionRepository;
 
     @Autowired
@@ -45,6 +49,7 @@ class AuthIntegrationTests {
 
     @BeforeEach
     void cleanDatabase() {
+        workEntryRepository.deleteAll();
         membershipRepository.deleteAll();
         organizationRepository.deleteAll();
         sessionRepository.deleteAll();

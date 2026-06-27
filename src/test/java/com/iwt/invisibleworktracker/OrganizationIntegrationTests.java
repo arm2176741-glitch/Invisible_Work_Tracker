@@ -9,6 +9,7 @@ import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;
 import com.iwt.invisibleworktracker.repository.OrganizationRepository;
 import com.iwt.invisibleworktracker.repository.SessionRepository;
 import com.iwt.invisibleworktracker.repository.UserRepository;
+import com.iwt.invisibleworktracker.repository.WorkEntryRepository;
 import com.iwt.invisibleworktracker.service.OrganizationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -47,6 +48,9 @@ class OrganizationIntegrationTests {
     private OrganizationRepository organizationRepository;
 
     @Autowired
+    private WorkEntryRepository workEntryRepository;
+
+    @Autowired
     private OrganizationService organizationService;
 
     @Autowired
@@ -57,6 +61,7 @@ class OrganizationIntegrationTests {
 
     @BeforeEach
     void cleanDatabase() {
+        workEntryRepository.deleteAll();
         membershipRepository.deleteAll();
         organizationRepository.deleteAll();
         sessionRepository.deleteAll();
