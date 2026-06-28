@@ -18,13 +18,23 @@ const organizationForm = document.querySelector("#organizationForm");
 const organizationName = document.querySelector("#organizationName");
 const organizationMessage = document.querySelector("#organizationMessage");
 const organizationList = document.querySelector("#organizationList");
+const organizationCount = document.querySelector("#organizationCount");
+const profileName = document.querySelector("#profileName");
+const profileInitials = document.querySelector("#profileInitials");
+const sidebarUserName = document.querySelector("#sidebarUserName");
+const sidebarUserInitials = document.querySelector("#sidebarUserInitials");
+const sidebarCurrentOrgCard = document.querySelector(".sidebar-current-org");
+const sidebarOrganizationName = document.querySelector("#sidebarOrganizationName");
+const sidebarOrganizationStatus = document.querySelector("#sidebarOrganizationStatus");
+const authModeControls = document.querySelectorAll("[data-mode]");
+const authAlternates = document.querySelectorAll(".auth-alternate");
 
 let currentUserId = null;
 let currentOrganizations = [];
 
-modeTabs.forEach((tab) => {
-    tab.addEventListener("click", () => {
-        setMode(tab.dataset.mode);
+authModeControls.forEach((control) => {
+    control.addEventListener("click", () => {
+        setMode(control.dataset.mode);
     });
 });
 
@@ -172,11 +182,10 @@ async function loadCurrentUser() {
         });
 
         currentUserId = user.id;
-        currentName.textContent = user.name || "-";
-        currentEmail.textContent = user.email || "-";
-        currentRole.textContent = user.role || "-";
+        renderCurrentUser(user);
         authView.classList.add("hidden");
         workspaceView.classList.remove("hidden");
+        document.body.classList.add("workspace-active");
         await loadOrganizations();
     } catch (error) {
         sessionStorage.removeItem(tokenKey);
@@ -195,6 +204,12 @@ async function loadOrganizations() {
         });
 
         currentOrganizations = organizations;
+
+        if (organizationCount) {
+            organizationCount.textContent = organizations.length;
+        }
+
+        renderWorkspaceState(organizations);
         removeStaleSelectedOrganization(organizations);
         renderSelectedOrganization(organizations);
         renderOrganizations(organizations);
@@ -263,8 +278,61 @@ function clearOrganizations() {
     organizationForm.reset();
     currentOrganizations = [];
     organizationList.innerHTML = "";
+
+    if (organizationCount) {
+        organizationCount.textContent = "0";
+    }
+
     renderSelectedOrganization([]);
+    clearWorkspaceState();
     setOrganizationMessage("");
+}
+
+function renderWorkspaceState(organizations) {
+    const hasOrganizations = organizations.length > 0;
+
+    workspaceView.classList.toggle("setup-state", !hasOrganizations);
+    workspaceView.classList.toggle("dashboard-state", hasOrganizations);
+}
+
+function clearWorkspaceState() {
+    workspaceView.classList.remove("setup-state", "dashboard-state");
+}
+
+function renderCurrentUser(user) {
+    const displayName = user.name || "User";
+    const displayRole = user.role || "-";
+    const initials = getInitials(displayName);
+
+    currentName.textContent = displayName;
+    currentEmail.textContent = user.email || "-";
+    currentRole.textContent = displayRole;
+
+    if (profileName) {
+        profileName.textContent = displayName;
+    }
+
+    if (profileInitials) {
+        profileInitials.textContent = initials;
+    }
+
+    if (sidebarUserName) {
+        sidebarUserName.textContent = displayName;
+    }
+
+    if (sidebarUserInitials) {
+        sidebarUserInitials.textContent = initials;
+    }
+}
+
+function getInitials(name) {
+    return name
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part[0].toUpperCase())
+        .join("") || "FP";
 }
 
 function renderSelectedOrganization(organizations) {
@@ -276,6 +344,19 @@ function renderSelectedOrganization(organizations) {
     if (!selectedOrganization) {
         currentOrganizationName.textContent = "None selected";
         currentOrganizationHelp.textContent = "Select an organization before creating work entries.";
+
+        if (sidebarCurrentOrgCard) {
+            sidebarCurrentOrgCard.classList.remove("has-organization");
+        }
+
+        if (sidebarOrganizationName) {
+            sidebarOrganizationName.textContent = "None selected";
+        }
+
+        if (sidebarOrganizationStatus) {
+            sidebarOrganizationStatus.textContent = "Not selected";
+        }
+
         return;
     }
 
@@ -285,6 +366,18 @@ function renderSelectedOrganization(organizations) {
         `Role: ${selectedOrganization.role || "-"}`,
         `Membership: ${selectedOrganization.membershipStatus || "-"}`
     ].join(" - ");
+
+    if (sidebarCurrentOrgCard) {
+        sidebarCurrentOrgCard.classList.add("has-organization");
+    }
+
+    if (sidebarOrganizationName) {
+        sidebarOrganizationName.textContent = selectedOrganization.name || "Unnamed organization";
+    }
+
+    if (sidebarOrganizationStatus) {
+        sidebarOrganizationStatus.textContent = selectedOrganization.membershipStatus || "-";
+    }
 }
 
 function selectedOrganizationStorageKey() {
@@ -344,6 +437,8 @@ function removeStaleSelectedOrganization(organizations) {
 function showAuth() {
     workspaceView.classList.add("hidden");
     authView.classList.remove("hidden");
+    document.body.classList.remove("workspace-active");
+    clearWorkspaceState();
     setMode("login");
 }
 
@@ -355,6 +450,10 @@ function setMode(mode) {
 
     modeTabs.forEach((tab) => {
         tab.classList.toggle("active", tab.dataset.mode === mode);
+    });
+
+    authAlternates.forEach((alternate) => {
+        alternate.classList.toggle("hidden", alternate.dataset.visibleMode !== mode);
     });
 
     setMessage("");
