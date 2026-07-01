@@ -14,18 +14,20 @@ const currentEmail = document.querySelector("#currentEmail");
 const currentRole = document.querySelector("#currentRole");
 const currentOrganizationName = document.querySelector("#currentOrganizationName");
 const currentOrganizationHelp = document.querySelector("#currentOrganizationHelp");
-const organizationForm = document.querySelector("#organizationForm");
-const organizationName = document.querySelector("#organizationName");
-const organizationMessage = document.querySelector("#organizationMessage");
-const organizationList = document.querySelector("#organizationList");
+const organizationForms = document.querySelectorAll("[data-organization-form]");
+const organizationMessages = document.querySelectorAll("[data-organization-message]");
+const organizationLists = document.querySelectorAll("[data-organization-list]");
+const organizationPanels = document.querySelectorAll("[data-organization-panel]");
 const organizationCount = document.querySelector("#organizationCount");
 const profileName = document.querySelector("#profileName");
 const profileInitials = document.querySelector("#profileInitials");
+const setupCurrentName = document.querySelector("#setupCurrentName");
 const sidebarUserName = document.querySelector("#sidebarUserName");
 const sidebarUserInitials = document.querySelector("#sidebarUserInitials");
 const sidebarCurrentOrgCard = document.querySelector(".sidebar-current-org");
 const sidebarOrganizationName = document.querySelector("#sidebarOrganizationName");
 const sidebarOrganizationStatus = document.querySelector("#sidebarOrganizationStatus");
+const sidebarOrganizationAction = document.querySelector("#sidebarOrganizationAction");
 const authModeControls = document.querySelectorAll("[data-mode]");
 const authAlternates = document.querySelectorAll(".auth-alternate");
 
@@ -106,27 +108,38 @@ logoutButton.addEventListener("click", async () => {
     showAuth();
 });
 
-organizationForm.addEventListener("submit", async (event) => {
-    event.preventDefault();
-    setOrganizationMessage("");
+organizationForms.forEach((organizationForm) => {
+    organizationForm.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        setOrganizationMessage("");
 
-    try {
-        const organization = await requestJson("/organizations", {
-            method: "POST",
-            headers: authHeaders(),
-            body: JSON.stringify({
-                name: organizationName.value
-            })
-        });
+        const formData = new FormData(organizationForm);
+        const name = String(formData.get("name") || "");
 
-        setSelectedOrganizationId(organization.id);
-        organizationForm.reset();
-        setOrganizationMessage("Organization created and selected.", "success");
-        await loadOrganizations();
-    } catch (error) {
-        setOrganizationMessage(error.message, "error");
-    }
+        try {
+            const organization = await requestJson("/organizations", {
+                method: "POST",
+                headers: authHeaders(),
+                body: JSON.stringify({
+                    name
+                })
+            });
+
+            setSelectedOrganizationId(organization.id);
+            organizationForm.reset();
+            setOrganizationMessage("Organization created and selected.", "success");
+            await loadOrganizations();
+        } catch (error) {
+            setOrganizationMessage(error.message, "error");
+        }
+    });
 });
+
+if (sidebarOrganizationAction) {
+    sidebarOrganizationAction.addEventListener("click", () => {
+        focusOrganizationPanel();
+    });
+}
 
 async function requestJson(url, options = {}) {
     const response = await fetch(url, {
@@ -219,13 +232,19 @@ async function loadOrganizations() {
 }
 
 function renderOrganizations(organizations) {
+    organizationLists.forEach((organizationList) => {
+        renderOrganizationList(organizationList, organizations);
+    });
+}
+
+function renderOrganizationList(organizationList, organizations) {
     organizationList.innerHTML = "";
     const selectedOrganizationId = getSelectedOrganizationId();
 
     if (organizations.length === 0) {
         const item = document.createElement("li");
         item.className = "organization-empty";
-        item.textContent = "No organizations yet. Create one to start work entry setup.";
+        item.textContent = "No organization yet. Create your company workspace so crews, jobs, photos, and reports have a home.";
         organizationList.appendChild(item);
         return;
     }
@@ -275,9 +294,13 @@ function renderOrganizations(organizations) {
 }
 
 function clearOrganizations() {
-    organizationForm.reset();
+    organizationForms.forEach((organizationForm) => {
+        organizationForm.reset();
+    });
     currentOrganizations = [];
-    organizationList.innerHTML = "";
+    organizationLists.forEach((organizationList) => {
+        organizationList.innerHTML = "";
+    });
 
     if (organizationCount) {
         organizationCount.textContent = "0";
@@ -286,6 +309,34 @@ function clearOrganizations() {
     renderSelectedOrganization([]);
     clearWorkspaceState();
     setOrganizationMessage("");
+}
+
+function focusOrganizationPanel() {
+    const organizationPanel = Array.from(organizationPanels).find((panel) => {
+        return panel.offsetParent !== null;
+    });
+
+    if (!organizationPanel) {
+        return;
+    }
+
+    organizationPanel.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
+    organizationPanel.classList.add("is-highlighted");
+
+    const organizationInput = organizationPanel.querySelector('input[name="name"]');
+
+    if (organizationInput) {
+        organizationInput.focus({
+            preventScroll: true
+        });
+    }
+
+    window.setTimeout(() => {
+        organizationPanel.classList.remove("is-highlighted");
+    }, 1200);
 }
 
 function renderWorkspaceState(organizations) {
@@ -316,6 +367,10 @@ function renderCurrentUser(user) {
         profileInitials.textContent = initials;
     }
 
+    if (setupCurrentName) {
+        setupCurrentName.textContent = displayName;
+    }
+
     if (sidebarUserName) {
         sidebarUserName.textContent = displayName;
     }
@@ -342,8 +397,12 @@ function renderSelectedOrganization(organizations) {
     });
 
     if (!selectedOrganization) {
-        currentOrganizationName.textContent = "None selected";
-        currentOrganizationHelp.textContent = "Select an organization before creating work entries.";
+        const hasOrganizations = organizations.length > 0;
+
+        currentOrganizationName.textContent = hasOrganizations ? "No organization selected" : "No organization selected yet";
+        currentOrganizationHelp.textContent = hasOrganizations
+            ? "Select a company workspace before creating work entries."
+            : "Create your first company workspace to start documenting jobs, crews, and proof-of-work reports.";
 
         if (sidebarCurrentOrgCard) {
             sidebarCurrentOrgCard.classList.remove("has-organization");
@@ -355,6 +414,10 @@ function renderSelectedOrganization(organizations) {
 
         if (sidebarOrganizationStatus) {
             sidebarOrganizationStatus.textContent = "Not selected";
+        }
+
+        if (sidebarOrganizationAction) {
+            sidebarOrganizationAction.textContent = hasOrganizations ? "Select organization" : "Create organization";
         }
 
         return;
@@ -377,6 +440,10 @@ function renderSelectedOrganization(organizations) {
 
     if (sidebarOrganizationStatus) {
         sidebarOrganizationStatus.textContent = selectedOrganization.membershipStatus || "-";
+    }
+
+    if (sidebarOrganizationAction) {
+        sidebarOrganizationAction.textContent = "Switch organization";
     }
 }
 
@@ -469,12 +536,14 @@ function setMessage(message, type = "") {
 }
 
 function setOrganizationMessage(message, type = "") {
-    organizationMessage.textContent = message;
-    organizationMessage.className = "status-message";
+    organizationMessages.forEach((organizationMessage) => {
+        organizationMessage.textContent = message;
+        organizationMessage.className = "status-message";
 
-    if (type) {
-        organizationMessage.classList.add(type);
-    }
+        if (type) {
+            organizationMessage.classList.add(type);
+        }
+    });
 }
 
 loadCurrentUser();

@@ -204,20 +204,20 @@
                         <p id="sidebarUserName">-</p>
                         <span id="currentEmail">-</span>
                     </div>
-                    <span class="sidebar-chevron" aria-hidden="true">⌄</span>
+                    <span class="sidebar-chevron" aria-hidden="true">&#8964;</span>
                 </div>
 
                 <div class="sidebar-current-org">
                     <span>Current organization</span>
                     <strong id="sidebarOrganizationName">None selected</strong>
                     <p><span class="status-dot" aria-hidden="true"></span><span id="sidebarOrganizationStatus">Not selected</span></p>
-                    <button class="sidebar-org-switch" type="button">Switch organization</button>
+                    <button class="sidebar-org-switch" id="sidebarOrganizationAction" type="button">Create organization</button>
                 </div>
 
                 <button class="sidebar-help-card" type="button">
                     <span class="sidebar-help-icon" aria-hidden="true">?</span>
                     <strong>Help &amp; Support</strong>
-                    <span aria-hidden="true">↗</span>
+                    <span aria-hidden="true">&nearr;</span>
                 </button>
 
                 <button class="secondary-button logout-button" id="logoutButton" type="button">Logout</button>
@@ -225,6 +225,142 @@
         </aside>
 
         <div class="dashboard-main">
+            <section class="setup-only setup-dashboard" aria-labelledby="setupTitle">
+                <header class="setup-hero">
+                    <div>
+                        <p class="eyebrow">Workspace setup</p>
+                        <h2 id="setupTitle">Welcome back, <span id="setupCurrentName">there</span></h2>
+                        <p class="dashboard-subtitle">
+                            Set up your FieldProof workspace. Create your company, then start documenting crews,
+                            jobs, and proof-of-work reports.
+                        </p>
+                    </div>
+                    <span class="setup-step-badge">Step 1 of 4</span>
+                </header>
+
+                <section class="setup-layout" aria-label="Workspace setup steps">
+                    <article class="dashboard-card setup-primary-card" data-organization-panel>
+                        <p class="eyebrow">Start here</p>
+                        <h3>Create your first organization</h3>
+                        <p>This is the company workspace where crews, jobs, photos, notes, and reports will live.</p>
+
+                        <form class="organization-form" data-organization-form>
+                            <label for="setupOrganizationName">Organization name</label>
+                            <div class="inline-form-row">
+                                <input id="setupOrganizationName" name="name" type="text" maxlength="150" placeholder="e.g. Arvizu Roofing LLC" required>
+                                <button class="primary-button" type="submit">Create organization</button>
+                            </div>
+                        </form>
+
+                        <p class="status-message" data-organization-message role="status" aria-live="polite"></p>
+
+                        <ul class="organization-list" data-organization-list></ul>
+                    </article>
+
+                    <article class="dashboard-card setup-progress-card">
+                        <p class="eyebrow">Setup progress</p>
+                        <h3>1 of 4 steps ready</h3>
+
+                        <ol class="setup-step-list">
+                            <li class="active">
+                                <span>1</span>
+                                <div>
+                                    <strong>Create organization</strong>
+                                    <p>Create your company workspace.</p>
+                                </div>
+                            </li>
+                            <li>
+                                <span>2</span>
+                                <div>
+                                    <strong>Add crew members</strong>
+                                    <p>Invite your team to collaborate.</p>
+                                </div>
+                            </li>
+                            <li>
+                                <span>3</span>
+                                <div>
+                                    <strong>Create first work entry</strong>
+                                    <p>Document a job with notes and photos.</p>
+                                </div>
+                            </li>
+                            <li>
+                                <span>4</span>
+                                <div>
+                                    <strong>Generate first report</strong>
+                                    <p>Turn field work into proof.</p>
+                                </div>
+                            </li>
+                        </ol>
+                    </article>
+                </section>
+
+                <section class="setup-metrics" aria-label="Locked workspace metrics">
+                    <article class="metric-card setup-metric-card">
+                        <span class="metric-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M4 21V7h7v14"/><path d="M13 21V3h7v18"/><path d="M7 11h1"/><path d="M7 15h1"/><path d="M16 7h1"/><path d="M16 11h1"/><path d="M16 15h1"/></svg>
+                        </span>
+                        <div class="metric-copy">
+                            <span>Organizations</span>
+                            <strong>0</strong>
+                            <p>Create your first workspace</p>
+                        </div>
+                    </article>
+
+                    <article class="metric-card setup-metric-card">
+                        <span class="metric-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M3 21a7 7 0 0 1 14 0"/><path d="M17 8a3 3 0 0 1 0 6"/><path d="M20 21a5 5 0 0 0-3-4.6"/></svg>
+                        </span>
+                        <div class="metric-copy">
+                            <span>Crews</span>
+                            <strong>0</strong>
+                            <p>Add crew after setup</p>
+                        </div>
+                    </article>
+
+                    <article class="metric-card setup-metric-card">
+                        <span class="metric-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M8 4h8l2 2v14H6V6l2-2Z"/><path d="M9 12l2 2 4-5"/><path d="M9 4v3h6V4"/></svg>
+                        </span>
+                        <div class="metric-copy">
+                            <span>Work Entries</span>
+                            <strong>0</strong>
+                            <p>Start after selecting org</p>
+                        </div>
+                    </article>
+
+                    <article class="metric-card setup-metric-card">
+                        <span class="metric-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z"/><path d="M14 3v5h5"/><path d="M10 13h6"/><path d="M10 17h6"/></svg>
+                        </span>
+                        <div class="metric-copy">
+                            <span>Reports</span>
+                            <strong>0</strong>
+                            <p>Reports unlock after jobs</p>
+                        </div>
+                    </article>
+                </section>
+
+                <section class="setup-secondary-grid">
+                    <article class="dashboard-card setup-benefits-card">
+                        <h3>Why organizations matter</h3>
+                        <ul class="setup-benefit-list">
+                            <li>Keep crews, jobs, and reports organized.</li>
+                            <li>Build trust with professional documentation.</li>
+                            <li>Access proof history in one place.</li>
+                        </ul>
+                    </article>
+
+                    <article class="dashboard-card setup-next-card">
+                        <h3>What happens next?</h3>
+                        <p>
+                            Once your organization is created, you can add crews, create work entries, and generate
+                            proof reports for completed jobs.
+                        </p>
+                    </article>
+                </section>
+            </section>
+
+            <section class="dashboard-only operating-dashboard" aria-labelledby="workspaceTitle">
             <header class="dashboard-header">
                 <div>
                     <p class="eyebrow">Dashboard</p>
@@ -247,7 +383,7 @@
                             <strong id="profileName">-</strong>
                             <span id="currentRole">-</span>
                         </span>
-                        <span class="profile-chevron" aria-hidden="true">⌄</span>
+                        <span class="profile-chevron" aria-hidden="true">&#8964;</span>
                     </button>
                 </div>
             </header>
@@ -262,7 +398,7 @@
                         <strong id="organizationCount">0</strong>
                         <p>Active</p>
                     </div>
-                    <a class="metric-link" href="#organizationList">View all organizations <span aria-hidden="true">→</span></a>
+                    <a class="metric-link" href="#workspaceTitle">View all organizations <span aria-hidden="true">&rarr;</span></a>
                 </article>
 
                 <article class="metric-card">
@@ -274,7 +410,7 @@
                         <strong>0</strong>
                         <p>Members</p>
                     </div>
-                    <a class="metric-link" href="#workspaceTitle">View all crews <span aria-hidden="true">→</span></a>
+                    <a class="metric-link" href="#workspaceTitle">View all crews <span aria-hidden="true">&rarr;</span></a>
                 </article>
 
                 <article class="metric-card">
@@ -286,7 +422,7 @@
                         <strong>0</strong>
                         <p>This month</p>
                     </div>
-                    <a class="metric-link" href="#workspaceTitle">View all work entries <span aria-hidden="true">→</span></a>
+                    <a class="metric-link" href="#workspaceTitle">View all work entries <span aria-hidden="true">&rarr;</span></a>
                 </article>
 
                 <article class="metric-card">
@@ -298,7 +434,7 @@
                         <strong>0</strong>
                         <p>Generated</p>
                     </div>
-                    <a class="metric-link" href="#workspaceTitle">View all reports <span aria-hidden="true">→</span></a>
+                    <a class="metric-link" href="#workspaceTitle">View all reports <span aria-hidden="true">&rarr;</span></a>
                 </article>
             </section>
 
@@ -309,36 +445,64 @@
                     <p id="currentOrganizationHelp">Select an organization before creating work entries.</p>
                 </article>
 
-                <article class="dashboard-card organization-panel">
-                    <div class="card-heading-row">
-                        <div>
-                            <h3>Organizations</h3>
-                            <p class="panel-copy">Create or select the company this browser session is working inside.</p>
-                        </div>
-                    </div>
+                <article class="dashboard-card organization-management-panel" data-organization-panel>
+                    <h3>Organizations</h3>
+                    <p class="panel-copy">Create or select the company workspace where job records should be saved.</p>
 
-                    <form class="organization-form" id="organizationForm">
-                        <label for="organizationName">Organization name</label>
+                    <form class="organization-form" data-organization-form>
+                        <label for="dashboardOrganizationName">Organization name</label>
                         <div class="inline-form-row">
-                            <input id="organizationName" name="name" type="text" maxlength="150" required>
-                            <button class="primary-button" type="submit">Create</button>
+                            <input id="dashboardOrganizationName" name="name" type="text" maxlength="150" placeholder="e.g. Arvizu Roofing LLC" required>
+                            <button class="primary-button" type="submit">Create organization</button>
                         </div>
                     </form>
 
-                    <p class="status-message" id="organizationMessage" role="status" aria-live="polite"></p>
+                    <p class="status-message" data-organization-message role="status" aria-live="polite"></p>
 
-                    <ul class="organization-list" id="organizationList"></ul>
+                    <ul class="organization-list" data-organization-list></ul>
+                </article>
+
+                <article class="dashboard-card quick-actions-panel">
+                    <h3>Quick actions</h3>
+                    <div class="quick-action-list">
+                        <button class="quick-action" type="button">
+                            <span>+</span>
+                            <div>
+                                <strong>Create work entry</strong>
+                                <p>Document a new job in the field.</p>
+                            </div>
+                        </button>
+                        <button class="quick-action" type="button">
+                            <span>
+                                <svg viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M3 21a7 7 0 0 1 14 0"/></svg>
+                            </span>
+                            <div>
+                                <strong>Add crew member</strong>
+                                <p>Invite someone to your team.</p>
+                            </div>
+                        </button>
+                        <button class="quick-action" type="button">
+                            <span>
+                                <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z"/><path d="M14 3v5h5"/></svg>
+                            </span>
+                            <div>
+                                <strong>Generate report</strong>
+                                <p>Create a proof-of-work report.</p>
+                            </div>
+                        </button>
+                    </div>
                 </article>
 
                 <article class="dashboard-card next-panel">
-                    <h3>Next recommended step</h3>
-                    <p>Connect the WorkEntry API to this dashboard so users can create and view job documentation.</p>
+                    <h3>What happens next?</h3>
+                    <p>Add crews, document work entries, and turn completed jobs into proof reports your business can trust.</p>
                 </article>
 
                 <article class="dashboard-card work-entry-preview">
                     <h3>Recent work entries</h3>
-                    <p>No work entries shown yet. This becomes real after the frontend connects to the WorkEntry endpoints.</p>
+                    <p>No work entries yet. Your documented jobs will appear here after the first work entry is created.</p>
                 </article>
+            </section>
             </section>
         </div>
     </section>
