@@ -12,27 +12,42 @@ const modeTabs = document.querySelectorAll(".mode-tab");
 const currentName = document.querySelector("#currentName");
 const currentEmail = document.querySelector("#currentEmail");
 const currentRole = document.querySelector("#currentRole");
+const dashboardSubtitle = document.querySelector("#dashboardSubtitle");
 const currentOrganizationName = document.querySelector("#currentOrganizationName");
 const currentOrganizationHelp = document.querySelector("#currentOrganizationHelp");
+const workspaceCardName = document.querySelector("#workspaceCardName");
+const workspaceRoleBadge = document.querySelector("#workspaceRoleBadge");
+const workspaceStatusBadge = document.querySelector("#workspaceStatusBadge");
+const workspaceMemberCount = document.querySelector("#workspaceMemberCount");
+const workspaceEntryCount = document.querySelector("#workspaceEntryCount");
+const workspaceReportCount = document.querySelector("#workspaceReportCount");
+const workspaceCreatedMeta = document.querySelector("#workspaceCreatedMeta");
+const workspaceIdMeta = document.querySelector("#workspaceIdMeta");
 const organizationForms = document.querySelectorAll("[data-organization-form]");
 const organizationMessages = document.querySelectorAll("[data-organization-message]");
 const organizationLists = document.querySelectorAll("[data-organization-list]");
 const organizationPanels = document.querySelectorAll("[data-organization-panel]");
+const organizationFocusControls = document.querySelectorAll("[data-focus-organization-list]");
+const workspaceCreateToggle = document.querySelector("#workspaceCreateToggle");
+const workspaceCreateForm = document.querySelector("#createWorkspaceForm");
+const workspaceToast = document.querySelector("#workspaceToast");
 const organizationCount = document.querySelector("#organizationCount");
 const profileName = document.querySelector("#profileName");
 const profileInitials = document.querySelector("#profileInitials");
 const setupCurrentName = document.querySelector("#setupCurrentName");
 const sidebarUserName = document.querySelector("#sidebarUserName");
 const sidebarUserInitials = document.querySelector("#sidebarUserInitials");
-const sidebarCurrentOrgCard = document.querySelector(".sidebar-current-org");
+const sidebarCurrentOrgCard = document.querySelector(".sidebar-account-card");
 const sidebarOrganizationName = document.querySelector("#sidebarOrganizationName");
 const sidebarOrganizationStatus = document.querySelector("#sidebarOrganizationStatus");
 const sidebarOrganizationAction = document.querySelector("#sidebarOrganizationAction");
+const headerOrganizationAction = document.querySelector("#headerOrganizationAction");
 const authModeControls = document.querySelectorAll("[data-mode]");
 const authAlternates = document.querySelectorAll(".auth-alternate");
 
 let currentUserId = null;
 let currentOrganizations = [];
+let workspaceToastTimer = null;
 
 authModeControls.forEach((control) => {
     control.addEventListener("click", () => {
@@ -114,7 +129,24 @@ organizationForms.forEach((organizationForm) => {
         setOrganizationMessage("");
 
         const formData = new FormData(organizationForm);
-        const name = String(formData.get("name") || "");
+        const name = String(formData.get("name") || "").trim();
+        const submitButton = organizationForm.querySelector('button[type="submit"]');
+        const originalButtonContent = submitButton ? submitButton.innerHTML : "";
+
+        if (name.length < 2) {
+            setOrganizationMessage("Workspace name must contain at least 2 characters.", "error");
+            return;
+        }
+
+        if (name.length > 100) {
+            setOrganizationMessage("Workspace name cannot exceed 100 characters.", "error");
+            return;
+        }
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = "Creating...";
+        }
 
         try {
             const organization = await requestJson("/organizations", {
@@ -127,19 +159,44 @@ organizationForms.forEach((organizationForm) => {
 
             setSelectedOrganizationId(organization.id);
             organizationForm.reset();
-            setOrganizationMessage("Organization created and selected.", "success");
+            collapseWorkspaceCreateForm();
+            showWorkspaceToast("Workspace created and selected.");
             await loadOrganizations();
         } catch (error) {
             setOrganizationMessage(error.message, "error");
+        } finally {
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonContent;
+            }
         }
     });
 });
+
+if (workspaceCreateToggle && workspaceCreateForm) {
+    workspaceCreateToggle.addEventListener("click", () => {
+        const expanded = workspaceCreateToggle.getAttribute("aria-expanded") === "true";
+        setWorkspaceCreateExpanded(!expanded);
+    });
+}
 
 if (sidebarOrganizationAction) {
     sidebarOrganizationAction.addEventListener("click", () => {
         focusOrganizationPanel();
     });
 }
+
+if (headerOrganizationAction) {
+    headerOrganizationAction.addEventListener("click", () => {
+        focusOrganizationPanel();
+    });
+}
+
+organizationFocusControls.forEach((control) => {
+    control.addEventListener("click", () => {
+        focusOrganizationPanel();
+    });
+});
 
 async function requestJson(url, options = {}) {
     const response = await fetch(url, {
@@ -211,10 +268,11 @@ async function loadCurrentUser() {
 
 async function loadOrganizations() {
     try {
-        const organizations = await requestJson("/organizations", {
+        const organizationsResponse = await requestJson("/organizations", {
             method: "GET",
             headers: authHeaders()
         });
+        const organizations = dedupeOrganizationsById(organizationsResponse);
 
         currentOrganizations = organizations;
 
@@ -229,6 +287,18 @@ async function loadOrganizations() {
     } catch (error) {
         setOrganizationMessage(error.message, "error");
     }
+}
+
+function dedupeOrganizationsById(organizations) {
+    const organizationMap = new Map();
+
+    organizations.forEach((organization) => {
+        if (organization && organization.id !== null && organization.id !== undefined) {
+            organizationMap.set(String(organization.id), organization);
+        }
+    });
+
+    return Array.from(organizationMap.values());
 }
 
 function renderOrganizations(organizations) {
@@ -249,43 +319,81 @@ function renderOrganizationList(organizationList, organizations) {
         return;
     }
 
+    if (selectedOrganizationId && organizations.every((organization) => String(organization.id) === selectedOrganizationId)) {
+        const item = document.createElement("li");
+        item.className = "organization-empty";
+        item.textContent = "No other workspaces yet.";
+        organizationList.appendChild(item);
+        return;
+    }
+
     organizations.forEach((organization) => {
         const organizationId = String(organization.id);
         const isSelected = selectedOrganizationId === organizationId;
+
+        if (isSelected) {
+            return;
+        }
+
         const item = document.createElement("li");
         item.className = "organization-item";
 
         const button = document.createElement("button");
         button.className = "organization-select-button";
         button.type = "button";
-        button.setAttribute("aria-pressed", String(isSelected));
+        button.setAttribute("aria-label", `Select ${organization.name || "workspace"}`);
 
         if (isSelected) {
             button.classList.add("selected");
         }
 
+        const icon = document.createElement("span");
+        icon.className = "organization-row-icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.innerHTML = isSelected
+            ? '<svg viewBox="0 0 24 24"><path d="m7 12 3 3 7-7"/><circle cx="12" cy="12" r="9"/></svg>'
+            : '<svg viewBox="0 0 24 24"><path d="M4 21V7h7v14"/><path d="M13 21V3h7v18"/><path d="M7 11h1"/><path d="M7 15h1"/><path d="M16 7h1"/><path d="M16 11h1"/><path d="M16 15h1"/></svg>';
+
+        const copy = document.createElement("span");
+        copy.className = "organization-row-copy";
+
         const name = document.createElement("span");
         name.className = "organization-name";
         name.textContent = organization.name || "Unnamed organization";
 
-        const details = document.createElement("span");
-        details.className = "organization-details";
-        details.textContent = [
-            organization.role || "-",
-            organization.membershipStatus || "-"
-        ].join(" - ");
+        const badgeRow = document.createElement("span");
+        badgeRow.className = "organization-badge-row";
+
+        const roleBadge = document.createElement("span");
+        roleBadge.className = "organization-mini-badge role-badge";
+        roleBadge.textContent = organization.role || "-";
+
+        const statusBadge = document.createElement("span");
+        statusBadge.className = "organization-mini-badge status-badge";
+        statusBadge.textContent = organization.membershipStatus || "-";
+
+        badgeRow.append(roleBadge, statusBadge);
+        copy.append(name, badgeRow);
 
         const badge = document.createElement("span");
         badge.className = "organization-selected-badge";
-        badge.textContent = isSelected ? "Selected" : "Select";
+        badge.textContent = "Select";
 
-        button.append(name, details, badge);
+        if (isSelected) {
+            const menu = document.createElement("span");
+            menu.className = "organization-more";
+            menu.setAttribute("aria-hidden", "true");
+            menu.textContent = "⋮";
+            button.append(icon, copy, menu);
+        } else {
+            button.append(icon, copy, badge);
+        }
 
         button.addEventListener("click", () => {
             setSelectedOrganizationId(organization.id);
             renderSelectedOrganization(currentOrganizations);
             renderOrganizations(currentOrganizations);
-            setOrganizationMessage(`${organization.name || "Organization"} selected.`, "success");
+            showWorkspaceToast(`Workspace switched to ${organization.name || "selected workspace"}.`);
         });
 
         item.appendChild(button);
@@ -328,15 +436,66 @@ function focusOrganizationPanel() {
 
     const organizationInput = organizationPanel.querySelector('input[name="name"]');
 
-    if (organizationInput) {
+    if (organizationInput && !organizationInput.closest("[hidden]")) {
         organizationInput.focus({
             preventScroll: true
         });
+    } else {
+        const organizationButton = organizationPanel.querySelector(".organization-select-button");
+
+        if (organizationButton) {
+            organizationButton.focus({
+                preventScroll: true
+            });
+        }
     }
 
     window.setTimeout(() => {
         organizationPanel.classList.remove("is-highlighted");
     }, 1200);
+}
+
+function setWorkspaceCreateExpanded(expanded) {
+    if (!workspaceCreateToggle || !workspaceCreateForm) {
+        return;
+    }
+
+    workspaceCreateToggle.setAttribute("aria-expanded", String(expanded));
+    workspaceCreateForm.hidden = !expanded;
+
+    if (expanded) {
+        const input = workspaceCreateForm.querySelector('input[name="name"]');
+
+        if (input) {
+            input.focus({
+                preventScroll: true
+            });
+        }
+    }
+}
+
+function collapseWorkspaceCreateForm() {
+    setWorkspaceCreateExpanded(false);
+}
+
+function showWorkspaceToast(message) {
+    if (!workspaceToast) {
+        return;
+    }
+
+    workspaceToast.textContent = message;
+    workspaceToast.hidden = false;
+    workspaceToast.classList.add("is-visible");
+
+    if (workspaceToastTimer) {
+        window.clearTimeout(workspaceToastTimer);
+    }
+
+    workspaceToastTimer = window.setTimeout(() => {
+        workspaceToast.classList.remove("is-visible");
+        workspaceToast.hidden = true;
+        workspaceToast.textContent = "";
+    }, 3000);
 }
 
 function renderWorkspaceState(organizations) {
@@ -352,12 +511,21 @@ function clearWorkspaceState() {
 
 function renderCurrentUser(user) {
     const displayName = user.name || "User";
+    const firstName = getFirstName(displayName);
     const displayRole = user.role || "-";
     const initials = getInitials(displayName);
 
-    currentName.textContent = displayName;
-    currentEmail.textContent = user.email || "-";
-    currentRole.textContent = displayRole;
+    if (currentName) {
+        currentName.textContent = firstName;
+    }
+
+    if (currentEmail) {
+        currentEmail.textContent = user.email || "-";
+    }
+
+    if (currentRole) {
+        currentRole.textContent = displayRole;
+    }
 
     if (profileName) {
         profileName.textContent = displayName;
@@ -390,6 +558,13 @@ function getInitials(name) {
         .join("") || "FP";
 }
 
+function getFirstName(name) {
+    return name
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean)[0] || "there";
+}
+
 function renderSelectedOrganization(organizations) {
     const selectedOrganizationId = getSelectedOrganizationId();
     const selectedOrganization = organizations.find((organization) => {
@@ -404,6 +579,14 @@ function renderSelectedOrganization(organizations) {
             ? "Select a company workspace before creating work entries."
             : "Create your first company workspace to start documenting jobs, crews, and proof-of-work reports.";
 
+        if (dashboardSubtitle) {
+            dashboardSubtitle.textContent = hasOrganizations
+                ? "Select a company workspace to see job activity, crews, and reports."
+                : "Create your first company workspace to start documenting jobs.";
+        }
+
+        renderWorkspaceCard(null);
+
         if (sidebarCurrentOrgCard) {
             sidebarCurrentOrgCard.classList.remove("has-organization");
         }
@@ -413,38 +596,123 @@ function renderSelectedOrganization(organizations) {
         }
 
         if (sidebarOrganizationStatus) {
-            sidebarOrganizationStatus.textContent = "Not selected";
+            sidebarOrganizationStatus.textContent = hasOrganizations ? "Select workspace" : "Setup";
         }
 
         if (sidebarOrganizationAction) {
-            sidebarOrganizationAction.textContent = hasOrganizations ? "Select organization" : "Create organization";
+            sidebarOrganizationAction.setAttribute("aria-label", hasOrganizations ? "Select organization" : "Create organization");
+        }
+
+        if (headerOrganizationAction) {
+            headerOrganizationAction.setAttribute("aria-label", hasOrganizations ? "Select organization" : "Create organization");
         }
 
         return;
     }
 
-    currentOrganizationName.textContent = selectedOrganization.name || "Unnamed organization";
+    const selectedOrganizationName = selectedOrganization.name || "Unnamed organization";
+
+    currentOrganizationName.textContent = selectedOrganizationName;
     currentOrganizationHelp.textContent = [
-        `Organization ID: ${selectedOrganization.id}`,
-        `Role: ${selectedOrganization.role || "-"}`,
-        `Membership: ${selectedOrganization.membershipStatus || "-"}`
+        `Selected workspace`,
+        `${selectedOrganization.role || "-"} access`,
+        `${selectedOrganization.membershipStatus || "-"} membership`
     ].join(" - ");
+
+    if (dashboardSubtitle) {
+        dashboardSubtitle.textContent = `Here's what's happening with ${selectedOrganizationName} today.`;
+    }
+
+    renderWorkspaceCard(selectedOrganization);
 
     if (sidebarCurrentOrgCard) {
         sidebarCurrentOrgCard.classList.add("has-organization");
     }
 
     if (sidebarOrganizationName) {
-        sidebarOrganizationName.textContent = selectedOrganization.name || "Unnamed organization";
+        sidebarOrganizationName.textContent = selectedOrganizationName;
     }
 
     if (sidebarOrganizationStatus) {
-        sidebarOrganizationStatus.textContent = selectedOrganization.membershipStatus || "-";
+        sidebarOrganizationStatus.textContent = formatMembershipRole(selectedOrganization.role);
     }
 
     if (sidebarOrganizationAction) {
-        sidebarOrganizationAction.textContent = "Switch organization";
+        sidebarOrganizationAction.setAttribute("aria-label", "Switch organization");
     }
+
+    if (headerOrganizationAction) {
+        headerOrganizationAction.setAttribute("aria-label", "Switch organization");
+    }
+}
+
+function renderWorkspaceCard(organization) {
+    if (!workspaceCardName) {
+        return;
+    }
+
+    if (!organization) {
+        workspaceCardName.textContent = "No workspace selected";
+        setOptionalText(workspaceRoleBadge, "Owner");
+        setOptionalText(workspaceStatusBadge, "Active");
+        setOptionalText(workspaceMemberCount, "0");
+        setOptionalText(workspaceEntryCount, "0");
+        setOptionalText(workspaceReportCount, "0");
+        setOptionalText(workspaceCreatedMeta, "Created date not available yet");
+        setOptionalText(workspaceIdMeta, "-");
+        return;
+    }
+
+    workspaceCardName.textContent = organization.name || "Unnamed organization";
+    setOptionalText(workspaceRoleBadge, organization.role || "Member");
+    setOptionalText(workspaceStatusBadge, organization.membershipStatus || "Active");
+    setOptionalText(workspaceMemberCount, "1");
+    setOptionalText(workspaceEntryCount, "0");
+    setOptionalText(workspaceReportCount, "0");
+    setOptionalText(workspaceCreatedMeta, formatCreatedDate(organization.createdAt));
+    setOptionalText(workspaceIdMeta, organization.id || "-");
+}
+
+function setOptionalText(element, text) {
+    if (element) {
+        element.textContent = text;
+    }
+}
+
+function formatCreatedDate(createdAt) {
+    if (!createdAt) {
+        return "Created date not available yet";
+    }
+
+    const createdDate = new Date(createdAt);
+
+    if (Number.isNaN(createdDate.getTime())) {
+        return "Created date not available yet";
+    }
+
+    return `Created ${createdDate.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+    })}`;
+}
+
+function formatMembershipRole(role) {
+    if (!role) {
+        return "Member";
+    }
+
+    const normalizedRole = String(role).trim().toUpperCase();
+
+    if (normalizedRole === "OWNER") {
+        return "Admin";
+    }
+
+    return normalizedRole
+        .toLowerCase()
+        .replace(/(^|_)([a-z])/g, (_, separator, letter) => {
+            return `${separator ? " " : ""}${letter.toUpperCase()}`;
+        });
 }
 
 function selectedOrganizationStorageKey() {

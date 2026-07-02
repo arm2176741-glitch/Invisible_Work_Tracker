@@ -263,6 +263,194 @@ class AuthIntegrationTests {
                 .andExpect(jsonPath("$.passwordHash").doesNotExist());
     }
 
+    @Test
+    void registerStoresPasswordAsHashNotPlainText() throws Exception {
+        registerUser("hashed-password@example.com", "Password123!", "Hashed Password User");
+
+        User user = userRepository.findByEmail("hashed-password@example.com")
+                .orElseThrow();
+
+        assertThat(user.getPasswordHash()).isNotEqualTo("Password123!");
+        assertThat(user.getPasswordHash()).startsWith("$2");
+    }
+
+    @Test
+    void loginAcceptsEmailCaseInsensitive() throws Exception {
+        registerUser("case-login@example.com", "Password123!", "Case Login User");
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("CASE-LOGIN@EXAMPLE.COM", "Password123!")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Login successful"))
+                .andExpect(jsonPath("$.token").isString());
+    }
+
+    @Test
+    void registerStoresEmailLowercase() throws Exception {
+        registerUser("StoredCase@Example.COM", "Password123!", "Stored Case User");
+
+        assertThat(userRepository.findByEmail("storedcase@example.com")).isPresent();
+        assertThat(userRepository.findByEmail("StoredCase@Example.COM")).isEmpty();
+    }
+
+    @Test
+    void loginStoresHashedSessionTokenOnly() throws Exception {
+        registerUser("token-storage@example.com", "Password123!", "Token Storage User");
+
+        MvcResult loginResult = mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("token-storage@example.com", "Password123!")))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String rawToken = extractToken(loginResult.getResponse().getContentAsString());
+
+        User user = userRepository.findByEmail("token-storage@example.com")
+                .orElseThrow();
+
+        Session session = sessionRepository.findByUserAndValidTrue(user)
+                .orElseThrow();
+
+        assertThat(session.getToken()).isNotEqualTo(rawToken);
+        assertThat(session.getToken()).hasSizeGreaterThan(30);
+    }
+
+    @Test
+    void expiredSessionIsRejectedAndMarkedInvalid() throws Exception {
+        registerUser("expired-session@example.com", "Password123!", "Expired Session User");
+
+        MvcResult loginResult = mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("expired-session@example.com", "Password123!")))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String token = extractToken(loginResult.getResponse().getContentAsString());
+
+        User user = userRepository.findByEmail("expired-session@example.com")
+                .orElseThrow();
+
+        Session session = sessionRepository.findByUserAndValidTrue(user)
+                .orElseThrow();
+        session.setExpiresAt(LocalDateTime.now().minusMinutes(1));
+        sessionRepository.save(session);
+
+        mockMvc.perform(get("/auth/me")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+
+        Session expiredSession = sessionRepository.findById(session.getId())
+                .orElseThrow();
+
+        assertThat(expiredSession.isValid()).isFalse();
+    }
+
+    @Test
+    void disabledAccountCannotLogin() throws Exception {
+        registerUser("disabled@example.com", "Password123!", "Disabled User");
+
+        User user = userRepository.findByEmail("disabled@example.com")
+                .orElseThrow();
+        user.setActive(false);
+        userRepository.save(user);
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("disabled@example.com", "Password123!")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+    }
+
+    @Test
+    void successfulLoginResetsFailedAttemptState() throws Exception {
+        registerUser("reset-attempts@example.com", "Password123!", "Reset Attempts User");
+
+        for (int attempt = 0; attempt < 2; attempt++) {
+            mockMvc.perform(post("/auth/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("reset-attempts@example.com", "WrongPassword123!")))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        User userAfterFailures = userRepository.findByEmail("reset-attempts@example.com")
+                .orElseThrow();
+
+        assertThat(userAfterFailures.getFailedAttempts()).isEqualTo(2);
+        assertThat(userAfterFailures.getLastFailedLogin()).isNotNull();
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("reset-attempts@example.com", "Password123!")))
+                .andExpect(status().isOk());
+
+        User userAfterSuccess = userRepository.findByEmail("reset-attempts@example.com")
+                .orElseThrow();
+
+        assertThat(userAfterSuccess.getFailedAttempts()).isZero();
+        assertThat(userAfterSuccess.getLastFailedLogin()).isNull();
+        assertThat(userAfterSuccess.getAccountUnlockedUntil()).isNull();
+        assertThat(userAfterSuccess.getLastLogin()).isNotNull();
+    }
+
+    @Test
+    void loginSucceedsAfterExpiredLockoutWindow() throws Exception {
+        registerUser("expired-lockout@example.com", "Password123!", "Expired Lockout User");
+
+        User user = userRepository.findByEmail("expired-lockout@example.com")
+                .orElseThrow();
+        user.setFailedAttempts(5);
+        user.setAccountUnlockedUntil(LocalDateTime.now().minusMinutes(1));
+        userRepository.save(user);
+
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("expired-lockout@example.com", "Password123!")))
+                .andExpect(status().isOk());
+
+        User refreshedUser = userRepository.findByEmail("expired-lockout@example.com")
+                .orElseThrow();
+
+        assertThat(refreshedUser.getFailedAttempts()).isZero();
+        assertThat(refreshedUser.getAccountUnlockedUntil()).isNull();
+    }
+
+    @Test
+    void logoutRejectsUnknownBearerToken() throws Exception {
+        mockMvc.perform(post("/auth/logout")
+                        .header("Authorization", "Bearer unknown-token"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.status").value(401));
+    }
+
+    @Test
+    void logoutRejectsMalformedAuthorizationHeader() throws Exception {
+        mockMvc.perform(post("/auth/logout")
+                        .header("Authorization", "Token not-a-bearer-token"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void loginRejectsMalformedEmailBeforeCheckingCredentials() throws Exception {
+        mockMvc.perform(post("/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson("not-an-email", "Password123!")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
+    @Test
+    void registerRejectsNameLongerThanOneHundredCharacters() throws Exception {
+        String longName = "A".repeat(101);
+
+        mockMvc.perform(post("/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(registerJson("long-name@example.com", "Password123!", longName)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400));
+    }
+
     private void registerUser(String email, String password, String name) throws Exception {
         mockMvc.perform(post("/auth/register")
                         .contentType(MediaType.APPLICATION_JSON)

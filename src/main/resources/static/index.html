@@ -12,8 +12,14 @@
         <div class="auth-visual">
             <div class="auth-visual-content">
                 <div class="auth-visual-brand">
-                    <div class="brand-mark" aria-hidden="true">
-                        <span></span>
+                    <div class="brand-mark fieldproof-logo-mark" aria-hidden="true">
+                        <svg viewBox="0 0 64 64">
+                            <path class="logo-gold logo-shape" d="M8 58V25L32 8l26 17v13L32 22 20 31v27H8Z"></path>
+                            <path class="logo-detail" d="M8 47 20 39"></path>
+                            <path class="logo-white logo-shape logo-f-stem" d="M24 58V35l10-7v30H24Z"></path>
+                            <path class="logo-white logo-shape logo-f-top" d="M33 28 58 42v12L33 40Z"></path>
+                            <path class="logo-white logo-shape logo-f-mid" d="M33 45h22v10H33Z"></path>
+                        </svg>
                     </div>
                     <span>FieldProof</span>
                 </div>
@@ -152,9 +158,18 @@
     <section class="workspace-panel hidden" id="workspaceView" aria-labelledby="workspaceTitle">
         <aside class="dashboard-sidebar" aria-label="Workspace navigation">
             <div class="sidebar-brand">
-                <span class="brand-mark sidebar-logo-mark">L</span>
+                <span class="brand-mark fieldproof-logo-mark sidebar-logo-mark" aria-hidden="true">
+                    <svg viewBox="0 0 64 64">
+                        <path class="logo-gold logo-shape" d="M8 58V25L32 8l26 17v13L32 22 20 31v27H8Z"></path>
+                        <path class="logo-detail" d="M8 47 20 39"></path>
+                        <path class="logo-white logo-shape logo-f-stem" d="M24 58V35l10-7v30H24Z"></path>
+                        <path class="logo-white logo-shape logo-f-top" d="M33 28 58 42v12L33 40Z"></path>
+                        <path class="logo-white logo-shape logo-f-mid" d="M33 45h22v10H33Z"></path>
+                    </svg>
+                </span>
                 <div>
                     <strong>FieldProof</strong>
+                    <span class="sidebar-brand-subtitle">Contractor ops dashboard</span>
                 </div>
             </div>
 
@@ -198,27 +213,23 @@
             </nav>
 
             <div class="sidebar-footer">
-                <div class="sidebar-user">
+                <button class="sidebar-account-card" id="sidebarOrganizationAction" type="button">
                     <span class="sidebar-user-avatar" id="sidebarUserInitials">AA</span>
-                    <div>
-                        <p id="sidebarUserName">-</p>
-                        <span id="currentEmail">-</span>
-                    </div>
+                    <span class="sidebar-account-copy">
+                        <strong id="sidebarOrganizationName">None selected</strong>
+                        <span id="sidebarUserName">-</span>
+                        <em id="sidebarOrganizationStatus">Not selected</em>
+                        <span class="visually-hidden" id="currentEmail">-</span>
+                    </span>
                     <span class="sidebar-chevron" aria-hidden="true">&#8964;</span>
-                </div>
-
-                <div class="sidebar-current-org">
-                    <span>Current organization</span>
-                    <strong id="sidebarOrganizationName">None selected</strong>
-                    <p><span class="status-dot" aria-hidden="true"></span><span id="sidebarOrganizationStatus">Not selected</span></p>
-                    <button class="sidebar-org-switch" id="sidebarOrganizationAction" type="button">Create organization</button>
-                </div>
+                </button>
 
                 <button class="sidebar-help-card" type="button">
                     <span class="sidebar-help-icon" aria-hidden="true">?</span>
                     <strong>Help &amp; Support</strong>
-                    <span aria-hidden="true">&nearr;</span>
                 </button>
+
+                <span class="sidebar-footer-divider" aria-hidden="true"></span>
 
                 <button class="secondary-button logout-button" id="logoutButton" type="button">Logout</button>
             </div>
@@ -247,7 +258,7 @@
                         <form class="organization-form" data-organization-form>
                             <label for="setupOrganizationName">Organization name</label>
                             <div class="inline-form-row">
-                                <input id="setupOrganizationName" name="name" type="text" maxlength="150" placeholder="e.g. Arvizu Roofing LLC" required>
+                                <input id="setupOrganizationName" name="name" type="text" maxlength="100" placeholder="e.g. Arvizu Roofing LLC" required>
                                 <button class="primary-button" type="submit">Create organization</button>
                             </div>
                         </form>
@@ -322,7 +333,7 @@
                             <svg viewBox="0 0 24 24"><path d="M8 4h8l2 2v14H6V6l2-2Z"/><path d="M9 12l2 2 4-5"/><path d="M9 4v3h6V4"/></svg>
                         </span>
                         <div class="metric-copy">
-                            <span>Work Entries</span>
+                            <span>Work entries</span>
                             <strong>0</strong>
                             <p>Start after selecting org</p>
                         </div>
@@ -361,152 +372,304 @@
             </section>
 
             <section class="dashboard-only operating-dashboard" aria-labelledby="workspaceTitle">
-            <header class="dashboard-header">
-                <div>
-                    <p class="eyebrow">Dashboard</p>
-                    <h2 id="workspaceTitle">Welcome back, <span id="currentName">-</span></h2>
-                    <p class="dashboard-subtitle">Capture the job. Prove the work.</p>
-                </div>
-
-                <div class="dashboard-profile-actions" aria-label="Profile actions">
-                    <button class="notification-button" type="button" aria-label="Notifications">
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/>
-                            <path d="M10 21h4"/>
-                        </svg>
-                        <span>2</span>
-                    </button>
-
-                    <button class="profile-menu-button" type="button">
-                        <span class="profile-initials" id="profileInitials">AA</span>
-                        <span class="profile-copy">
-                            <strong id="profileName">-</strong>
-                            <span id="currentRole">-</span>
-                        </span>
-                        <span class="profile-chevron" aria-hidden="true">&#8964;</span>
-                    </button>
-                </div>
-            </header>
-
-            <section class="dashboard-metrics" aria-label="Workspace metrics">
-                <article class="metric-card">
-                    <span class="metric-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><path d="M4 21V7h7v14"/><path d="M13 21V3h7v18"/><path d="M7 11h1"/><path d="M7 15h1"/><path d="M16 7h1"/><path d="M16 11h1"/><path d="M16 15h1"/></svg>
-                    </span>
-                    <div class="metric-copy">
-                        <span>Organizations</span>
-                        <strong id="organizationCount">0</strong>
-                        <p>Active</p>
+                <header class="dashboard-header operating-header">
+                    <div>
+                        <p class="eyebrow">Dashboard</p>
+                        <h2 id="workspaceTitle">Welcome back, <span id="currentName">-</span></h2>
+                        <p class="dashboard-subtitle" id="dashboardSubtitle">Here is what is happening in your selected company workspace.</p>
                     </div>
-                    <a class="metric-link" href="#workspaceTitle">View all organizations <span aria-hidden="true">&rarr;</span></a>
-                </article>
 
-                <article class="metric-card">
-                    <span class="metric-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M3 21a7 7 0 0 1 14 0"/><path d="M17 8a3 3 0 0 1 0 6"/><path d="M20 21a5 5 0 0 0-3-4.6"/></svg>
-                    </span>
-                    <div class="metric-copy">
-                        <span>Crews</span>
-                        <strong>0</strong>
-                        <p>Members</p>
-                    </div>
-                    <a class="metric-link" href="#workspaceTitle">View all crews <span aria-hidden="true">&rarr;</span></a>
-                </article>
-
-                <article class="metric-card">
-                    <span class="metric-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><path d="M8 4h8l2 2v14H6V6l2-2Z"/><path d="M9 12l2 2 4-5"/><path d="M9 4v3h6V4"/></svg>
-                    </span>
-                    <div class="metric-copy">
-                        <span>Work Entries</span>
-                        <strong>0</strong>
-                        <p>This month</p>
-                    </div>
-                    <a class="metric-link" href="#workspaceTitle">View all work entries <span aria-hidden="true">&rarr;</span></a>
-                </article>
-
-                <article class="metric-card">
-                    <span class="metric-icon" aria-hidden="true">
-                        <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z"/><path d="M14 3v5h5"/><path d="M10 13h6"/><path d="M10 17h6"/></svg>
-                    </span>
-                    <div class="metric-copy">
-                        <span>Reports</span>
-                        <strong>0</strong>
-                        <p>Generated</p>
-                    </div>
-                    <a class="metric-link" href="#workspaceTitle">View all reports <span aria-hidden="true">&rarr;</span></a>
-                </article>
-            </section>
-
-            <section class="dashboard-grid">
-                <article class="dashboard-card current-organization-panel" aria-labelledby="currentOrganizationTitle">
-                    <p class="eyebrow" id="currentOrganizationTitle">Current organization</p>
-                    <h3 id="currentOrganizationName">None selected</h3>
-                    <p id="currentOrganizationHelp">Select an organization before creating work entries.</p>
-                </article>
-
-                <article class="dashboard-card organization-management-panel" data-organization-panel>
-                    <h3>Organizations</h3>
-                    <p class="panel-copy">Create or select the company workspace where job records should be saved.</p>
-
-                    <form class="organization-form" data-organization-form>
-                        <label for="dashboardOrganizationName">Organization name</label>
-                        <div class="inline-form-row">
-                            <input id="dashboardOrganizationName" name="name" type="text" maxlength="150" placeholder="e.g. Arvizu Roofing LLC" required>
-                            <button class="primary-button" type="submit">Create organization</button>
-                        </div>
-                    </form>
-
-                    <p class="status-message" data-organization-message role="status" aria-live="polite"></p>
-
-                    <ul class="organization-list" data-organization-list></ul>
-                </article>
-
-                <article class="dashboard-card quick-actions-panel">
-                    <h3>Quick actions</h3>
-                    <div class="quick-action-list">
-                        <button class="quick-action" type="button">
-                            <span>+</span>
-                            <div>
-                                <strong>Create work entry</strong>
-                                <p>Document a new job in the field.</p>
-                            </div>
+                    <div class="dashboard-profile-actions" aria-label="Workspace actions">
+                        <button class="header-icon-button search-button" type="button" aria-label="Search">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="m21 21-4.3-4.3"/>
+                                <path d="M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"/>
+                            </svg>
                         </button>
-                        <button class="quick-action" type="button">
-                            <span>
-                                <svg viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M3 21a7 7 0 0 1 14 0"/></svg>
+
+                        <button class="header-icon-button notification-button" type="button" aria-label="Notifications">
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"/>
+                                <path d="M10 21h4"/>
+                            </svg>
+                            <span>2</span>
+                        </button>
+
+                        <button class="selected-org-chip" id="headerOrganizationAction" type="button" aria-label="Switch organization">
+                            <span class="selected-org-icon" aria-hidden="true">
+                                <svg viewBox="0 0 24 24"><path d="M4 21V7h7v14"/><path d="M13 21V3h7v18"/><path d="M7 11h1"/><path d="M7 15h1"/><path d="M16 7h1"/><path d="M16 11h1"/><path d="M16 15h1"/></svg>
                             </span>
-                            <div>
-                                <strong>Add crew member</strong>
-                                <p>Invite someone to your team.</p>
-                            </div>
-                        </button>
-                        <button class="quick-action" type="button">
                             <span>
-                                <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z"/><path d="M14 3v5h5"/></svg>
+                                <strong id="currentOrganizationName">None selected</strong>
                             </span>
-                            <div>
-                                <strong>Generate report</strong>
-                                <p>Create a proof-of-work report.</p>
-                            </div>
+                            <span class="selected-org-chevron" aria-hidden="true">&#8964;</span>
                         </button>
                     </div>
-                </article>
+                </header>
 
-                <article class="dashboard-card next-panel">
-                    <h3>What happens next?</h3>
-                    <p>Add crews, document work entries, and turn completed jobs into proof reports your business can trust.</p>
-                </article>
+                <section class="operating-layout" aria-label="Workspace dashboard">
+                    <div class="operating-main-column">
+                        <article class="dashboard-card work-entry-hero">
+                            <div class="work-entry-hero-copy">
+                                <p class="eyebrow">Next best action</p>
+                                <h3>Create your first work entry</h3>
+                                <p>
+                                    Start documenting jobs with notes, photos, timestamps, and crew activity.
+                                    Build proof while the work is still fresh.
+                                </p>
+                                <div class="hero-actions">
+                                    <button class="primary-button" type="button">Create work entry</button>
+                                    <button class="ghost-action-button" type="button">Learn more <span aria-hidden="true">&rarr;</span></button>
+                                </div>
+                            </div>
+                        </article>
 
-                <article class="dashboard-card work-entry-preview">
-                    <h3>Recent work entries</h3>
-                    <p>No work entries yet. Your documented jobs will appear here after the first work entry is created.</p>
-                </article>
-            </section>
+                        <section class="dashboard-metrics" aria-label="Workspace metrics">
+                            <article class="metric-card">
+                                <span class="metric-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><path d="M4 21V7h7v14"/><path d="M13 21V3h7v18"/><path d="M7 11h1"/><path d="M7 15h1"/><path d="M16 7h1"/><path d="M16 11h1"/><path d="M16 15h1"/></svg>
+                                </span>
+                                <div class="metric-copy">
+                                    <span>Organizations</span>
+                                    <strong id="organizationCount">0</strong>
+                                    <p>Active</p>
+                                </div>
+                                <a class="metric-link" href="#workspaceTitle">View organizations <span aria-hidden="true">&rarr;</span></a>
+                            </article>
+
+                            <article class="metric-card">
+                                <span class="metric-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M3 21a7 7 0 0 1 14 0"/><path d="M17 8a3 3 0 0 1 0 6"/><path d="M20 21a5 5 0 0 0-3-4.6"/></svg>
+                                </span>
+                                <div class="metric-copy">
+                                    <span>Crews</span>
+                                    <strong>0</strong>
+                                    <p>Members</p>
+                                </div>
+                                <a class="metric-link" href="#workspaceTitle">View crews <span aria-hidden="true">&rarr;</span></a>
+                            </article>
+
+                            <article class="metric-card">
+                                <span class="metric-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><path d="M8 4h8l2 2v14H6V6l2-2Z"/><path d="M9 12l2 2 4-5"/><path d="M9 4v3h6V4"/></svg>
+                                </span>
+                                <div class="metric-copy">
+                                    <span>Work entries</span>
+                                    <strong>0</strong>
+                                    <p>This month</p>
+                                </div>
+                                <a class="metric-link" href="#workspaceTitle">View entries <span aria-hidden="true">&rarr;</span></a>
+                            </article>
+
+                            <article class="metric-card">
+                                <span class="metric-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z"/><path d="M14 3v5h5"/><path d="M10 13h6"/><path d="M10 17h6"/></svg>
+                                </span>
+                                <div class="metric-copy">
+                                    <span>Reports</span>
+                                    <strong>0</strong>
+                                    <p>Generated</p>
+                                </div>
+                                <a class="metric-link" href="#workspaceTitle">View reports <span aria-hidden="true">&rarr;</span></a>
+                            </article>
+                        </section>
+
+                        <article class="dashboard-card work-entry-preview">
+                            <div class="card-heading-row">
+                                <div>
+                                    <p class="eyebrow">Recent work entries</p>
+                                    <h3>Job documentation will appear here</h3>
+                                </div>
+                                <a class="metric-link" href="#workspaceTitle">View all <span aria-hidden="true">&rarr;</span></a>
+                            </div>
+
+                            <div class="empty-work-entry-state">
+                                <span class="empty-state-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24"><path d="M8 4h8l2 2v14H6V6l2-2Z"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>
+                                </span>
+                                <div>
+                                    <strong>No work entries yet</strong>
+                                    <p>Your documented jobs will appear here after the first work entry is created.</p>
+                                </div>
+                            </div>
+                        </article>
+                    </div>
+
+                    <aside class="operating-rail" aria-label="Workspace actions and setup">
+                        <article class="dashboard-card setup-progress-card operating-progress-card">
+                            <div class="card-heading-row">
+                                <div>
+                                    <p class="eyebrow">Setup progress</p>
+                                    <h3>1 of 4 completed</h3>
+                                </div>
+                            </div>
+
+                            <ol class="setup-step-list compact-step-list">
+                                <li class="completed">
+                                    <span>&#10003;</span>
+                                    <div>
+                                        <strong>Create organization</strong>
+                                        <p>You are all set.</p>
+                                    </div>
+                                </li>
+                                <li class="active">
+                                    <span>2</span>
+                                    <div>
+                                        <strong>Create first work entry</strong>
+                                        <p>Document your first job.</p>
+                                    </div>
+                                </li>
+                                <li>
+                                    <span>3</span>
+                                    <div>
+                                        <strong>Add crew members</strong>
+                                        <p>Invite your team when needed.</p>
+                                    </div>
+                                </li>
+                                <li>
+                                    <span>4</span>
+                                    <div>
+                                        <strong>Generate first report</strong>
+                                        <p>Create a proof-of-work report.</p>
+                                    </div>
+                                </li>
+                            </ol>
+                        </article>
+
+                        <article class="dashboard-card quick-actions-panel">
+                            <p class="eyebrow">Quick actions</p>
+                            <h3>Start the next job step</h3>
+                            <div class="quick-action-list">
+                                <button class="quick-action" type="button">
+                                    <span class="quick-action-icon">+</span>
+                                    <div>
+                                        <strong>Create work entry</strong>
+                                        <p>Document a new job step.</p>
+                                    </div>
+                                    <span class="quick-action-chevron" aria-hidden="true">&#8250;</span>
+                                </button>
+                                <button class="quick-action" type="button">
+                                    <span class="quick-action-icon">
+                                        <svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z"/><path d="M12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
+                                    </span>
+                                    <div>
+                                        <strong>Take a photo</strong>
+                                        <p>Capture and add to job.</p>
+                                    </div>
+                                    <span class="quick-action-chevron" aria-hidden="true">&#8250;</span>
+                                </button>
+                                <button class="quick-action" type="button">
+                                    <span class="quick-action-icon">
+                                        <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z"/><path d="M14 3v5h5"/></svg>
+                                    </span>
+                                    <div>
+                                        <strong>Generate report</strong>
+                                        <p>Build proof-of-work.</p>
+                                    </div>
+                                    <span class="quick-action-chevron" aria-hidden="true">&#8250;</span>
+                                </button>
+                                <button class="quick-action" type="button">
+                                    <span class="quick-action-icon">
+                                        <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 21a8 8 0 0 1 12.4-6.7"/><path d="M19 16v6"/><path d="M16 19h6"/></svg>
+                                    </span>
+                                    <div>
+                                        <strong>Add crew member</strong>
+                                        <p>Invite to your organization.</p>
+                                    </div>
+                                    <span class="quick-action-chevron" aria-hidden="true">&#8250;</span>
+                                </button>
+                            </div>
+                        </article>
+
+                        <article class="dashboard-card organization-management-panel" data-organization-panel>
+                            <p class="eyebrow">Workspace</p>
+                            <h3>Current workspace</h3>
+                            <p class="panel-copy" id="currentOrganizationHelp">Select an organization before creating work entries.</p>
+
+                            <div class="workspace-current-card">
+                                <div class="workspace-summary-card">
+                                    <span class="workspace-summary-icon" aria-hidden="true">
+                                        <svg viewBox="0 0 24 24"><path d="M4 21V7h7v14"/><path d="M13 21V3h7v18"/><path d="M7 11h1"/><path d="M7 15h1"/><path d="M16 7h1"/><path d="M16 11h1"/><path d="M16 15h1"/></svg>
+                                    </span>
+                                    <div>
+                                        <strong id="workspaceCardName">No workspace selected</strong>
+                                        <span class="workspace-badge-row">
+                                            <span class="workspace-badge role-badge" id="workspaceRoleBadge">Owner</span>
+                                            <span class="workspace-badge status-badge" id="workspaceStatusBadge">Active</span>
+                                        </span>
+                                    </div>
+                                    <button class="workspace-more-button" type="button" aria-label="Workspace actions">&#8942;</button>
+                                </div>
+
+                                <div class="workspace-stats-row" aria-label="Workspace stats">
+                                    <span>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M16 11a4 4 0 1 0-8 0"/><path d="M3 21a7 7 0 0 1 14 0"/></svg>
+                                        <strong id="workspaceMemberCount">1</strong>
+                                        <small>Member</small>
+                                    </span>
+                                    <span>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h8l2 2v14H6V6l2-2Z"/><path d="M9 12l2 2 4-5"/></svg>
+                                        <strong id="workspaceEntryCount">0</strong>
+                                        <small>Work entries</small>
+                                    </span>
+                                    <span>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h7l5 5v13H7V3Z"/><path d="M14 3v5h5"/><path d="M10 13h6"/></svg>
+                                        <strong id="workspaceReportCount">0</strong>
+                                        <small>Reports</small>
+                                    </span>
+                                </div>
+
+                                <div class="workspace-meta-row">
+                                    <span>
+                                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v3"/><path d="M17 3v3"/><path d="M4 8h16"/><path d="M5 5h14v16H5z"/></svg>
+                                        <span id="workspaceCreatedMeta">Created date not available yet</span>
+                                    </span>
+                                    <span>ID: <strong id="workspaceIdMeta">-</strong></span>
+                                </div>
+                            </div>
+
+                            <div class="workspace-actions-row">
+                                <button class="primary-button workspace-manage-button" type="button">
+                                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z"/><path d="m4 12-1.5-1 2-3.5 1.8.7a8 8 0 0 1 1.4-.8L8 5h4l.3 2.4c.5.2 1 .5 1.4.8l1.8-.7 2 3.5-1.5 1 1.5 1-2 3.5-1.8-.7c-.4.3-.9.6-1.4.8L12 19H8l-.3-2.4a8 8 0 0 1-1.4-.8l-1.8.7-2-3.5L4 12Z"/></svg>
+                                    Manage workspace
+                                </button>
+                            </div>
+
+                            <button
+                                    class="workspace-create-toggle"
+                                    type="button"
+                                    aria-expanded="false"
+                                    aria-controls="createWorkspaceForm"
+                                    id="workspaceCreateToggle">
+                                <span>Create another workspace</span>
+                                <span class="chevron" aria-hidden="true">&#8964;</span>
+                            </button>
+
+                            <form class="organization-form workspace-create-form" id="createWorkspaceForm" data-organization-form hidden>
+                                <label for="dashboardOrganizationName">Workspace name</label>
+                                <div class="inline-form-row">
+                                    <input id="dashboardOrganizationName" name="name" type="text" maxlength="100" autocomplete="organization" placeholder="e.g. Desert Shield Roofing" required>
+                                    <button class="primary-button" type="submit"><span aria-hidden="true">+</span> Create workspace</button>
+                                </div>
+                            </form>
+
+                            <p class="status-message" data-organization-message role="status" aria-live="polite"></p>
+
+                            <p class="workspace-list-label">Other workspaces</p>
+                            <ul class="organization-list" data-organization-list></ul>
+                            <p class="workspace-info-note">
+                                <span aria-hidden="true">i</span>
+                                Workspaces help you keep your crews, jobs, photos, and reports organized under the right company.
+                            </p>
+                        </article>
+                    </aside>
+                </section>
             </section>
         </div>
     </section>
 </main>
+
+<div class="workspace-toast" id="workspaceToast" role="status" aria-live="polite" hidden></div>
 
 <script src="/app.js"></script>
 </body>
