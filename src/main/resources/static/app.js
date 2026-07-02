@@ -47,6 +47,7 @@ const authAlternates = document.querySelectorAll(".auth-alternate");
 
 let currentUserId = null;
 let currentOrganizations = [];
+let currentUserDisplayName = "User";
 let workspaceToastTimer = null;
 
 authModeControls.forEach((control) => {
@@ -284,8 +285,10 @@ async function loadOrganizations() {
         removeStaleSelectedOrganization(organizations);
         renderSelectedOrganization(organizations);
         renderOrganizations(organizations);
+        await loadSelectedOrganizationWorkEntries();
     } catch (error) {
         setOrganizationMessage(error.message, "error");
+        clearWorkEntriesPanel("We couldn't load work entries yet.");
     }
 }
 
@@ -389,10 +392,11 @@ function renderOrganizationList(organizationList, organizations) {
             button.append(icon, copy, badge);
         }
 
-        button.addEventListener("click", () => {
+        button.addEventListener("click", async () => {
             setSelectedOrganizationId(organization.id);
             renderSelectedOrganization(currentOrganizations);
             renderOrganizations(currentOrganizations);
+            await loadSelectedOrganizationWorkEntries();
             showWorkspaceToast(`Workspace switched to ${organization.name || "selected workspace"}.`);
         });
 
@@ -417,6 +421,27 @@ function clearOrganizations() {
     renderSelectedOrganization([]);
     clearWorkspaceState();
     setOrganizationMessage("");
+    clearWorkEntriesPanel();
+}
+
+async function loadSelectedOrganizationWorkEntries() {
+    if (!window.FieldProofWorkEntries) {
+        return;
+    }
+
+    await window.FieldProofWorkEntries.loadForOrganization({
+        organizationId: getSelectedOrganizationId(),
+        authHeaders,
+        currentUserName: currentUserDisplayName
+    });
+}
+
+function clearWorkEntriesPanel(message) {
+    if (!window.FieldProofWorkEntries) {
+        return;
+    }
+
+    window.FieldProofWorkEntries.clear(message);
 }
 
 function focusOrganizationPanel() {
@@ -514,6 +539,8 @@ function renderCurrentUser(user) {
     const firstName = getFirstName(displayName);
     const displayRole = user.role || "-";
     const initials = getInitials(displayName);
+
+    currentUserDisplayName = displayName;
 
     if (currentName) {
         currentName.textContent = firstName;

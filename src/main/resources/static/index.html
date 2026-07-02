@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>FieldProof</title>
     <link rel="stylesheet" href="/styles.css">
+    <link rel="stylesheet" href="/workEntries.css">
 </head>
 <body>
 <main class="app-shell">
@@ -455,7 +456,7 @@
                                 </span>
                                 <div class="metric-copy">
                                     <span>Work entries</span>
-                                    <strong>0</strong>
+                                    <strong id="workEntryMetricCount">0</strong>
                                     <p>This month</p>
                                 </div>
                                 <a class="metric-link" href="#workspaceTitle">View entries <span aria-hidden="true">&rarr;</span></a>
@@ -478,12 +479,14 @@
                             <div class="card-heading-row">
                                 <div>
                                     <p class="eyebrow">Recent work entries</p>
-                                    <h3>Job documentation will appear here</h3>
+                                    <h3 id="recentWorkEntriesTitle">Latest job documentation</h3>
                                 </div>
                                 <a class="metric-link" href="#workspaceTitle">View all <span aria-hidden="true">&rarr;</span></a>
                             </div>
 
-                            <div class="empty-work-entry-state">
+                            <div class="recent-work-entry-list" id="recentWorkEntryList" aria-live="polite"></div>
+
+                            <div class="empty-work-entry-state" id="emptyWorkEntryState">
                                 <span class="empty-state-icon" aria-hidden="true">
                                     <svg viewBox="0 0 24 24"><path d="M8 4h8l2 2v14H6V6l2-2Z"/><path d="M9 12h6"/><path d="M9 16h4"/></svg>
                                 </span>
@@ -491,6 +494,10 @@
                                     <strong>No work entries yet</strong>
                                     <p>Your documented jobs will appear here after the first work entry is created.</p>
                                 </div>
+                            </div>
+
+                            <div class="work-entry-footer-link">
+                                <a href="#workspaceTitle">View all work entries <span aria-hidden="true">&rarr;</span></a>
                             </div>
                         </article>
                     </div>
@@ -671,6 +678,7 @@
 
 <div class="workspace-toast" id="workspaceToast" role="status" aria-live="polite" hidden></div>
 
+<script src="/workEntries.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
