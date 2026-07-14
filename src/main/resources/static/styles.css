@@ -1793,6 +1793,10 @@ button:focus-visible {
     background: rgba(5, 8, 11, 0.26);
 }
 
+.empty-work-entry-state.hidden {
+    display: none;
+}
+
 .empty-state-icon {
     width: 40px;
     height: 40px;
@@ -1880,6 +1884,22 @@ button:focus-visible {
             linear-gradient(180deg, rgba(245, 184, 46, 0.06), rgba(255, 255, 255, 0.02)),
             rgba(7, 13, 19, 0.5);
     transform: translateY(-1px);
+}
+
+.quick-action.is-highlighted-action {
+    border-color: rgba(245, 184, 46, 0.38);
+    background:
+            linear-gradient(180deg, rgba(245, 184, 46, 0.09), rgba(255, 255, 255, 0.025)),
+            rgba(7, 13, 19, 0.52);
+}
+
+.quick-action.is-muted-action {
+    opacity: 0.76;
+}
+
+.quick-action.is-muted-action .quick-action-chevron,
+.quick-action.is-highlighted-action .quick-action-chevron {
+    color: var(--primary);
 }
 
 .quick-action-icon {

@@ -243,8 +243,8 @@
                         <p class="eyebrow">Workspace setup</p>
                         <h2 id="setupTitle">Welcome back, <span id="setupCurrentName">there</span></h2>
                         <p class="dashboard-subtitle">
-                            Set up your FieldProof workspace. Create your company, then start documenting crews,
-                            jobs, and proof-of-work reports.
+                            Set up your FieldProof workspace. Create your company, document your first job,
+                            then attach photos and proof-of-work reports. Crews can be added when needed.
                         </p>
                     </div>
                     <span class="setup-step-badge">Step 1 of 4</span>
@@ -284,15 +284,15 @@
                             <li>
                                 <span>2</span>
                                 <div>
-                                    <strong>Add crew members</strong>
-                                    <p>Invite your team to collaborate.</p>
+                                    <strong>Create first work entry</strong>
+                                    <p>Document a job with notes and details.</p>
                                 </div>
                             </li>
                             <li>
                                 <span>3</span>
                                 <div>
-                                    <strong>Create first work entry</strong>
-                                    <p>Document a job with notes and photos.</p>
+                                    <strong>Add job photos</strong>
+                                    <p>Attach proof to the documented work.</p>
                                 </div>
                             </li>
                             <li>
@@ -325,7 +325,7 @@
                         <div class="metric-copy">
                             <span>Crews</span>
                             <strong>0</strong>
-                            <p>Add crew after setup</p>
+                            <p>Add crew when needed</p>
                         </div>
                     </article>
 
@@ -336,7 +336,7 @@
                         <div class="metric-copy">
                             <span>Work entries</span>
                             <strong>0</strong>
-                            <p>Start after selecting org</p>
+                            <p>Start documenting jobs</p>
                         </div>
                     </article>
 
@@ -365,8 +365,8 @@
                     <article class="dashboard-card setup-next-card">
                         <h3>What happens next?</h3>
                         <p>
-                            Once your organization is created, you can add crews, create work entries, and generate
-                            proof reports for completed jobs.
+                            Once your organization is created, you can create work entries, attach job photos,
+                            add crews when needed, and generate proof reports for completed jobs.
                         </p>
                     </article>
                 </section>
@@ -412,15 +412,15 @@
                     <div class="operating-main-column">
                         <article class="dashboard-card work-entry-hero">
                             <div class="work-entry-hero-copy">
-                                <p class="eyebrow">Next best action</p>
-                                <h3>Create your first work entry</h3>
-                                <p>
+                                <p class="eyebrow" id="dashboardHeroEyebrow">Next best action</p>
+                                <h3 id="dashboardHeroTitle">Create your first work entry</h3>
+                                <p id="dashboardHeroDescription">
                                     Start documenting jobs with notes, photos, timestamps, and crew activity.
                                     Build proof while the work is still fresh.
                                 </p>
                                 <div class="hero-actions">
-                                    <button class="primary-button" type="button">Create work entry</button>
-                                    <button class="ghost-action-button" type="button">Learn more <span aria-hidden="true">&rarr;</span></button>
+                                    <button class="primary-button" id="dashboardHeroPrimaryAction" type="button" data-open-work-entry-modal>Create work entry</button>
+                                    <button class="ghost-action-button" id="dashboardHeroSecondaryAction" type="button">Learn more <span aria-hidden="true">&rarr;</span></button>
                                 </div>
                             </div>
                         </article>
@@ -507,33 +507,33 @@
                             <div class="card-heading-row">
                                 <div>
                                     <p class="eyebrow">Setup progress</p>
-                                    <h3>1 of 4 completed</h3>
+                                    <h3 id="dashboardSetupSummary">1 of 4 completed</h3>
                                 </div>
                             </div>
 
-                            <ol class="setup-step-list compact-step-list">
-                                <li class="completed">
+                            <ol class="setup-step-list compact-step-list" id="dashboardSetupSteps">
+                                <li class="completed" data-dashboard-step="organization">
                                     <span>&#10003;</span>
                                     <div>
                                         <strong>Create organization</strong>
                                         <p>You are all set.</p>
                                     </div>
                                 </li>
-                                <li class="active">
+                                <li class="active" data-dashboard-step="work-entry">
                                     <span>2</span>
                                     <div>
                                         <strong>Create first work entry</strong>
                                         <p>Document your first job.</p>
                                     </div>
                                 </li>
-                                <li>
+                                <li data-dashboard-step="photos">
                                     <span>3</span>
                                     <div>
-                                        <strong>Add crew members</strong>
-                                        <p>Invite your team when needed.</p>
+                                        <strong>Add job photos</strong>
+                                        <p>Attach proof to a documented job.</p>
                                     </div>
                                 </li>
-                                <li>
+                                <li data-dashboard-step="report">
                                     <span>4</span>
                                     <div>
                                         <strong>Generate first report</strong>
@@ -545,9 +545,9 @@
 
                         <article class="dashboard-card quick-actions-panel">
                             <p class="eyebrow">Quick actions</p>
-                            <h3>Start the next job step</h3>
+                            <h3 id="quickActionsTitle">Start the next job step</h3>
                             <div class="quick-action-list">
-                                <button class="quick-action" type="button">
+                                <button class="quick-action" id="quickCreateWorkEntryAction" type="button" data-open-work-entry-modal>
                                     <span class="quick-action-icon">+</span>
                                     <div>
                                         <strong>Create work entry</strong>
@@ -555,27 +555,27 @@
                                     </div>
                                     <span class="quick-action-chevron" aria-hidden="true">&#8250;</span>
                                 </button>
-                                <button class="quick-action" type="button">
+                                <button class="quick-action" id="quickPhotoAction" type="button" data-dashboard-coming-soon="Photo uploads are the next FieldProof slice.">
                                     <span class="quick-action-icon">
                                         <svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z"/><path d="M12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
                                     </span>
                                     <div>
-                                        <strong>Take a photo</strong>
-                                        <p>Capture and add to job.</p>
+                                        <strong>Add photos</strong>
+                                        <p>Coming next: attach proof to jobs.</p>
                                     </div>
                                     <span class="quick-action-chevron" aria-hidden="true">&#8250;</span>
                                 </button>
-                                <button class="quick-action" type="button">
+                                <button class="quick-action" id="quickReportAction" type="button" data-dashboard-coming-soon="Reports need the report-generation backend slice first.">
                                     <span class="quick-action-icon">
                                         <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z"/><path d="M14 3v5h5"/></svg>
                                     </span>
                                     <div>
                                         <strong>Generate report</strong>
-                                        <p>Build proof-of-work.</p>
+                                        <p>Unlock after proof data exists.</p>
                                     </div>
                                     <span class="quick-action-chevron" aria-hidden="true">&#8250;</span>
                                 </button>
-                                <button class="quick-action" type="button">
+                                <button class="quick-action" id="quickCrewAction" type="button" data-dashboard-coming-soon="Crew management is the next backend slice.">
                                     <span class="quick-action-icon">
                                         <svg viewBox="0 0 24 24"><path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z"/><path d="M4 21a8 8 0 0 1 12.4-6.7"/><path d="M19 16v6"/><path d="M16 19h6"/></svg>
                                     </span>
@@ -677,6 +677,85 @@
 </main>
 
 <div class="workspace-toast" id="workspaceToast" role="status" aria-live="polite" hidden></div>
+
+<div class="work-entry-modal hidden" id="workEntryModal" role="dialog" aria-modal="true" aria-labelledby="workEntryModalTitle">
+    <div class="work-entry-modal-backdrop" data-close-work-entry-modal></div>
+    <section class="work-entry-modal-panel">
+        <div class="work-entry-modal-header">
+            <div>
+                <p class="eyebrow">Work entry</p>
+                <h2 id="workEntryModalTitle">Create work entry</h2>
+                <p>Document a job under the currently selected workspace.</p>
+                <div class="work-entry-workspace-pill" aria-live="polite">
+                    <span>Workspace</span>
+                    <strong id="workEntryWorkspaceName">Selected workspace</strong>
+                </div>
+            </div>
+            <button class="work-entry-modal-close" type="button" data-close-work-entry-modal aria-label="Close create work entry form">&times;</button>
+        </div>
+
+        <form class="work-entry-form" id="workEntryForm">
+            <div class="work-entry-context-card">
+                <div class="work-entry-context-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M8 4h8l2 2v14H6V6l2-2Z"/><path d="M9 12l2 2 4-5"/><path d="M9 4v3h6V4"/></svg>
+                </div>
+                <div>
+                    <strong>New job documentation</strong>
+                    <span>Start the job record now. Photos, checklists, and reports can build from this entry later.</span>
+                </div>
+                <em>Draft</em>
+            </div>
+
+            <div class="work-entry-section-heading">
+                <span>Job details</span>
+                <small>Required fields</small>
+            </div>
+
+            <div class="work-entry-field">
+                <label for="workEntryJobName">Job name</label>
+                <input id="workEntryJobName" name="jobName" type="text" maxlength="150" placeholder="e.g. Roof tear off" required>
+            </div>
+
+            <div class="work-entry-field">
+                <label for="workEntryJobAddress">Job address</label>
+                <input id="workEntryJobAddress" name="jobAddress" type="text" maxlength="255" placeholder="e.g. 1234 E Morgan Ave, Phoenix, AZ" required>
+            </div>
+
+            <div class="work-entry-form-grid">
+                <div class="work-entry-field">
+                    <label for="workEntryWorkType">Work type</label>
+                    <input id="workEntryWorkType" name="workType" type="text" maxlength="100" placeholder="e.g. Roofing" required>
+                </div>
+                <div class="work-entry-field">
+                    <label for="workEntryWorkDate">Work date</label>
+                    <input id="workEntryWorkDate" name="workDate" type="date" required>
+                </div>
+            </div>
+
+            <div class="work-entry-section-heading">
+                <span>Proof notes</span>
+                <small>What should the office know?</small>
+            </div>
+
+            <div class="work-entry-field">
+                <label for="workEntryDescription">Description</label>
+                <textarea id="workEntryDescription" name="description" maxlength="2000" rows="5" placeholder="What work was completed? Add notes, materials, or job conditions." required></textarea>
+            </div>
+
+            <div class="work-entry-next-panel">
+                <strong>After this entry</strong>
+                <span>Add job photos, review the documentation, then generate a proof report.</span>
+            </div>
+
+            <p class="status-message" id="workEntryFormMessage" role="status" aria-live="polite"></p>
+
+            <div class="work-entry-form-actions">
+                <button class="secondary-button" type="button" data-close-work-entry-modal>Cancel</button>
+                <button class="primary-button" type="submit">Create work entry</button>
+            </div>
+        </form>
+    </section>
+</div>
 
 <script src="/workEntries.js"></script>
 <script src="/app.js"></script>

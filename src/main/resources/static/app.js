@@ -42,11 +42,25 @@ const sidebarOrganizationName = document.querySelector("#sidebarOrganizationName
 const sidebarOrganizationStatus = document.querySelector("#sidebarOrganizationStatus");
 const sidebarOrganizationAction = document.querySelector("#sidebarOrganizationAction");
 const headerOrganizationAction = document.querySelector("#headerOrganizationAction");
+const dashboardHeroEyebrow = document.querySelector("#dashboardHeroEyebrow");
+const dashboardHeroTitle = document.querySelector("#dashboardHeroTitle");
+const dashboardHeroDescription = document.querySelector("#dashboardHeroDescription");
+const dashboardHeroPrimaryAction = document.querySelector("#dashboardHeroPrimaryAction");
+const dashboardHeroSecondaryAction = document.querySelector("#dashboardHeroSecondaryAction");
+const dashboardSetupSummary = document.querySelector("#dashboardSetupSummary");
+const dashboardSetupSteps = document.querySelectorAll("[data-dashboard-step]");
+const quickActionsTitle = document.querySelector("#quickActionsTitle");
+const quickCreateWorkEntryAction = document.querySelector("#quickCreateWorkEntryAction");
+const quickPhotoAction = document.querySelector("#quickPhotoAction");
+const quickReportAction = document.querySelector("#quickReportAction");
+const quickCrewAction = document.querySelector("#quickCrewAction");
+const recentWorkEntriesCard = document.querySelector(".work-entry-preview");
 const authModeControls = document.querySelectorAll("[data-mode]");
 const authAlternates = document.querySelectorAll(".auth-alternate");
 
 let currentUserId = null;
 let currentOrganizations = [];
+let currentWorkEntries = [];
 let currentUserDisplayName = "User";
 let workspaceToastTimer = null;
 
@@ -193,11 +207,43 @@ if (headerOrganizationAction) {
     });
 }
 
+if (dashboardHeroSecondaryAction) {
+    dashboardHeroSecondaryAction.addEventListener("click", () => {
+        scrollToRecentWorkEntries();
+    });
+}
+
+document.querySelectorAll("[data-dashboard-coming-soon]").forEach((button) => {
+    button.addEventListener("click", () => {
+        showWorkspaceToast(button.dataset.dashboardComingSoon || "This action is coming in a later slice.");
+    });
+});
+
 organizationFocusControls.forEach((control) => {
     control.addEventListener("click", () => {
         focusOrganizationPanel();
     });
 });
+
+if (window.FieldProofWorkEntries) {
+    window.FieldProofWorkEntries.initCreateForm({
+        getOrganizationId: getSelectedOrganizationId,
+        getOrganizationName: getSelectedOrganizationName,
+        authHeaders,
+        getCurrentUserName: () => currentUserDisplayName,
+        onCreated: loadSelectedOrganizationWorkEntries,
+        onSuccess: () => {
+            showWorkspaceToast("Work entry created successfully.");
+        },
+        onUnavailableAction: (message) => {
+            showWorkspaceToast(message);
+        },
+        onMissingOrganization: () => {
+            showWorkspaceToast("Select a workspace before creating work entries.");
+            focusOrganizationPanel();
+        }
+    });
+}
 
 async function requestJson(url, options = {}) {
     const response = await fetch(url, {
@@ -418,22 +464,29 @@ function clearOrganizations() {
         organizationCount.textContent = "0";
     }
 
+    currentWorkEntries = [];
     renderSelectedOrganization([]);
     clearWorkspaceState();
     setOrganizationMessage("");
     clearWorkEntriesPanel();
+    renderDashboardGuidance();
 }
 
 async function loadSelectedOrganizationWorkEntries() {
     if (!window.FieldProofWorkEntries) {
+        currentWorkEntries = [];
+        renderDashboardGuidance();
         return;
     }
 
-    await window.FieldProofWorkEntries.loadForOrganization({
+    const workEntries = await window.FieldProofWorkEntries.loadForOrganization({
         organizationId: getSelectedOrganizationId(),
         authHeaders,
         currentUserName: currentUserDisplayName
     });
+
+    currentWorkEntries = Array.isArray(workEntries) ? workEntries : [];
+    renderDashboardGuidance();
 }
 
 function clearWorkEntriesPanel(message) {
@@ -441,7 +494,9 @@ function clearWorkEntriesPanel(message) {
         return;
     }
 
+    currentWorkEntries = [];
     window.FieldProofWorkEntries.clear(message);
+    renderDashboardGuidance();
 }
 
 function focusOrganizationPanel() {
@@ -521,6 +576,160 @@ function showWorkspaceToast(message) {
         workspaceToast.hidden = true;
         workspaceToast.textContent = "";
     }, 3000);
+}
+
+function scrollToRecentWorkEntries() {
+    if (!recentWorkEntriesCard) {
+        return;
+    }
+
+    recentWorkEntriesCard.scrollIntoView({
+        behavior: "smooth",
+        block: "center"
+    });
+    recentWorkEntriesCard.classList.add("is-highlighted");
+
+    window.setTimeout(() => {
+        recentWorkEntriesCard.classList.remove("is-highlighted");
+    }, 1200);
+}
+
+function renderDashboardGuidance() {
+    const selectedOrganizationId = getSelectedOrganizationId();
+    const hasSelectedOrganization = currentOrganizations.some((organization) => {
+        return String(organization.id) === selectedOrganizationId;
+    });
+    const workEntryCount = currentWorkEntries.length;
+
+    if (!hasSelectedOrganization) {
+        setDashboardHero({
+            eyebrow: "Workspace setup",
+            title: "Select a workspace to begin",
+            description: "Choose the company workspace where job records, photos, and reports should be saved.",
+            primaryLabel: "Create work entry",
+            secondaryLabel: "Review workspace"
+        });
+        renderSetupProgress(0, "Select workspace");
+        setQuickActionCopy({
+            title: "Choose a workspace first",
+            createTitle: "Create work entry",
+            createCopy: "Select a workspace before documenting work.",
+            photoCopy: "Available after work entries exist.",
+            reportCopy: "Reports unlock after proof data.",
+            crewCopy: "Crew management is coming next."
+        });
+        return;
+    }
+
+    if (workEntryCount === 0) {
+        setDashboardHero({
+            eyebrow: "Next best action",
+            title: "Create your first work entry",
+            description: "Start documenting jobs with notes, timestamps, and job details. Photos and reports can build from this entry in later slices.",
+            primaryLabel: "Create work entry",
+            secondaryLabel: "Review setup"
+        });
+        renderSetupProgress(1, "Create first work entry");
+        setQuickActionCopy({
+            title: "Start documenting work",
+            createTitle: "Create work entry",
+            createCopy: "Document the first job step.",
+            photoCopy: "Available after a work entry exists.",
+            reportCopy: "Reports unlock after proof data.",
+            crewCopy: "Invite crew members when needed."
+        });
+        return;
+    }
+
+    setDashboardHero({
+        eyebrow: "Proof status",
+        title: "Proof incomplete: photos are next",
+        description: `You have ${pluralize(workEntryCount, "work entry")} in this workspace. The next product slice should attach job photos so each entry becomes stronger proof.`,
+        primaryLabel: "Create another work entry",
+        secondaryLabel: "Review entries"
+    });
+    renderSetupProgress(2, "Add job photos");
+    setQuickActionCopy({
+        title: "Next: strengthen proof",
+        createTitle: "Create another entry",
+        createCopy: "Keep documenting job activity.",
+        photoCopy: "Coming next: attach proof to jobs.",
+        reportCopy: "Generate after photos/review are ready.",
+        crewCopy: "Crew management remains optional for solo owners."
+    });
+}
+
+function setDashboardHero({ eyebrow, title, description, primaryLabel, secondaryLabel }) {
+    setOptionalText(dashboardHeroEyebrow, eyebrow);
+    setOptionalText(dashboardHeroTitle, title);
+    setOptionalText(dashboardHeroDescription, description);
+    setOptionalText(dashboardHeroPrimaryAction, primaryLabel);
+    setOptionalText(dashboardHeroSecondaryAction, secondaryLabel);
+}
+
+function renderSetupProgress(completedCount, activeStepLabel) {
+    const stepOrder = ["organization", "work-entry", "photos", "report"];
+
+    setOptionalText(dashboardSetupSummary, `${completedCount} of 4 completed`);
+
+    dashboardSetupSteps.forEach((step) => {
+        const stepKey = step.dataset.dashboardStep;
+        const stepIndex = stepOrder.indexOf(stepKey);
+        const number = stepIndex + 1;
+        const marker = step.querySelector("span");
+
+        step.classList.remove("completed", "active");
+
+        if (marker) {
+            marker.textContent = String(number);
+        }
+
+        if (stepIndex < completedCount) {
+            step.classList.add("completed");
+
+            if (marker) {
+                marker.textContent = "✓";
+            }
+        } else if (stepKey === getActiveStepKey(activeStepLabel)) {
+            step.classList.add("active");
+        }
+    });
+}
+
+function getActiveStepKey(activeStepLabel) {
+    if (activeStepLabel === "Add job photos") {
+        return "photos";
+    }
+
+    if (activeStepLabel === "Create first work entry") {
+        return "work-entry";
+    }
+
+    return "organization";
+}
+
+function setQuickActionCopy({ title, createTitle, createCopy, photoCopy, reportCopy, crewCopy }) {
+    setOptionalText(quickActionsTitle, title);
+    setQuickActionText(quickCreateWorkEntryAction, createTitle, createCopy);
+    setQuickActionText(quickPhotoAction, "Add photos", photoCopy);
+    setQuickActionText(quickReportAction, "Generate report", reportCopy);
+    setQuickActionText(quickCrewAction, "Add crew member", crewCopy);
+
+    quickPhotoAction?.classList.toggle("is-highlighted-action", currentWorkEntries.length > 0);
+    quickReportAction?.classList.toggle("is-muted-action", currentWorkEntries.length === 0);
+    quickCrewAction?.classList.add("is-muted-action");
+}
+
+function setQuickActionText(button, title, copy) {
+    if (!button) {
+        return;
+    }
+
+    const titleElement = button.querySelector("strong");
+    const copyElement = button.querySelector("p");
+
+    setOptionalText(titleElement, title);
+    setOptionalText(copyElement, copy);
 }
 
 function renderWorkspaceState(organizations) {
@@ -742,6 +951,10 @@ function formatMembershipRole(role) {
         });
 }
 
+function pluralize(count, singular, plural = `${singular}s`) {
+    return `${count} ${count === 1 ? singular : plural}`;
+}
+
 function selectedOrganizationStorageKey() {
     if (!currentUserId) {
         return null;
@@ -758,6 +971,20 @@ function getSelectedOrganizationId() {
     }
 
     return localStorage.getItem(storageKey);
+}
+
+function getSelectedOrganizationName() {
+    const selectedOrganizationId = getSelectedOrganizationId();
+
+    if (!selectedOrganizationId) {
+        return "";
+    }
+
+    const selectedOrganization = currentOrganizations.find((organization) => {
+        return String(organization.id) === selectedOrganizationId;
+    });
+
+    return selectedOrganization?.name || "";
 }
 
 function setSelectedOrganizationId(organizationId) {

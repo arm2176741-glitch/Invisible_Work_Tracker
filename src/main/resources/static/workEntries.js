@@ -4,15 +4,35 @@ const FieldProofWorkEntries = (() => {
         workspaceCount: document.querySelector("#workspaceEntryCount"),
         title: document.querySelector("#recentWorkEntriesTitle"),
         list: document.querySelector("#recentWorkEntryList"),
-        emptyState: document.querySelector("#emptyWorkEntryState")
+        emptyState: document.querySelector("#emptyWorkEntryState"),
+
+        modal: document.querySelector("#workEntryModal"),
+        form: document.querySelector("#workEntryForm"),
+        formMessage: document.querySelector("#workEntryFormMessage"),
+        workspaceName: document.querySelector("#workEntryWorkspaceName"),
+        openButtons: document.querySelectorAll("[data-open-work-entry-modal]"),
+        closeButtons: document.querySelectorAll("[data-close-work-entry-modal]")
     };
 
     let currentEntries = [];
 
+    let createFormOptions = {
+        getOrganizationId: () => null,
+        getOrganizationName: () => "",
+        authHeaders: () => ({}),
+        getCurrentUserName: () => "User",
+        onCreated: async () => {},
+        onSuccess: () => {},
+        onUnavailableAction: () => {},
+        onMissingOrganization: () => {}
+    };
+    let createFormInitialized = false;
+    let isCreatingWorkEntry = false;
+
     async function loadForOrganization({ organizationId, authHeaders, currentUserName }) {
         if (!organizationId) {
             clear("Select a workspace to see recent work entries.");
-            return;
+            return [];
         }
 
         renderLoading();
@@ -34,11 +54,267 @@ const FieldProofWorkEntries = (() => {
             const workEntries = await readJson(response);
             currentEntries = Array.isArray(workEntries) ? workEntries : [];
             renderEntries(currentEntries, currentUserName);
+            return currentEntries;
         } catch (error) {
             currentEntries = [];
             updateCount(0);
             renderError(error.message);
+            return [];
         }
+    }
+
+    function initCreateForm(options = {}) {
+        createFormOptions = {
+            ...createFormOptions,
+            ...options
+        };
+
+        if (createFormInitialized) {
+            return;
+        }
+
+        createFormInitialized = true;
+
+        elements.openButtons.forEach((button) => {
+            button.addEventListener("click", openCreateForm);
+        });
+
+        elements.closeButtons.forEach((button) => {
+            button.addEventListener("click", closeCreateForm);
+        });
+
+        if (elements.form) {
+            elements.form.addEventListener("submit", submitCreateForm);
+        }
+
+        if (elements.list) {
+            elements.list.addEventListener("click", handleEntryAction);
+        }
+    }
+
+    function handleEntryAction(event) {
+        const actionButton = event.target.closest("[data-work-entry-action]");
+
+        if (!actionButton) {
+            return;
+        }
+
+        const action = actionButton.dataset.workEntryAction;
+        const message = action === "photos"
+            ? "Photo uploads are the next FieldProof slice."
+            : "Work-entry detail pages are coming in a later slice.";
+
+        createFormOptions.onUnavailableAction(message);
+    }
+
+    function openCreateForm() {
+        const organizationId = createFormOptions.getOrganizationId();
+
+        if (!organizationId) {
+            createFormOptions.onMissingOrganization();
+            return;
+        }
+
+        if (!elements.modal) {
+            return;
+        }
+
+        elements.modal.classList.remove("hidden");
+        document.body.classList.add("modal-open");
+        renderWorkspaceName();
+        setCreateMessage("");
+        setDefaultWorkDate();
+
+        const firstInput = elements.form?.querySelector('input[name="jobName"]');
+
+        if (firstInput) {
+            firstInput.focus();
+        }
+    }
+
+    function closeCreateForm() {
+        if (!elements.modal) {
+            return;
+        }
+
+        elements.modal.classList.add("hidden");
+        document.body.classList.remove("modal-open");
+        setCreateMessage("");
+    }
+
+    function renderWorkspaceName() {
+        if (!elements.workspaceName) {
+            return;
+        }
+
+        const organizationName = typeof createFormOptions.getOrganizationName === "function"
+            ? createFormOptions.getOrganizationName()
+            : "";
+
+        elements.workspaceName.textContent = organizationName || "Selected workspace";
+    }
+
+    async function submitCreateForm(event) {
+        event.preventDefault();
+
+        if (isCreatingWorkEntry || !elements.form) {
+            return;
+        }
+
+        const payload = getCreatePayload();
+        const validationMessage = validateCreatePayload(payload);
+
+        if (validationMessage) {
+            setCreateMessage(validationMessage, "error");
+            return;
+        }
+
+        const submitButton = elements.form.querySelector('button[type="submit"]');
+        const originalButtonContent = submitButton ? submitButton.innerHTML : "";
+
+        isCreatingWorkEntry = true;
+        setCreateMessage("");
+
+        if (submitButton) {
+            submitButton.disabled = true;
+            submitButton.textContent = "Creating...";
+        }
+
+        try {
+            const response = await fetch("/work-entries", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    ...(typeof createFormOptions.authHeaders === "function" ? createFormOptions.authHeaders() : {})
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorBody = await readJson(response);
+                throw new Error(extractErrorMessage(errorBody, response.status));
+            }
+
+            const createdWorkEntry = await readJson(response);
+
+            elements.form.reset();
+            closeCreateForm();
+            await createFormOptions.onCreated(createdWorkEntry);
+            createFormOptions.onSuccess(createdWorkEntry);
+        } catch (error) {
+            setCreateMessage(error.message || "We couldn't create the work entry. Try again.", "error");
+        } finally {
+            isCreatingWorkEntry = false;
+
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonContent;
+            }
+        }
+    }
+
+    function getCreatePayload() {
+        const formData = new FormData(elements.form);
+        const organizationId = createFormOptions.getOrganizationId();
+
+        return {
+            organizationId: organizationId ? Number(organizationId) : null,
+            jobName: getFormString(formData, "jobName"),
+            jobAddress: getFormString(formData, "jobAddress"),
+            workType: getFormString(formData, "workType"),
+            workDate: getFormString(formData, "workDate"),
+            description: getFormString(formData, "description")
+        };
+    }
+
+    function getFormString(formData, fieldName) {
+        return String(formData.get(fieldName) || "").trim();
+    }
+
+    function validateCreatePayload(payload) {
+        if (!payload.organizationId || Number.isNaN(payload.organizationId)) {
+            return "Select a workspace before creating work entries.";
+        }
+
+        if (payload.jobName.length < 2) {
+            return "Job name must contain at least 2 characters.";
+        }
+
+        if (payload.jobAddress.length < 5) {
+            return "Job address must contain at least 5 characters.";
+        }
+
+        if (payload.workType.length < 2) {
+            return "Work type must contain at least 2 characters.";
+        }
+
+        if (!payload.workDate) {
+            return "Work date is required.";
+        }
+
+        if (payload.description.length < 5) {
+            return "Description must contain at least 5 characters.";
+        }
+
+        return "";
+    }
+
+    function setDefaultWorkDate() {
+        if (!elements.form) {
+            return;
+        }
+
+        const workDateInput = elements.form.querySelector('input[name="workDate"]');
+
+        if (workDateInput && !workDateInput.value) {
+            workDateInput.value = getTodayInputValue();
+        }
+    }
+
+    function getTodayInputValue() {
+        const today = new Date();
+        const year = today.getFullYear();
+        const month = String(today.getMonth() + 1).padStart(2, "0");
+        const day = String(today.getDate()).padStart(2, "0");
+
+        return `${year}-${month}-${day}`;
+    }
+
+    function setCreateMessage(message, type = "") {
+        if (!elements.formMessage) {
+            return;
+        }
+
+        elements.formMessage.textContent = message;
+        elements.formMessage.className = "status-message";
+
+        if (type) {
+            elements.formMessage.classList.add(type);
+        }
+    }
+
+    function extractErrorMessage(errorBody, status) {
+        if (errorBody.message) {
+            return errorBody.message;
+        }
+
+        if (errorBody.error) {
+            return errorBody.error;
+        }
+
+        if (Array.isArray(errorBody.errors) && errorBody.errors.length > 0) {
+            const firstError = errorBody.errors[0];
+
+            if (typeof firstError === "string") {
+                return firstError;
+            }
+
+            if (firstError.defaultMessage) {
+                return firstError.defaultMessage;
+            }
+        }
+
+        return `Request failed with status ${status}`;
     }
 
     function renderLoading() {
@@ -125,6 +401,8 @@ const FieldProofWorkEntries = (() => {
 
             setEmptyStateCopy("No work entries yet", message);
         }
+
+        return [];
     }
 
     function renderError(message) {
@@ -189,6 +467,9 @@ const FieldProofWorkEntries = (() => {
         const statusLabel = formatStatus(workEntry.status);
         const statusClass = getStatusClass(workEntry.status);
         const jobName = workEntry.jobName || "Untitled work entry";
+        const photoCount = Number(workEntry.photoCount || 0);
+        const proofLabel = photoCount > 0 ? "Proof started" : "Needs photos";
+        const proofClass = photoCount > 0 ? "started" : "incomplete";
 
         row.innerHTML = `
             <span class="work-entry-thumbnail thumbnail-${(index % 3) + 1}" aria-hidden="true"></span>
@@ -201,11 +482,14 @@ const FieldProofWorkEntries = (() => {
                 <span class="work-entry-meta">${escapeHtml(formatEntryMeta(workEntry, currentUserName))}</span>
             </span>
             <span class="work-entry-status-pill ${statusClass}">${escapeHtml(statusLabel)}</span>
-            <span class="work-entry-photo-count">
+            <span class="work-entry-proof-chip ${proofClass}">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z"/><path d="M12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
-                0 photos
+                ${escapeHtml(proofLabel)} · ${photoCount} photos
             </span>
-            <button class="work-entry-more-button" type="button" aria-label="More options for ${escapeHtml(jobName)}">&#8942;</button>
+            <span class="work-entry-row-actions">
+                <button class="work-entry-action-button" type="button" data-work-entry-action="open">Open</button>
+                <button class="work-entry-action-button emphasis" type="button" data-work-entry-action="photos">Add photos</button>
+            </span>
         `;
 
         return row;
@@ -323,6 +607,7 @@ const FieldProofWorkEntries = (() => {
     }
 
     return {
+        initCreateForm,
         loadForOrganization,
         clear
     };

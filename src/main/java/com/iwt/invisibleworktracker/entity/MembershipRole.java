@@ -2,7 +2,7 @@ package com.iwt.invisibleworktracker.entity;
 
 public enum MembershipRole {
     OWNER,
-    MANAGER,
+    SUPERVISOR,
     FOREMAN,
     WORKER
 }
