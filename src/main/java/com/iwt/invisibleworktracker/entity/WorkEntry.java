@@ -1,5 +1,6 @@
 package com.iwt.invisibleworktracker.entity;
 
+import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -10,6 +11,7 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
@@ -23,6 +25,8 @@ import lombok.ToString;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "work_entries")
@@ -31,7 +35,7 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@ToString(exclude = {"organization", "user"})
+@ToString(exclude = {"organization", "user", "photos"})
 @EqualsAndHashCode(onlyExplicitlyIncluded = true)
 public class WorkEntry {
 
@@ -47,6 +51,14 @@ public class WorkEntry {
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
+
+    @OneToMany(
+            mappedBy = "workEntry",
+            cascade = CascadeType.REMOVE,
+            orphanRemoval = true
+    )
+    @Builder.Default
+    private Set<WorkEntryPhoto> photos = new LinkedHashSet<>();
 
     @Column(name = "job_name", nullable = false, length = 150)
     private String jobName;

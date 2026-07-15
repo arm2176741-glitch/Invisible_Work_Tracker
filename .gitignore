@@ -3,6 +3,7 @@ HELP.md
 build/
 *.log
 node_modules/
+uploads/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
