@@ -34,6 +34,7 @@ const FieldProofWorkEntries = (() => {
         photoFileInput: document.querySelector("#workEntryPhotoFiles"),
         photoDropzone: document.querySelector("#photoDropzone"),
         photoSelectedList: document.querySelector("#photoSelectedList"),
+        photoSubmitButton: document.querySelector("#photoUploadSubmitButton"),
         closePhotoButtons: document.querySelectorAll("[data-close-work-entry-photo-modal]")
     };
 
@@ -456,6 +457,7 @@ const FieldProofWorkEntries = (() => {
         const files = Array.from(elements.photoFileInput?.files || []);
         elements.photoSelectedList.replaceChildren();
         elements.photoSelectedList.classList.toggle("hidden", files.length === 0);
+        updatePhotoSubmitState(files);
 
         files.forEach((file) => {
             const item = document.createElement("li");
@@ -473,6 +475,23 @@ const FieldProofWorkEntries = (() => {
 
             elements.photoSelectedList.appendChild(item);
         });
+    }
+
+    function updatePhotoSubmitState(files = []) {
+        if (!elements.photoSubmitButton) {
+            return;
+        }
+
+        const hasFiles = files.length > 0;
+        const hasOversizedFiles = files.some((file) => {
+            return file.size > 20 * 1024 * 1024;
+        });
+        const hasInvalidTypes = files.some((file) => {
+            return !["image/jpeg", "image/png", "image/webp"].includes(file.type);
+        });
+
+        elements.photoSubmitButton.disabled =
+                !hasFiles || hasOversizedFiles || hasInvalidTypes || isUploadingPhotos;
     }
 
     async function submitPhotoUploadForm(event) {
@@ -525,7 +544,7 @@ const FieldProofWorkEntries = (() => {
             isUploadingPhotos = false;
 
             if (submitButton) {
-                submitButton.disabled = false;
+                updatePhotoSubmitState(Array.from(elements.photoFileInput?.files || []));
                 submitButton.innerHTML = originalButtonContent;
             }
         }

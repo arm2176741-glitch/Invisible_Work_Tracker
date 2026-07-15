@@ -761,7 +761,12 @@ function setQuickActionCopy({ title, createTitle, createCopy, photoCopy, reportC
     setQuickActionText(quickReportAction, "Generate report", reportCopy);
     setQuickActionText(quickCrewAction, "Add crew member", crewCopy);
 
-    quickPhotoAction?.classList.toggle("is-highlighted-action", currentWorkEntries.length > 0);
+    const hasProofReadyEntry = currentWorkEntries.some((workEntry) => {
+        return Boolean(workEntry.proofReady);
+    });
+
+    quickPhotoAction?.classList.toggle("is-highlighted-action", currentWorkEntries.length > 0 && !hasProofReadyEntry);
+    quickReportAction?.classList.toggle("is-highlighted-action", hasProofReadyEntry);
     quickReportAction?.classList.toggle("is-muted-action", currentWorkEntries.length === 0);
     quickCrewAction?.classList.add("is-muted-action");
 }

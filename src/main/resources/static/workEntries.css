@@ -481,7 +481,7 @@ body.modal-open {
     z-index: 1;
     width: min(620px, calc(100vw - 32px));
     max-height: min(760px, calc(100vh - 32px));
-    overflow-y: auto;
+    overflow: hidden;
     padding: 22px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 18px;
@@ -491,18 +491,32 @@ body.modal-open {
     box-shadow: 0 24px 80px rgba(0, 0, 0, 0.5);
 }
 
+.work-entry-modal-panel:not(.work-entry-photo-modal-panel) {
+    overflow-y: auto;
+}
+
 .work-entry-photo-modal-panel {
-    width: min(560px, calc(100vw - 32px));
-    max-height: min(700px, calc(100vh - 32px));
+    width: min(640px, calc(100vw - 32px));
+    max-height: calc(100vh - 48px);
     padding: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .photo-upload-form {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     gap: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding-right: 2px;
 }
 
 .work-entry-modal-header {
     display: flex;
+    flex: 0 0 auto;
     justify-content: space-between;
     gap: 18px;
     margin-bottom: 18px;
@@ -949,6 +963,24 @@ body.modal-open {
     justify-content: flex-end;
     gap: 10px;
     margin-top: 6px;
+}
+
+.work-entry-photo-modal-panel .work-entry-form-actions {
+    position: sticky;
+    right: 0;
+    bottom: 0;
+    margin: 6px -2px -20px;
+    padding: 14px 2px 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    background:
+            linear-gradient(180deg, rgba(7, 13, 19, 0), rgba(7, 13, 19, 0.96) 22%),
+            rgba(7, 13, 19, 0.96);
+}
+
+.work-entry-form-actions button:disabled {
+    cursor: not-allowed;
+    filter: saturate(0.65);
+    opacity: 0.56;
 }
 
 @media (max-width: 640px) {
