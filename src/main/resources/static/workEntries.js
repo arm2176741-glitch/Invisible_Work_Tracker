@@ -5,6 +5,11 @@ const FieldProofWorkEntries = (() => {
         title: document.querySelector("#recentWorkEntriesTitle"),
         list: document.querySelector("#recentWorkEntryList"),
         emptyState: document.querySelector("#emptyWorkEntryState"),
+        preview: document.querySelector(".work-entry-preview"),
+        hero: document.querySelector(".work-entry-hero"),
+        metrics: document.querySelector(".dashboard-metrics"),
+        detailView: document.querySelector("#workEntryDetailView"),
+        detailBackButton: document.querySelector("#workEntryDetailBackButton"),
 
         modal: document.querySelector("#workEntryModal"),
         form: document.querySelector("#workEntryForm"),
@@ -90,6 +95,10 @@ const FieldProofWorkEntries = (() => {
         if (elements.list) {
             elements.list.addEventListener("click", handleEntryAction);
         }
+
+        if (elements.detailBackButton) {
+            elements.detailBackButton.addEventListener("click", closeDetailView);
+        }
     }
 
     function handleEntryAction(event) {
@@ -100,11 +109,55 @@ const FieldProofWorkEntries = (() => {
         }
 
         const action = actionButton.dataset.workEntryAction;
-        const message = action === "photos"
-            ? "Photo uploads are the next FieldProof slice."
-            : "Work-entry detail pages are coming in a later slice.";
+        const workEntryId = actionButton.dataset.workEntryId;
 
-        createFormOptions.onUnavailableAction(message);
+        const workEntry = currentEntries.find((entry) => {
+            return String(entry.id) === String(workEntryId);
+        });
+
+        if (!workEntry) {
+            createFormOptions.onUnavailableAction("We couldn't find that work entry. Refresh and try again.");
+            return;
+        }
+
+        openDetailView(workEntry);
+
+        if (action === "photos") {
+            createFormOptions.onUnavailableAction("Photo uploads are the next FieldProof slice.");
+        }
+    }
+
+    function openDetailView(workEntry) {
+        renderDetailView(workEntry);
+
+        elements.preview?.classList.add("hidden");
+        elements.hero?.classList.add("hidden");
+        elements.metrics?.classList.add("hidden");
+        elements.detailView?.classList.remove("hidden");
+    }
+
+    function renderDetailView(workEntry) {
+        setText("#detailJobName", formatDisplayText(workEntry.jobName || "Untitled work entry"));
+        setText("#detailJobAddress", workEntry.jobAddress || "No address added");
+        setText("#detailWorkType", formatDisplayText(workEntry.workType || "-"));
+        setText("#detailWorkDate", formatDate(workEntry.workDate));
+        setText("#detailDescription", formatDescription(workEntry.description));
+        setText("#detailStatus", formatStatus(workEntry.status));
+    }
+
+    function setText(selector, value) {
+        const element = document.querySelector(selector);
+
+        if (element) {
+            element.textContent = value;
+        }
+    }
+
+    function closeDetailView() {
+        elements.detailView?.classList.add("hidden");
+        elements.preview?.classList.remove("hidden");
+        elements.hero?.classList.remove("hidden");
+        elements.metrics?.classList.remove("hidden");
     }
 
     function openCreateForm() {
@@ -487,8 +540,8 @@ const FieldProofWorkEntries = (() => {
                 ${escapeHtml(proofLabel)} · ${photoCount} photos
             </span>
             <span class="work-entry-row-actions">
-                <button class="work-entry-action-button" type="button" data-work-entry-action="open">Open</button>
-                <button class="work-entry-action-button emphasis" type="button" data-work-entry-action="photos">Add photos</button>
+                <button class="work-entry-action-button" type="button" data-work-entry-action="open" data-work-entry-id="${escapeHtml(workEntry.id)}">Open</button>
+                <button class="work-entry-action-button emphasis" type="button" data-work-entry-action="photos" data-work-entry-id="${escapeHtml(workEntry.id)}">Add photos</button>
             </span>
         `;
 
@@ -528,6 +581,35 @@ const FieldProofWorkEntries = (() => {
             hour: "numeric",
             minute: "2-digit"
         }).format(date);
+    }
+
+    function formatDisplayText(value) {
+        const normalizedValue = String(value || "").trim();
+
+        if (!normalizedValue || normalizedValue === "-") {
+            return normalizedValue || "-";
+        }
+
+        return normalizedValue
+            .split(/\s+/)
+            .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(" ");
+    }
+
+    function formatDescription(description) {
+        const normalizedDescription = String(description || "").trim();
+
+        if (!normalizedDescription) {
+            return "No notes added.";
+        }
+
+        const repeatedCharacterOnly = /^(.)\1{4,}$/i.test(normalizedDescription);
+
+        if (repeatedCharacterOnly) {
+            return "No meaningful notes added yet.";
+        }
+
+        return normalizedDescription;
     }
 
     function parseDateValue(value) {

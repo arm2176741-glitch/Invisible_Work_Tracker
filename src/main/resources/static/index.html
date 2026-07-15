@@ -500,6 +500,54 @@
                                 <a href="#workspaceTitle">View all work entries <span aria-hidden="true">&rarr;</span></a>
                             </div>
                         </article>
+
+                        <article class="dashboard-card work-entry-detail hidden" id="workEntryDetailView">
+                            <button class="ghost-action-button work-entry-detail-back" id="workEntryDetailBackButton" type="button">← Back to dashboard</button>
+
+                            <div class="work-entry-detail-header">
+                                <div>
+                                    <p class="eyebrow">Work entry detail</p>
+                                    <h3 id="detailJobName">Work entry</h3>
+                                    <p id="detailJobAddress">No address added</p>
+                                </div>
+
+                                <span class="work-entry-status-pill draft" id="detailStatus">In progress</span>
+
+                            </div>
+
+                            <section class="work-entry-detail-grid">
+                                <div>
+                                    <span>Work type</span>
+                                    <strong id="detailWorkType">-</strong>
+                                </div>
+                                <div>
+                                    <span>Work date</span>
+                                    <strong id="detailWorkDate">-</strong>
+                                </div>
+                                <div>
+                                    <span>Proof status</span>
+                                    <strong>Proof incomplete</strong>
+                                </div>
+                                <div>
+                                    <span>Report</span>
+                                    <strong>Not generated</strong>
+                                </div>
+                            </section>
+
+                            <section class="work-entry-detail-section">
+                                <p class="eyebrow">Notes</p>
+                                <p id="detailDescription">No notes added</p>
+                            </section>
+
+                            <section class="work-entry-detail-section">
+                                <p class="eyebrow">Photos</p>
+                                <div class="work-entry-photo-placeholder">
+                                    <strong>No photos yet</strong>
+                                    <p>Add before, during, or after photos to strengthen this proof record.</p>
+                                    <button class="primary-button" type="button" data-dashboard-coming-soon="Photo uploads are the next FieldProof slice.">Add photos</button>
+                                </div>
+                            </section>
+                        </article>
                     </div>
 
                     <aside class="operating-rail" aria-label="Workspace actions and setup">
