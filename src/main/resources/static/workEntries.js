@@ -10,16 +10,37 @@ const FieldProofWorkEntries = (() => {
         metrics: document.querySelector(".dashboard-metrics"),
         detailView: document.querySelector("#workEntryDetailView"),
         detailBackButton: document.querySelector("#workEntryDetailBackButton"),
+        detailStatus: document.querySelector("#detailStatus"),
+        detailProofStatus: document.querySelector("#detailProofStatus"),
+        detailReportStatus: document.querySelector("#detailReportStatus"),
+        detailPhotoList: document.querySelector("#detailPhotoList"),
+        detailPhotoPlaceholder: document.querySelector("#detailPhotoPlaceholder"),
+        detailAddPhotosButton: document.querySelector("#detailAddPhotosButton"),
+        detailAddPhotosEmptyButton: document.querySelector("#detailAddPhotosEmptyButton"),
+        quickPhotoButton: document.querySelector("#quickPhotoAction"),
 
         modal: document.querySelector("#workEntryModal"),
         form: document.querySelector("#workEntryForm"),
         formMessage: document.querySelector("#workEntryFormMessage"),
         workspaceName: document.querySelector("#workEntryWorkspaceName"),
         openButtons: document.querySelectorAll("[data-open-work-entry-modal]"),
-        closeButtons: document.querySelectorAll("[data-close-work-entry-modal]")
+        closeButtons: document.querySelectorAll("[data-close-work-entry-modal]"),
+
+        photoModal: document.querySelector("#workEntryPhotoModal"),
+        photoForm: document.querySelector("#workEntryPhotoForm"),
+        photoFormMessage: document.querySelector("#workEntryPhotoFormMessage"),
+        photoWorkEntryName: document.querySelector("#photoWorkEntryName"),
+        photoWorkspaceName: document.querySelector("#photoWorkspaceName"),
+        photoFileInput: document.querySelector("#workEntryPhotoFiles"),
+        photoDropzone: document.querySelector("#photoDropzone"),
+        photoSelectedList: document.querySelector("#photoSelectedList"),
+        closePhotoButtons: document.querySelectorAll("[data-close-work-entry-photo-modal]")
     };
 
     let currentEntries = [];
+    let activeDetailWorkEntry = null;
+    let activePhotoWorkEntry = null;
+    let latestCurrentUserName = "User";
 
     let createFormOptions = {
         getOrganizationId: () => null,
@@ -27,12 +48,16 @@ const FieldProofWorkEntries = (() => {
         authHeaders: () => ({}),
         getCurrentUserName: () => "User",
         onCreated: async () => {},
+        onPhotosChanged: async () => {},
         onSuccess: () => {},
+        onPhotoUploadSuccess: () => {},
+        onAuthenticationExpired: () => {},
         onUnavailableAction: () => {},
         onMissingOrganization: () => {}
     };
     let createFormInitialized = false;
     let isCreatingWorkEntry = false;
+    let isUploadingPhotos = false;
 
     async function loadForOrganization({ organizationId, authHeaders, currentUserName }) {
         if (!organizationId) {
@@ -57,8 +82,12 @@ const FieldProofWorkEntries = (() => {
             }
 
             const workEntries = await readJson(response);
-            currentEntries = Array.isArray(workEntries) ? workEntries : [];
-            renderEntries(currentEntries, currentUserName);
+            latestCurrentUserName = currentUserName || createFormOptions.getCurrentUserName();
+            currentEntries = await hydrateEntriesWithPhotoMetadata(
+                Array.isArray(workEntries) ? workEntries : [],
+                authHeaders
+            );
+            renderEntries(currentEntries, latestCurrentUserName);
             return currentEntries;
         } catch (error) {
             currentEntries = [];
@@ -66,6 +95,51 @@ const FieldProofWorkEntries = (() => {
             renderError(error.message);
             return [];
         }
+    }
+
+    async function hydrateEntriesWithPhotoMetadata(workEntries, authHeaders) {
+        return Promise.all(
+            workEntries.map(async (workEntry) => {
+                const photos = await fetchPhotosForWorkEntry(workEntry.id, authHeaders);
+                return enrichWorkEntryWithPhotos(workEntry, photos);
+            })
+        );
+    }
+
+    async function fetchPhotosForWorkEntry(workEntryId, authHeaders = createFormOptions.authHeaders) {
+        if (!workEntryId) {
+            return [];
+        }
+
+        try {
+            const response = await fetch(`/work-entries/${encodeURIComponent(workEntryId)}/photos`, {
+                method: "GET",
+                headers: {
+                    ...(typeof authHeaders === "function" ? authHeaders() : {})
+                }
+            });
+
+            if (!response.ok) {
+                return [];
+            }
+
+            const photos = await readJson(response);
+            return Array.isArray(photos) ? photos : [];
+        } catch (error) {
+            return [];
+        }
+    }
+
+    function enrichWorkEntryWithPhotos(workEntry, photos) {
+        const normalizedPhotos = Array.isArray(photos) ? photos : [];
+
+        return {
+            ...workEntry,
+            photos: normalizedPhotos,
+            photoCount: normalizedPhotos.length,
+            proofReady: hasPhotoCategory(normalizedPhotos, "BEFORE")
+                && hasPhotoCategory(normalizedPhotos, "AFTER")
+        };
     }
 
     function initCreateForm(options = {}) {
@@ -99,6 +173,40 @@ const FieldProofWorkEntries = (() => {
         if (elements.detailBackButton) {
             elements.detailBackButton.addEventListener("click", closeDetailView);
         }
+
+        elements.closePhotoButtons.forEach((button) => {
+            button.addEventListener("click", closePhotoUploadForm);
+        });
+
+        if (elements.photoForm) {
+            elements.photoForm.addEventListener("submit", submitPhotoUploadForm);
+        }
+
+        if (elements.photoFileInput) {
+            elements.photoFileInput.addEventListener("change", renderSelectedPhotoFiles);
+        }
+
+        if (elements.photoDropzone) {
+            elements.photoDropzone.addEventListener("dragover", handlePhotoDragOver);
+            elements.photoDropzone.addEventListener("dragleave", handlePhotoDragLeave);
+            elements.photoDropzone.addEventListener("drop", handlePhotoDrop);
+        }
+
+        if (elements.detailAddPhotosButton) {
+            elements.detailAddPhotosButton.addEventListener("click", openPhotoUploadForDetail);
+        }
+
+        if (elements.detailAddPhotosEmptyButton) {
+            elements.detailAddPhotosEmptyButton.addEventListener("click", openPhotoUploadForDetail);
+        }
+
+        if (elements.detailPhotoList) {
+            elements.detailPhotoList.addEventListener("click", handleDetailPhotoAction);
+        }
+
+        if (elements.quickPhotoButton) {
+            elements.quickPhotoButton.addEventListener("click", openPhotoUploadForBestEntry);
+        }
     }
 
     function handleEntryAction(event) {
@@ -120,14 +228,17 @@ const FieldProofWorkEntries = (() => {
             return;
         }
 
-        openDetailView(workEntry);
-
         if (action === "photos") {
-            createFormOptions.onUnavailableAction("Photo uploads are the next FieldProof slice.");
+            openDetailView(workEntry);
+            openPhotoUploadForm(workEntry);
+            return;
         }
+
+        openDetailView(workEntry);
     }
 
     function openDetailView(workEntry) {
+        activeDetailWorkEntry = workEntry;
         renderDetailView(workEntry);
 
         elements.preview?.classList.add("hidden");
@@ -143,6 +254,79 @@ const FieldProofWorkEntries = (() => {
         setText("#detailWorkDate", formatDate(workEntry.workDate));
         setText("#detailDescription", formatDescription(workEntry.description));
         setText("#detailStatus", formatStatus(workEntry.status));
+
+        if (elements.detailStatus) {
+            elements.detailStatus.className = `work-entry-status-pill ${getStatusClass(workEntry.status)}`;
+        }
+
+        if (elements.detailProofStatus) {
+            elements.detailProofStatus.textContent = getProofStatusLabel(workEntry);
+        }
+
+        if (elements.detailReportStatus) {
+            elements.detailReportStatus.textContent = "Not generated";
+        }
+
+        renderDetailPhotos(workEntry);
+    }
+
+    function renderDetailPhotos(workEntry) {
+        const photos = Array.isArray(workEntry.photos) ? workEntry.photos : [];
+
+        if (!elements.detailPhotoList || !elements.detailPhotoPlaceholder) {
+            return;
+        }
+
+        elements.detailPhotoList.replaceChildren();
+        elements.detailPhotoPlaceholder.classList.toggle("hidden", photos.length > 0);
+
+        if (photos.length === 0) {
+            return;
+        }
+
+        photos.forEach((photo) => {
+            const photoCard = document.createElement("article");
+            photoCard.className = "work-entry-photo-card";
+
+            photoCard.innerHTML = `
+                <span class="photo-category-badge ${escapeHtml(String(photo.category || "").toLowerCase())}">
+                    ${escapeHtml(titleCase(photo.category || "Photo"))}
+                </span>
+                <div class="photo-card-copy">
+                    <strong>${escapeHtml(photo.originalFilename || "Uploaded photo")}</strong>
+                    <span>${escapeHtml(formatPhotoMeta(photo))}</span>
+                </div>
+                <button class="work-entry-action-button" type="button" data-delete-photo-id="${escapeHtml(photo.id)}">Delete</button>
+            `;
+
+            elements.detailPhotoList.appendChild(photoCard);
+        });
+    }
+
+    function formatPhotoMeta(photo) {
+        const size = formatFileSize(photo.fileSizeBytes);
+        const date = formatDate(photo.createdAt);
+        const type = photo.contentType || "image";
+
+        return `${type} • ${size} • ${date}`;
+    }
+
+    function getProofStatusLabel(workEntry) {
+        if (workEntry.proofReady) {
+            return "Proof ready";
+        }
+
+        if (Number(workEntry.photoCount || 0) > 0) {
+            return "Proof started";
+        }
+
+        return "Proof incomplete";
+    }
+
+    function hasPhotoCategory(photos, category) {
+        return photos.some((photo) => {
+            return String(photo.category || "").toUpperCase() === category;
+        });
     }
 
     function setText(selector, value) {
@@ -154,10 +338,378 @@ const FieldProofWorkEntries = (() => {
     }
 
     function closeDetailView() {
+        activeDetailWorkEntry = null;
         elements.detailView?.classList.add("hidden");
         elements.preview?.classList.remove("hidden");
         elements.hero?.classList.remove("hidden");
         elements.metrics?.classList.remove("hidden");
+    }
+
+    function openPhotoUploadForBestEntry() {
+        if (currentEntries.length === 0) {
+            createFormOptions.onUnavailableAction("Create a work entry before adding photos.");
+            return;
+        }
+
+        const targetEntry = getBestPhotoTargetEntry();
+        openDetailView(targetEntry);
+        openPhotoUploadForm(targetEntry);
+    }
+
+    function getBestPhotoTargetEntry() {
+        const sortedEntries = getRecentEntries(currentEntries);
+
+        return sortedEntries.find((entry) => !entry.proofReady)
+            || sortedEntries[0]
+            || currentEntries[0];
+    }
+
+    function openPhotoUploadForDetail() {
+        if (!activeDetailWorkEntry) {
+            createFormOptions.onUnavailableAction("Open a work entry before adding photos.");
+            return;
+        }
+
+        openPhotoUploadForm(activeDetailWorkEntry);
+    }
+
+    function openPhotoUploadForm(workEntry) {
+        if (!workEntry || !workEntry.id) {
+            createFormOptions.onUnavailableAction("Open a work entry before adding photos.");
+            return;
+        }
+
+        if (!elements.photoModal) {
+            return;
+        }
+
+        activePhotoWorkEntry = workEntry;
+        renderPhotoModalContext(workEntry);
+        setPhotoMessage("");
+        elements.photoForm?.reset();
+        renderSelectedPhotoFiles();
+        elements.photoModal.classList.remove("hidden");
+        document.body.classList.add("modal-open");
+
+        if (elements.photoFileInput) {
+            elements.photoFileInput.focus();
+        }
+    }
+
+    function closePhotoUploadForm() {
+        if (!elements.photoModal) {
+            return;
+        }
+
+        elements.photoModal.classList.add("hidden");
+        activePhotoWorkEntry = null;
+        setPhotoMessage("");
+        elements.photoForm?.reset();
+        renderSelectedPhotoFiles();
+
+        if (elements.modal?.classList.contains("hidden") !== false) {
+            document.body.classList.remove("modal-open");
+        }
+    }
+
+    function renderPhotoModalContext(workEntry) {
+        if (elements.photoWorkEntryName) {
+            elements.photoWorkEntryName.textContent =
+                    formatDisplayText(workEntry.jobName || "Selected job");
+        }
+
+        if (elements.photoWorkspaceName) {
+            const organizationName = typeof createFormOptions.getOrganizationName === "function"
+                ? createFormOptions.getOrganizationName()
+                : "";
+
+            elements.photoWorkspaceName.textContent = organizationName || "Selected workspace";
+        }
+    }
+
+    function handlePhotoDragOver(event) {
+        event.preventDefault();
+        elements.photoDropzone?.classList.add("is-dragging");
+    }
+
+    function handlePhotoDragLeave() {
+        elements.photoDropzone?.classList.remove("is-dragging");
+    }
+
+    function handlePhotoDrop(event) {
+        event.preventDefault();
+        elements.photoDropzone?.classList.remove("is-dragging");
+
+        if (!elements.photoFileInput || !event.dataTransfer?.files?.length) {
+            return;
+        }
+
+        elements.photoFileInput.files = event.dataTransfer.files;
+        renderSelectedPhotoFiles();
+    }
+
+    function renderSelectedPhotoFiles() {
+        if (!elements.photoSelectedList) {
+            return;
+        }
+
+        const files = Array.from(elements.photoFileInput?.files || []);
+        elements.photoSelectedList.replaceChildren();
+        elements.photoSelectedList.classList.toggle("hidden", files.length === 0);
+
+        files.forEach((file) => {
+            const item = document.createElement("li");
+            item.innerHTML = `
+                <span>
+                    <strong>${escapeHtml(file.name)}</strong>
+                    <small>${escapeHtml(file.type || "image")} · ${escapeHtml(formatFileSize(file.size))}</small>
+                </span>
+                <em>${file.size > 20 * 1024 * 1024 ? "Too large" : "Ready"}</em>
+            `;
+
+            if (file.size > 20 * 1024 * 1024) {
+                item.classList.add("has-error");
+            }
+
+            elements.photoSelectedList.appendChild(item);
+        });
+    }
+
+    async function submitPhotoUploadForm(event) {
+        event.preventDefault();
+
+        if (isUploadingPhotos || !elements.photoForm || !activePhotoWorkEntry) {
+            return;
+        }
+
+        const formData = new FormData(elements.photoForm);
+        const category = String(formData.get("category") || "").trim();
+        const files = Array.from(elements.photoFileInput?.files || []);
+        const validationMessage = validatePhotoUpload(category, files);
+
+        if (validationMessage) {
+            setPhotoMessage(validationMessage, "error");
+            return;
+        }
+
+        const submitButton = elements.photoForm.querySelector('button[type="submit"]');
+        const originalButtonContent = submitButton ? submitButton.innerHTML : "";
+
+        isUploadingPhotos = true;
+        setPhotoMessage("");
+
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
+
+        try {
+            for (let index = 0; index < files.length; index++) {
+                if (submitButton) {
+                    submitButton.textContent = `Uploading ${index + 1} of ${files.length}...`;
+                }
+
+                await uploadSinglePhoto(activePhotoWorkEntry.id, category, files[index]);
+            }
+
+            const uploadedCount = files.length;
+            const workEntryId = activePhotoWorkEntry.id;
+
+            closePhotoUploadForm();
+            await refreshAfterPhotoChange(workEntryId);
+            createFormOptions.onPhotoUploadSuccess(
+                `${pluralize(uploadedCount, "photo")} uploaded.`
+            );
+        } catch (error) {
+            setPhotoMessage(error.message || "Photo upload failed. Try again.", "error");
+        } finally {
+            isUploadingPhotos = false;
+
+            if (submitButton) {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonContent;
+            }
+        }
+    }
+
+    function validatePhotoUpload(category, files) {
+        if (!["BEFORE", "DURING", "AFTER"].includes(category)) {
+            return "Choose before, during, or after.";
+        }
+
+        if (files.length === 0) {
+            return "Choose at least one photo.";
+        }
+
+        const invalidType = files.find((file) => {
+            return !["image/jpeg", "image/png", "image/webp"].includes(file.type);
+        });
+
+        if (invalidType) {
+            return `${invalidType.name} must be JPEG, PNG, or WebP.`;
+        }
+
+        const oversizedFile = files.find((file) => {
+            return file.size > 20 * 1024 * 1024;
+        });
+
+        if (oversizedFile) {
+            return `${oversizedFile.name} is larger than 20MB.`;
+        }
+
+        return "";
+    }
+
+    async function uploadSinglePhoto(workEntryId, category, file) {
+        const formData = new FormData();
+        formData.append("category", category);
+        formData.append("file", file);
+
+        const response = await fetch(`/work-entries/${encodeURIComponent(workEntryId)}/photos`, {
+            method: "POST",
+            headers: getAuthHeadersOrThrow(),
+            body: formData
+        });
+
+        if (response.status === 401) {
+            handleAuthenticationExpired();
+            throw new Error("Your session expired. Sign in again before uploading photos.");
+        }
+
+        if (!response.ok) {
+            const errorBody = await readJson(response);
+            throw new Error(extractErrorMessage(errorBody, response.status));
+        }
+
+        return readJson(response);
+    }
+
+    function getAuthHeadersOrThrow() {
+        const headers = typeof createFormOptions.authHeaders === "function"
+            ? createFormOptions.authHeaders()
+            : {};
+        const authorization = headers.Authorization || headers.authorization || "";
+
+        if (
+            !authorization
+            || authorization === "Bearer null"
+            || authorization === "Bearer undefined"
+            || authorization.trim() === "Bearer"
+        ) {
+            handleAuthenticationExpired();
+            throw new Error("Your session expired. Sign in again before uploading photos.");
+        }
+
+        return headers;
+    }
+
+    function handleAuthenticationExpired() {
+        closePhotoUploadForm();
+        closeCreateForm();
+        createFormOptions.onAuthenticationExpired("Session expired. Sign in again.");
+    }
+
+    async function refreshAfterPhotoChange(workEntryId) {
+        let refreshedEntries = [];
+
+        if (typeof createFormOptions.onPhotosChanged === "function") {
+            const result = await createFormOptions.onPhotosChanged();
+
+            if (Array.isArray(result)) {
+                refreshedEntries = result;
+            }
+        }
+
+        if (refreshedEntries.length > 0) {
+            currentEntries = refreshedEntries;
+        } else {
+            await refreshSingleWorkEntryPhotos(workEntryId);
+            renderEntries(currentEntries, latestCurrentUserName);
+        }
+
+        const updatedWorkEntry = currentEntries.find((entry) => {
+            return String(entry.id) === String(workEntryId);
+        });
+
+        if (updatedWorkEntry && !elements.detailView?.classList.contains("hidden")) {
+            openDetailView(updatedWorkEntry);
+        }
+    }
+
+    async function refreshSingleWorkEntryPhotos(workEntryId) {
+        const workEntry = currentEntries.find((entry) => {
+            return String(entry.id) === String(workEntryId);
+        });
+
+        if (!workEntry) {
+            return;
+        }
+
+        const photos = await fetchPhotosForWorkEntry(workEntryId);
+        const updatedWorkEntry = enrichWorkEntryWithPhotos(workEntry, photos);
+
+        currentEntries = currentEntries.map((entry) => {
+            return String(entry.id) === String(workEntryId)
+                ? updatedWorkEntry
+                : entry;
+        });
+    }
+
+    async function handleDetailPhotoAction(event) {
+        const deleteButton = event.target.closest("[data-delete-photo-id]");
+
+        if (!deleteButton || !activeDetailWorkEntry) {
+            return;
+        }
+
+        const photoId = deleteButton.dataset.deletePhotoId;
+        const confirmed = window.confirm("Delete this photo from the work entry?");
+
+        if (!confirmed) {
+            return;
+        }
+
+        deleteButton.disabled = true;
+        deleteButton.textContent = "Deleting...";
+
+        try {
+            const response = await fetch(
+                `/work-entries/${encodeURIComponent(activeDetailWorkEntry.id)}/photos/${encodeURIComponent(photoId)}`,
+                {
+                    method: "DELETE",
+                    headers: getAuthHeadersOrThrow()
+                }
+            );
+
+            if (response.status === 401) {
+                handleAuthenticationExpired();
+                throw new Error("Your session expired. Sign in again before deleting photos.");
+            }
+
+            if (!response.ok) {
+                const errorBody = await readJson(response);
+                throw new Error(extractErrorMessage(errorBody, response.status));
+            }
+
+            await refreshAfterPhotoChange(activeDetailWorkEntry.id);
+            createFormOptions.onPhotoUploadSuccess("Photo deleted.");
+        } catch (error) {
+            createFormOptions.onUnavailableAction(error.message || "Photo could not be deleted.");
+            deleteButton.disabled = false;
+            deleteButton.textContent = "Delete";
+        }
+    }
+
+    function setPhotoMessage(message, type = "") {
+        if (!elements.photoFormMessage) {
+            return;
+        }
+
+        elements.photoFormMessage.textContent = message;
+        elements.photoFormMessage.className = "status-message";
+
+        if (type) {
+            elements.photoFormMessage.classList.add(type);
+        }
     }
 
     function openCreateForm() {
@@ -521,8 +1073,16 @@ const FieldProofWorkEntries = (() => {
         const statusClass = getStatusClass(workEntry.status);
         const jobName = workEntry.jobName || "Untitled work entry";
         const photoCount = Number(workEntry.photoCount || 0);
-        const proofLabel = photoCount > 0 ? "Proof started" : "Needs photos";
-        const proofClass = photoCount > 0 ? "started" : "incomplete";
+        const proofLabel = workEntry.proofReady
+            ? "Proof ready"
+            : photoCount > 0
+                ? "Proof started"
+                : "Needs photos";
+        const proofClass = workEntry.proofReady
+            ? "ready"
+            : photoCount > 0
+                ? "started"
+                : "incomplete";
 
         row.innerHTML = `
             <span class="work-entry-thumbnail thumbnail-${(index % 3) + 1}" aria-hidden="true"></span>
@@ -537,7 +1097,7 @@ const FieldProofWorkEntries = (() => {
             <span class="work-entry-status-pill ${statusClass}">${escapeHtml(statusLabel)}</span>
             <span class="work-entry-proof-chip ${proofClass}">
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z"/><path d="M12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
-                ${escapeHtml(proofLabel)} · ${photoCount} photos
+                ${escapeHtml(proofLabel)} · ${photoCount} ${photoCount === 1 ? "photo" : "photos"}
             </span>
             <span class="work-entry-row-actions">
                 <button class="work-entry-action-button" type="button" data-work-entry-action="open" data-work-entry-id="${escapeHtml(workEntry.id)}">Open</button>
@@ -554,6 +1114,20 @@ const FieldProofWorkEntries = (() => {
         const author = formatAuthor(currentUserName);
 
         return `${date} • ${time} by ${author}`;
+    }
+
+    function formatFileSize(bytes) {
+        const normalizedBytes = Number(bytes || 0);
+
+        if (normalizedBytes < 1024) {
+            return `${normalizedBytes} B`;
+        }
+
+        if (normalizedBytes < 1024 * 1024) {
+            return `${(normalizedBytes / 1024).toFixed(1)} KB`;
+        }
+
+        return `${(normalizedBytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
     function formatDate(value) {

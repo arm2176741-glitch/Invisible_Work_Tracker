@@ -526,11 +526,11 @@
                                 </div>
                                 <div>
                                     <span>Proof status</span>
-                                    <strong>Proof incomplete</strong>
+                                    <strong id="detailProofStatus">Proof incomplete</strong>
                                 </div>
                                 <div>
                                     <span>Report</span>
-                                    <strong>Not generated</strong>
+                                    <strong id="detailReportStatus">Not generated</strong>
                                 </div>
                             </section>
 
@@ -540,11 +540,15 @@
                             </section>
 
                             <section class="work-entry-detail-section">
-                                <p class="eyebrow">Photos</p>
-                                <div class="work-entry-photo-placeholder">
+                                <div class="work-entry-section-title-row">
+                                    <p class="eyebrow">Photos</p>
+                                    <button class="work-entry-action-button emphasis" id="detailAddPhotosButton" type="button">Add photos</button>
+                                </div>
+                                <div class="work-entry-photo-list" id="detailPhotoList"></div>
+                                <div class="work-entry-photo-placeholder" id="detailPhotoPlaceholder">
                                     <strong>No photos yet</strong>
                                     <p>Add before, during, or after photos to strengthen this proof record.</p>
-                                    <button class="primary-button" type="button" data-dashboard-coming-soon="Photo uploads are the next FieldProof slice.">Add photos</button>
+                                    <button class="primary-button" type="button" id="detailAddPhotosEmptyButton">Add photos</button>
                                 </div>
                             </section>
                         </article>
@@ -603,13 +607,13 @@
                                     </div>
                                     <span class="quick-action-chevron" aria-hidden="true">&#8250;</span>
                                 </button>
-                                <button class="quick-action" id="quickPhotoAction" type="button" data-dashboard-coming-soon="Photo uploads are the next FieldProof slice.">
+                                <button class="quick-action" id="quickPhotoAction" type="button">
                                     <span class="quick-action-icon">
                                         <svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z"/><path d="M12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
                                     </span>
                                     <div>
                                         <strong>Add photos</strong>
-                                        <p>Coming next: attach proof to jobs.</p>
+                                        <p>Attach proof to documented jobs.</p>
                                     </div>
                                     <span class="quick-action-chevron" aria-hidden="true">&#8250;</span>
                                 </button>
@@ -800,6 +804,90 @@
             <div class="work-entry-form-actions">
                 <button class="secondary-button" type="button" data-close-work-entry-modal>Cancel</button>
                 <button class="primary-button" type="submit">Create work entry</button>
+            </div>
+        </form>
+    </section>
+</div>
+
+<div class="work-entry-modal hidden" id="workEntryPhotoModal" role="dialog" aria-modal="true" aria-labelledby="workEntryPhotoModalTitle">
+    <div class="work-entry-modal-backdrop" data-close-work-entry-photo-modal></div>
+    <section class="work-entry-modal-panel work-entry-photo-modal-panel">
+        <div class="work-entry-modal-header">
+            <div>
+                <p class="eyebrow">Job photos</p>
+                <h2 id="workEntryPhotoModalTitle">Add photos</h2>
+                <p>Attach before, during, or after photos to the selected work entry.</p>
+                <div class="work-entry-workspace-pill" aria-live="polite">
+                    <span>Work entry</span>
+                    <strong id="photoWorkEntryName">Selected job</strong>
+                </div>
+                <div class="work-entry-workspace-pill muted-pill" aria-live="polite">
+                    <span>Workspace</span>
+                    <strong id="photoWorkspaceName">Selected workspace</strong>
+                </div>
+            </div>
+            <button class="work-entry-modal-close" type="button" data-close-work-entry-photo-modal aria-label="Close add photos form">&times;</button>
+        </div>
+
+        <form class="work-entry-form photo-upload-form" id="workEntryPhotoForm">
+            <div class="work-entry-context-card">
+                <div class="work-entry-context-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z"/><path d="M12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
+                </div>
+                <div>
+                    <strong>Photo evidence</strong>
+                    <span>Upload JPEG, PNG, or WebP photos up to 20MB each.</span>
+                </div>
+                <em>Proof</em>
+            </div>
+
+            <div class="work-entry-section-heading">
+                <span>Photo category</span>
+                <small>Required</small>
+            </div>
+
+            <fieldset class="photo-category-group">
+                <legend class="visually-hidden">Photo category</legend>
+                <label>
+                    <input type="radio" name="category" value="BEFORE" checked>
+                    <span>Before</span>
+                </label>
+                <label>
+                    <input type="radio" name="category" value="DURING">
+                    <span>During</span>
+                </label>
+                <label>
+                    <input type="radio" name="category" value="AFTER">
+                    <span>After</span>
+                </label>
+            </fieldset>
+
+            <div class="work-entry-field photo-upload-field">
+                <label for="workEntryPhotoFiles">Photo files</label>
+                <label class="photo-dropzone" id="photoDropzone" for="workEntryPhotoFiles">
+                    <span class="photo-dropzone-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z"/><path d="M12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
+                    </span>
+                    <span class="photo-dropzone-copy">
+                        <strong>Drop photos here or choose files</strong>
+                        <small>JPEG, PNG, or WebP · 20MB max per file</small>
+                    </span>
+                    <span class="photo-dropzone-action">Choose files</span>
+                </label>
+                <input class="photo-file-input" id="workEntryPhotoFiles" name="files" type="file" accept="image/jpeg,image/png,image/webp" multiple required>
+                <ul class="photo-selected-list" id="photoSelectedList" aria-live="polite"></ul>
+            </div>
+
+            <div class="work-entry-next-panel">
+                <strong>Proof rule</strong>
+                <span>Proof ready = at least 1 before photo and 1 after photo.</span>
+            </div>
+
+            <p class="status-message" id="workEntryPhotoFormMessage" role="status" aria-live="polite"></p>
+
+            <div class="work-entry-form-actions">
+                <button class="secondary-button" type="button" data-close-work-entry-photo-modal>Cancel</button>
+                <button class="primary-button" type="submit">Upload photos</button>
             </div>
         </form>
     </section>

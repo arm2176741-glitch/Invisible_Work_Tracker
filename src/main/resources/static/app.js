@@ -232,8 +232,19 @@ if (window.FieldProofWorkEntries) {
         authHeaders,
         getCurrentUserName: () => currentUserDisplayName,
         onCreated: loadSelectedOrganizationWorkEntries,
+        onPhotosChanged: loadSelectedOrganizationWorkEntries,
         onSuccess: () => {
             showWorkspaceToast("Work entry created successfully.");
+        },
+        onPhotoUploadSuccess: (message) => {
+            showWorkspaceToast(message || "Photo upload complete.");
+        },
+        onAuthenticationExpired: (message) => {
+            sessionStorage.removeItem(tokenKey);
+            currentUserId = null;
+            clearOrganizations();
+            showAuth();
+            setMessage(message || "Session expired. Sign in again.", "error");
         },
         onUnavailableAction: (message) => {
             showWorkspaceToast(message);
@@ -268,6 +279,10 @@ async function requestJson(url, options = {}) {
 
 function authHeaders() {
     const token = sessionStorage.getItem(tokenKey);
+
+    if (!token) {
+        return {};
+    }
 
     return {
         Authorization: `Bearer ${token}`
@@ -476,7 +491,7 @@ async function loadSelectedOrganizationWorkEntries() {
     if (!window.FieldProofWorkEntries) {
         currentWorkEntries = [];
         renderDashboardGuidance();
-        return;
+        return currentWorkEntries;
     }
 
     const workEntries = await window.FieldProofWorkEntries.loadForOrganization({
@@ -487,6 +502,7 @@ async function loadSelectedOrganizationWorkEntries() {
 
     currentWorkEntries = Array.isArray(workEntries) ? workEntries : [];
     renderDashboardGuidance();
+    return currentWorkEntries;
 }
 
 function clearWorkEntriesPanel(message) {
@@ -600,6 +616,12 @@ function renderDashboardGuidance() {
         return String(organization.id) === selectedOrganizationId;
     });
     const workEntryCount = currentWorkEntries.length;
+    const hasAnyPhotos = currentWorkEntries.some((workEntry) => {
+        return Number(workEntry.photoCount || 0) > 0;
+    });
+    const hasProofReadyEntry = currentWorkEntries.some((workEntry) => {
+        return Boolean(workEntry.proofReady);
+    });
 
     if (!hasSelectedOrganization) {
         setDashboardHero({
@@ -641,20 +663,40 @@ function renderDashboardGuidance() {
         return;
     }
 
+    if (!hasProofReadyEntry) {
+        setDashboardHero({
+            eyebrow: "Proof status",
+            title: hasAnyPhotos ? "Add before and after coverage" : "Proof incomplete: photos are next",
+            description: `You have ${pluralize(workEntryCount, "work entry")} in this workspace. Add at least one before photo and one after photo to make a job proof-ready.`,
+            primaryLabel: "Create another work entry",
+            secondaryLabel: "Review entries"
+        });
+        renderSetupProgress(2, "Add job photos");
+        setQuickActionCopy({
+            title: "Next: strengthen proof",
+            createTitle: "Create another entry",
+            createCopy: "Keep documenting job activity.",
+            photoCopy: hasAnyPhotos ? "Add the missing before/after proof." : "Attach proof to a documented job.",
+            reportCopy: "Generate after photos/review are ready.",
+            crewCopy: "Crew management remains optional for solo owners."
+        });
+        return;
+    }
+
     setDashboardHero({
-        eyebrow: "Proof status",
-        title: "Proof incomplete: photos are next",
-        description: `You have ${pluralize(workEntryCount, "work entry")} in this workspace. The next product slice should attach job photos so each entry becomes stronger proof.`,
+        eyebrow: "Report readiness",
+        title: "Proof-ready job found",
+        description: "At least one work entry has before and after photo coverage. The next backend slice can turn that evidence into a proof report.",
         primaryLabel: "Create another work entry",
         secondaryLabel: "Review entries"
     });
-    renderSetupProgress(2, "Add job photos");
+    renderSetupProgress(3, "Generate first report");
     setQuickActionCopy({
-        title: "Next: strengthen proof",
+        title: "Next: prepare reporting",
         createTitle: "Create another entry",
         createCopy: "Keep documenting job activity.",
-        photoCopy: "Coming next: attach proof to jobs.",
-        reportCopy: "Generate after photos/review are ready.",
+        photoCopy: "Add more job photos.",
+        reportCopy: "Report generation is the next backend slice.",
         crewCopy: "Crew management remains optional for solo owners."
     });
 }
@@ -703,6 +745,10 @@ function getActiveStepKey(activeStepLabel) {
 
     if (activeStepLabel === "Create first work entry") {
         return "work-entry";
+    }
+
+    if (activeStepLabel === "Generate first report") {
+        return "report";
     }
 
     return "organization";
