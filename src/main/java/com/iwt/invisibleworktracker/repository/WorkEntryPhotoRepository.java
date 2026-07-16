@@ -1,5 +1,6 @@
 package com.iwt.invisibleworktracker.repository;
 
+import com.iwt.invisibleworktracker.entity.workentry.PhotoCategory;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntryPhoto;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -16,5 +17,10 @@ public interface WorkEntryPhotoRepository extends JpaRepository<WorkEntryPhoto, 
     Optional<WorkEntryPhoto> findByIdAndWorkEntry(
             Long id,
             WorkEntry workEntry
+    );
+
+    long countByWorkEntryAndCategory(
+            WorkEntry workEntry,
+            PhotoCategory category
     );
 }

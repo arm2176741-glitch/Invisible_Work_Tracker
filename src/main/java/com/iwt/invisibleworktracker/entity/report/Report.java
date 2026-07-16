@@ -1,0 +1,86 @@
+package com.iwt.invisibleworktracker.entity.report;
+
+import com.iwt.invisibleworktracker.entity.user.User;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
+
+import java.time.LocalDateTime;
+
+
+
+@Entity
+@Table(name = "reports")
+@Getter @Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@EqualsAndHashCode(onlyExplicitlyIncluded = true)
+@ToString(exclude = {"workEntry", "createdBy"})
+public class Report {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @EqualsAndHashCode.Include
+    private Long id;
+
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "work_entry_id", nullable = false)
+    private WorkEntry workEntry;
+
+    @Column(nullable = false, unique = true, length = 40)
+    private String reportNumber;
+
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 30)
+    private ReportStatus status;
+
+    @Column(nullable = false, columnDefinition = "TEXT")
+    private String snapshotJson;
+
+
+    @Column(nullable = false)
+    private LocalDateTime generatedAt;
+
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "created_by_user_id", nullable = false)
+    private User createdBy;
+
+    @Column(nullable = false, updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    void onCreate() {
+        if (status == null) {
+            status = ReportStatus.GENERATED;
+        }
+
+        if (generatedAt == null) {
+            generatedAt = LocalDateTime.now();
+        }
+
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+    }
+}
