@@ -1,8 +1,8 @@
 package com.iwt.invisibleworktracker;
 
-import com.iwt.invisibleworktracker.entity.Organization;
-import com.iwt.invisibleworktracker.entity.WorkEntry;
-import com.iwt.invisibleworktracker.entity.WorkEntryPhoto;
+import com.iwt.invisibleworktracker.entity.organization.Organization;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntryPhoto;
 import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;
 import com.iwt.invisibleworktracker.repository.OrganizationRepository;
 import com.iwt.invisibleworktracker.repository.SessionRepository;

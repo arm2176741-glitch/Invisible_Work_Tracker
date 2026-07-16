@@ -1,7 +1,7 @@
 package com.iwt.invisibleworktracker.dto.workentry;
 
-import com.iwt.invisibleworktracker.entity.WorkEntry;
-import com.iwt.invisibleworktracker.entity.WorkEntryStatus;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntryStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;

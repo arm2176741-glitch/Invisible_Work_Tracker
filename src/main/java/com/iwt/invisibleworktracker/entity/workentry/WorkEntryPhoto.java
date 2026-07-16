@@ -1,5 +1,6 @@
-package com.iwt.invisibleworktracker.entity;
+package com.iwt.invisibleworktracker.entity.workentry;
 
+import com.iwt.invisibleworktracker.entity.user.User;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

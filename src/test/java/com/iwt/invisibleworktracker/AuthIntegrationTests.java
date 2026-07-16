@@ -1,6 +1,6 @@
 package com.iwt.invisibleworktracker;
-import com.iwt.invisibleworktracker.entity.Session;
-import com.iwt.invisibleworktracker.entity.User;
+import com.iwt.invisibleworktracker.entity.user.Session;
+import com.iwt.invisibleworktracker.entity.user.User;
 import java.time.LocalDateTime;
 import static org.assertj.core.api.Assertions.assertThat;
 import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;

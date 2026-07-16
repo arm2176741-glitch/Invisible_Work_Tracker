@@ -2,7 +2,7 @@ package com.iwt.invisibleworktracker.controller;
 
 import com.iwt.invisibleworktracker.dto.workentry.CreateWorkEntryRequest;
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryResponse;
-import com.iwt.invisibleworktracker.entity.User;
+import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.service.WorkEntryService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;

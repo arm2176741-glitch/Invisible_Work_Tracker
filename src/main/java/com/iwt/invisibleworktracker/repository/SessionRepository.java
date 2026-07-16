@@ -1,6 +1,6 @@
 package com.iwt.invisibleworktracker.repository;
-import com.iwt.invisibleworktracker.entity.User;
-import com.iwt.invisibleworktracker.entity.Session;
+import com.iwt.invisibleworktracker.entity.user.User;
+import com.iwt.invisibleworktracker.entity.user.Session;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.time.LocalDateTime;

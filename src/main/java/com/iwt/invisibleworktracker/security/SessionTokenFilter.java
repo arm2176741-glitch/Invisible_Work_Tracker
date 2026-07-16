@@ -1,6 +1,6 @@
 package com.iwt.invisibleworktracker.security;
 
-import com.iwt.invisibleworktracker.entity.User;
+import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.service.AuthService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

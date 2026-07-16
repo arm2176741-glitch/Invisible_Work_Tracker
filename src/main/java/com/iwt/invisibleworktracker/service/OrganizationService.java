@@ -1,8 +1,8 @@
 package com.iwt.invisibleworktracker.service;
 
-import com.iwt.invisibleworktracker.entity.Organization;
-import com.iwt.invisibleworktracker.entity.OrganizationMembership;
-import com.iwt.invisibleworktracker.entity.User;
+import com.iwt.invisibleworktracker.entity.organization.Organization;
+import com.iwt.invisibleworktracker.entity.organization.OrganizationMembership;
+import com.iwt.invisibleworktracker.entity.user.User;
 
 import java.util.List;
 

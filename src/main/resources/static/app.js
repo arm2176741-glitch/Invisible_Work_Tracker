@@ -1,5 +1,10 @@
 const tokenKey = "fieldproofToken";
 const selectedOrganizationKeyPrefix = "fieldproofSelectedOrganizationId";
+const dashboardBackdropClasses = [
+    "dashboard-backdrop-sunset-roof",
+    "dashboard-backdrop-roof-work",
+    "dashboard-backdrop-urban-dusk"
+];
 
 const authView = document.querySelector("#authView");
 const workspaceView = document.querySelector("#workspaceView");
@@ -317,6 +322,7 @@ async function loadCurrentUser() {
         renderCurrentUser(user);
         authView.classList.add("hidden");
         workspaceView.classList.remove("hidden");
+        applyRandomDashboardBackdrop();
         document.body.classList.add("workspace-active");
         await loadOrganizations();
     } catch (error) {
@@ -794,6 +800,19 @@ function clearWorkspaceState() {
     workspaceView.classList.remove("setup-state", "dashboard-state");
 }
 
+function applyRandomDashboardBackdrop() {
+    const selectedBackdropClass = dashboardBackdropClasses[
+        Math.floor(Math.random() * dashboardBackdropClasses.length)
+    ];
+
+    document.body.classList.remove(...dashboardBackdropClasses);
+    document.body.classList.add(selectedBackdropClass);
+}
+
+function clearDashboardBackdrop() {
+    document.body.classList.remove(...dashboardBackdropClasses);
+}
+
 function renderCurrentUser(user) {
     const displayName = user.name || "User";
     const firstName = getFirstName(displayName);
@@ -1078,6 +1097,7 @@ function showAuth() {
     workspaceView.classList.add("hidden");
     authView.classList.remove("hidden");
     document.body.classList.remove("workspace-active");
+    clearDashboardBackdrop();
     clearWorkspaceState();
     setMode("login");
 }

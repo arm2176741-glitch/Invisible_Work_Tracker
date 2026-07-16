@@ -2,10 +2,10 @@ package com.iwt.invisibleworktracker.service.impl;
 
 import com.iwt.invisibleworktracker.dto.workentry.CreateWorkEntryRequest;
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryResponse;
-import com.iwt.invisibleworktracker.entity.Organization;
-import com.iwt.invisibleworktracker.entity.User;
-import com.iwt.invisibleworktracker.entity.WorkEntry;
-import com.iwt.invisibleworktracker.entity.WorkEntryStatus;
+import com.iwt.invisibleworktracker.entity.organization.Organization;
+import com.iwt.invisibleworktracker.entity.user.User;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntryStatus;
 import com.iwt.invisibleworktracker.repository.WorkEntryRepository;
 import com.iwt.invisibleworktracker.service.OrganizationService;
 import com.iwt.invisibleworktracker.service.WorkEntryService;

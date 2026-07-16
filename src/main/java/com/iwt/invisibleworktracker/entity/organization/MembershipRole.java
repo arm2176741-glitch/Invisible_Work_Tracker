@@ -1,4 +1,4 @@
-package com.iwt.invisibleworktracker.entity;
+package com.iwt.invisibleworktracker.entity.organization;
 
 public enum MembershipRole {
     OWNER,

@@ -1,10 +1,10 @@
 package com.iwt.invisibleworktracker.service.impl;
 
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryPhotoResponse;
-import com.iwt.invisibleworktracker.entity.PhotoCategory;
-import com.iwt.invisibleworktracker.entity.User;
-import com.iwt.invisibleworktracker.entity.WorkEntry;
-import com.iwt.invisibleworktracker.entity.WorkEntryPhoto;
+import com.iwt.invisibleworktracker.entity.workentry.PhotoCategory;
+import com.iwt.invisibleworktracker.entity.user.User;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntryPhoto;
 import com.iwt.invisibleworktracker.repository.WorkEntryPhotoRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryRepository;
 import com.iwt.invisibleworktracker.service.OrganizationService;

@@ -1,7 +1,7 @@
 package com.iwt.invisibleworktracker.repository;
 
-import com.iwt.invisibleworktracker.entity.Organization;
-import com.iwt.invisibleworktracker.entity.WorkEntry;
+import com.iwt.invisibleworktracker.entity.organization.Organization;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

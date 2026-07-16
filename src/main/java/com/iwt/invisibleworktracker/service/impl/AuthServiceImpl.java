@@ -1,7 +1,7 @@
 package com.iwt.invisibleworktracker.service.impl;
 
-import com.iwt.invisibleworktracker.entity.Session;
-import com.iwt.invisibleworktracker.entity.User;
+import com.iwt.invisibleworktracker.entity.user.Session;
+import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.repository.SessionRepository;
 import com.iwt.invisibleworktracker.repository.UserRepository;
 import com.iwt.invisibleworktracker.service.AuthService;

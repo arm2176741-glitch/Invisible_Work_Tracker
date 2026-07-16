@@ -1,10 +1,10 @@
 package com.iwt.invisibleworktracker.service.impl;
 
-import com.iwt.invisibleworktracker.entity.MembershipRole;
-import com.iwt.invisibleworktracker.entity.MembershipStatus;
-import com.iwt.invisibleworktracker.entity.Organization;
-import com.iwt.invisibleworktracker.entity.OrganizationMembership;
-import com.iwt.invisibleworktracker.entity.User;
+import com.iwt.invisibleworktracker.entity.organization.MembershipRole;
+import com.iwt.invisibleworktracker.entity.organization.MembershipStatus;
+import com.iwt.invisibleworktracker.entity.organization.Organization;
+import com.iwt.invisibleworktracker.entity.organization.OrganizationMembership;
+import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;
 import com.iwt.invisibleworktracker.repository.OrganizationRepository;
 import com.iwt.invisibleworktracker.service.OrganizationService;

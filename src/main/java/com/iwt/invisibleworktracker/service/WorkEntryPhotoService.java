@@ -1,7 +1,7 @@
 package com.iwt.invisibleworktracker.service;
 
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryPhotoResponse;
-import com.iwt.invisibleworktracker.entity.User;
+import com.iwt.invisibleworktracker.entity.user.User;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;

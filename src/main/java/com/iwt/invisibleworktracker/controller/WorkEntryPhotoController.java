@@ -1,7 +1,7 @@
 package com.iwt.invisibleworktracker.controller;
 
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryPhotoResponse;
-import com.iwt.invisibleworktracker.entity.User;
+import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.service.WorkEntryPhotoService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;

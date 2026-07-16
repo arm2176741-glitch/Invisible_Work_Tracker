@@ -3,7 +3,7 @@ package com.iwt.invisibleworktracker.controller;
 import com.iwt.invisibleworktracker.dto.AuthResponse;
 import com.iwt.invisibleworktracker.dto.LoginRequest;
 import com.iwt.invisibleworktracker.dto.RegisterRequest;
-import com.iwt.invisibleworktracker.entity.User;
+import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.service.AuthService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;

@@ -1,7 +1,7 @@
 package com.iwt.invisibleworktracker.dto.workentry;
 
-import com.iwt.invisibleworktracker.entity.PhotoCategory;
-import com.iwt.invisibleworktracker.entity.WorkEntryPhoto;
+import com.iwt.invisibleworktracker.entity.workentry.PhotoCategory;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntryPhoto;
 
 import java.time.LocalDateTime;
 

@@ -2,8 +2,8 @@ package com.iwt.invisibleworktracker.controller;
 
 import com.iwt.invisibleworktracker.dto.CreateOrganizationRequest;
 import com.iwt.invisibleworktracker.dto.OrganizationResponse;
-import com.iwt.invisibleworktracker.entity.OrganizationMembership;
-import com.iwt.invisibleworktracker.entity.User;
+import com.iwt.invisibleworktracker.entity.organization.OrganizationMembership;
+import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.service.OrganizationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;

@@ -184,9 +184,13 @@ button {
 
 body.workspace-active {
     overflow: hidden;
+    isolation: isolate;
+    background: #030609;
 }
 
 body.workspace-active .app-shell {
+    position: relative;
+    z-index: 1;
     width: min(100%, 1720px);
     max-width: 1720px;
     min-height: 100vh;
@@ -201,7 +205,64 @@ body.workspace-active .workspace-panel {
     max-height: calc(100vh - 16px);
     border: 1px solid var(--border-subtle);
     border-radius: var(--radius-xl);
+    background:
+            linear-gradient(180deg, rgba(8, 15, 22, 0.76), rgba(5, 10, 15, 0.82));
     box-shadow: var(--shadow-card);
+    backdrop-filter: blur(20px) saturate(112%);
+}
+
+body.workspace-active::before,
+body.workspace-active::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+}
+
+body.workspace-active::before {
+    z-index: 0;
+    opacity: 1;
+    transform: scale(1.02);
+    transform-origin: center;
+    background:
+            radial-gradient(circle at 72% 18%, rgba(245, 184, 46, 0.14), transparent 30%),
+            radial-gradient(circle at 16% 72%, rgba(59, 130, 246, 0.08), transparent 34%),
+            linear-gradient(135deg, #050a0f 0%, #0a1520 48%, #030609 100%);
+    background-size: cover;
+    background-position: center;
+}
+
+body.workspace-active::after {
+    z-index: 0;
+    opacity: 0.72;
+    background:
+            linear-gradient(90deg, rgba(3, 6, 9, 0.92) 0%, rgba(3, 6, 9, 0.56) 44%, rgba(3, 6, 9, 0.88) 100%),
+            linear-gradient(180deg, rgba(3, 6, 9, 0.12) 0%, rgba(3, 6, 9, 0.84) 100%),
+            url("/assets/dashboard-topography.png") center / cover no-repeat;
+}
+
+body.workspace-active.dashboard-backdrop-sunset-roof::before {
+    background:
+            linear-gradient(90deg, rgba(3, 6, 9, 0.94) 0%, rgba(3, 6, 9, 0.50) 50%, rgba(3, 6, 9, 0.88) 100%),
+            linear-gradient(180deg, rgba(3, 6, 9, 0.06) 0%, rgba(3, 6, 9, 0.76) 100%),
+            radial-gradient(circle at 70% 18%, rgba(245, 184, 46, 0.18), transparent 30%),
+            url("/assets/dashboard-backgrounds/dashboard-bg-sunset-roof.png") center 42% / cover no-repeat;
+}
+
+body.workspace-active.dashboard-backdrop-roof-work::before {
+    background:
+            linear-gradient(90deg, rgba(3, 6, 9, 0.94) 0%, rgba(3, 6, 9, 0.58) 46%, rgba(3, 6, 9, 0.90) 100%),
+            linear-gradient(180deg, rgba(3, 6, 9, 0.28) 0%, rgba(3, 6, 9, 0.84) 100%),
+            radial-gradient(circle at 58% 20%, rgba(245, 184, 46, 0.12), transparent 28%),
+            url("/assets/dashboard-backgrounds/dashboard-bg-roof-work.png") center / cover no-repeat;
+}
+
+body.workspace-active.dashboard-backdrop-urban-dusk::before {
+    background:
+            linear-gradient(90deg, rgba(3, 6, 9, 0.92) 0%, rgba(3, 6, 9, 0.46) 48%, rgba(3, 6, 9, 0.88) 100%),
+            linear-gradient(180deg, rgba(3, 6, 9, 0.10) 0%, rgba(3, 6, 9, 0.82) 100%),
+            radial-gradient(circle at 68% 18%, rgba(245, 184, 46, 0.18), transparent 30%),
+            url("/assets/dashboard-backgrounds/dashboard-bg-urban-dusk.png") center / cover no-repeat;
 }
 
 .auth-visual {
@@ -1358,6 +1419,53 @@ button:focus-visible {
 .dashboard-main > * {
     position: relative;
     z-index: 1;
+}
+
+body.workspace-active .dashboard-main {
+    background:
+            linear-gradient(90deg, rgba(3, 6, 9, 0.90) 0%, rgba(3, 6, 9, 0.58) 46%, rgba(3, 6, 9, 0.76) 100%),
+            radial-gradient(circle at 78% 12%, rgba(245, 184, 46, 0.12), transparent 28%),
+            linear-gradient(135deg, #08111a 0%, #071016 48%, #0b1b2c 100%);
+}
+
+body.workspace-active.dashboard-backdrop-sunset-roof .dashboard-main {
+    background:
+            linear-gradient(90deg, rgba(3, 6, 9, 0.90) 0%, rgba(3, 6, 9, 0.52) 48%, rgba(3, 6, 9, 0.78) 100%),
+            linear-gradient(180deg, rgba(3, 6, 9, 0.18) 0%, rgba(3, 6, 9, 0.80) 100%),
+            radial-gradient(circle at 68% 18%, rgba(245, 184, 46, 0.16), transparent 28%),
+            url("/assets/dashboard-backgrounds/dashboard-bg-sunset-roof.png") center 42% / cover no-repeat;
+}
+
+body.workspace-active.dashboard-backdrop-roof-work .dashboard-main {
+    background:
+            linear-gradient(90deg, rgba(3, 6, 9, 0.90) 0%, rgba(3, 6, 9, 0.58) 46%, rgba(3, 6, 9, 0.82) 100%),
+            linear-gradient(180deg, rgba(3, 6, 9, 0.28) 0%, rgba(3, 6, 9, 0.84) 100%),
+            radial-gradient(circle at 58% 20%, rgba(245, 184, 46, 0.10), transparent 28%),
+            url("/assets/dashboard-backgrounds/dashboard-bg-roof-work.png") center / cover no-repeat;
+}
+
+body.workspace-active.dashboard-backdrop-urban-dusk .dashboard-main {
+    background:
+            linear-gradient(90deg, rgba(3, 6, 9, 0.88) 0%, rgba(3, 6, 9, 0.46) 48%, rgba(3, 6, 9, 0.78) 100%),
+            linear-gradient(180deg, rgba(3, 6, 9, 0.08) 0%, rgba(3, 6, 9, 0.82) 100%),
+            radial-gradient(circle at 68% 18%, rgba(245, 184, 46, 0.16), transparent 30%),
+            url("/assets/dashboard-backgrounds/dashboard-bg-urban-dusk.png") center / cover no-repeat;
+}
+
+body.workspace-active .dashboard-main::before {
+    opacity: 0.26;
+    background-image: url("/assets/dashboard-topography.png");
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    mix-blend-mode: screen;
+}
+
+body.workspace-active .dashboard-main::after {
+    background:
+            radial-gradient(circle at 78% 12%, rgba(245, 184, 46, 0.10), transparent 22%),
+            radial-gradient(circle at 8% 68%, rgba(0, 0, 0, 0.46), transparent 36%),
+            linear-gradient(180deg, rgba(3, 6, 9, 0.08), rgba(3, 6, 9, 0.38));
 }
 
 .dashboard-header {
