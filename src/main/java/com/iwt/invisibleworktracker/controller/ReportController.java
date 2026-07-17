@@ -1,9 +1,11 @@
 package com.iwt.invisibleworktracker.controller;
 
+import com.iwt.invisibleworktracker.dto.report.ReportPhotoContent;
 import com.iwt.invisibleworktracker.dto.report.ReportResponse;
 import com.iwt.invisibleworktracker.entity.report.Report;
 import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.service.ReportService;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,5 +52,28 @@ public class ReportController {
         );
 
         return ResponseEntity.ok(ReportResponse.from(report));
+    }
+
+    @GetMapping("/reports/{reportId}/photos/{photoId}/content")
+    public ResponseEntity<byte[]> getReportPhotoContent(
+            @PathVariable Long reportId,
+            @PathVariable Long photoId,
+            Authentication authentication
+    ) {
+        User currentUser = (User) authentication.getPrincipal();
+
+        ReportPhotoContent content =
+                reportService.getReportPhotoContent(
+                        currentUser,
+                        reportId,
+                        photoId
+                );
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(content.contentType()))
+                .header("Content-Disposition", "inline")
+                .header("Cache-Control", "private, max-age=300")
+                .header("X-Content-Type-Options", "nosniff")
+                .body(content.bytes());
     }
 }

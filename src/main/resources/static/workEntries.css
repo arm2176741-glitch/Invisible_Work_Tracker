@@ -354,6 +354,47 @@
     background: rgba(255, 255, 255, 0.026);
 }
 
+.report-photo-image-frame {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    display: grid;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid rgba(25, 25, 25, 0.08);
+    border-radius: 12px;
+    background:
+            linear-gradient(135deg, rgba(255, 255, 255, 0.72), rgba(231, 225, 213, 0.92)),
+            #e7e1d5;
+    color: rgba(25, 25, 25, 0.52);
+    font-size: 0.82rem;
+    font-weight: 800;
+}
+
+.report-photo-image {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.report-photo-unavailable {
+    display: grid;
+    gap: 4px;
+    padding: 16px;
+    text-align: center;
+}
+
+.report-photo-unavailable strong {
+    color: rgba(25, 25, 25, 0.72);
+    font-size: 0.86rem;
+}
+
+.report-photo-unavailable small {
+    color: rgba(25, 25, 25, 0.52);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
 .report-photo-row strong,
 .report-photo-row p {
     overflow: hidden;
@@ -593,8 +634,16 @@
 }
 
 .report-page .report-photo-row {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 10px;
     border-color: rgba(25, 25, 25, 0.1);
     background: rgba(255, 255, 255, 0.56);
+}
+
+.report-page .report-photo-list {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
 }
 
 .report-page .report-photo-row strong {
@@ -1443,6 +1492,7 @@ body.modal-open {
     .report-document-toolbar,
     .report-page-header,
     .report-page-summary,
+    .report-page .report-photo-list,
     .report-photo-row {
         grid-template-columns: 1fr;
     }

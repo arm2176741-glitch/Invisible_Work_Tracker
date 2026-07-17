@@ -51,6 +51,7 @@ const FieldProofWorkEntries = (() => {
     let activePhotoWorkEntry = null;
     let latestCurrentUserName = "User";
     let stagedPhotoFiles = createEmptyPhotoStage();
+    let reportPhotoObjectUrls = [];
 
     let createFormOptions = {
         getOrganizationId: () => null,
@@ -593,6 +594,8 @@ const FieldProofWorkEntries = (() => {
     }
 
     function closeReportPreviewView() {
+        revokeReportPhotoObjectUrls();
+
         if (activeDetailWorkEntry) {
             openDetailView(activeDetailWorkEntry);
             return;
@@ -682,6 +685,8 @@ const FieldProofWorkEntries = (() => {
                 </section>
             </article>
         `;
+
+        loadReportPhotoImages(details.report.id);
     }
 
     function getReportDetails(workEntry) {
@@ -740,6 +745,13 @@ const FieldProofWorkEntries = (() => {
             <div class="report-photo-list">
                 ${photos.map((photo) => `
                     <article class="report-photo-row">
+                        <div
+                            class="report-photo-image-frame"
+                            data-report-photo-id="${escapeHtml(photo.id)}"
+                            data-report-photo-alt="${escapeHtml(titleCase(photo.category || "Photo"))} evidence photo"
+                        >
+                            <span>Loading image...</span>
+                        </div>
                         <span class="photo-category-badge ${escapeHtml(String(photo.category || "").toLowerCase())}">
                             ${escapeHtml(titleCase(photo.category || "Photo"))}
                         </span>
@@ -751,6 +763,75 @@ const FieldProofWorkEntries = (() => {
                 `).join("")}
             </div>
         `;
+    }
+
+    async function loadReportPhotoImages(reportId) {
+        revokeReportPhotoObjectUrls();
+
+        if (!reportId || !elements.reportContent) {
+            return;
+        }
+
+        const imageFrames =
+                elements.reportContent.querySelectorAll("[data-report-photo-id]");
+
+        imageFrames.forEach(async (frame) => {
+            const photoId = frame.dataset.reportPhotoId;
+
+            if (!photoId) {
+                renderUnavailableReportPhoto(frame);
+                return;
+            }
+
+            try {
+                const response = await fetch(
+                        `/reports/${encodeURIComponent(reportId)}/photos/${encodeURIComponent(photoId)}/content`,
+                        {
+                            headers: getAuthHeadersOrThrow("loading report photos")
+                        }
+                );
+
+                if (response.status === 401) {
+                    handleAuthenticationExpired();
+                    throw new Error("Session expired.");
+                }
+
+                if (!response.ok) {
+                    throw new Error("Unable to load report photo.");
+                }
+
+                const blob = await response.blob();
+                const imageUrl = URL.createObjectURL(blob);
+                reportPhotoObjectUrls.push(imageUrl);
+
+                frame.replaceChildren();
+
+                const image = document.createElement("img");
+                image.src = imageUrl;
+                image.alt = frame.dataset.reportPhotoAlt || "Report evidence photo";
+                image.className = "report-photo-image";
+
+                frame.appendChild(image);
+            } catch (error) {
+                renderUnavailableReportPhoto(frame);
+            }
+        });
+    }
+
+    function renderUnavailableReportPhoto(frame) {
+        frame.innerHTML = `
+            <div class="report-photo-unavailable">
+                <strong>Photo unavailable</strong>
+                <small>Evidence record remains attached to this report.</small>
+            </div>
+        `;
+    }
+
+    function revokeReportPhotoObjectUrls() {
+        reportPhotoObjectUrls.forEach((url) => {
+            URL.revokeObjectURL(url);
+        });
+        reportPhotoObjectUrls = [];
     }
 
     function parseReportSnapshot(snapshotJson) {
@@ -1495,6 +1576,7 @@ const FieldProofWorkEntries = (() => {
 
     function renderLoading() {
         updateCount(0);
+        revokeReportPhotoObjectUrls();
         elements.reportView?.classList.add("hidden");
 
         if (elements.title) {
@@ -1564,6 +1646,7 @@ const FieldProofWorkEntries = (() => {
     function clear(message = "Your documented jobs will appear here after the first work entry is created.") {
         currentEntries = [];
         activeDetailWorkEntry = null;
+        revokeReportPhotoObjectUrls();
         updateCount(0);
         elements.detailView?.classList.add("hidden");
         elements.reportView?.classList.add("hidden");
@@ -1589,6 +1672,7 @@ const FieldProofWorkEntries = (() => {
     }
 
     function renderError(message) {
+        revokeReportPhotoObjectUrls();
         elements.reportView?.classList.add("hidden");
 
         if (elements.title) {

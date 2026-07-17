@@ -1,5 +1,6 @@
 package com.iwt.invisibleworktracker.service.impl;
 
+import com.iwt.invisibleworktracker.dto.report.ReportPhotoContent;
 import com.iwt.invisibleworktracker.entity.organization.Organization;
 import com.iwt.invisibleworktracker.entity.report.Report;
 import com.iwt.invisibleworktracker.entity.report.ReportStatus;
@@ -12,11 +13,16 @@ import com.iwt.invisibleworktracker.repository.WorkEntryPhotoRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryRepository;
 import com.iwt.invisibleworktracker.service.OrganizationService;
 import com.iwt.invisibleworktracker.service.ReportService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -27,17 +33,23 @@ public class ReportServiceImpl implements ReportService {
     private final WorkEntryRepository workEntryRepository;
     private final WorkEntryPhotoRepository photoRepository;
     private final OrganizationService organizationService;
+    private final Path uploadRoot;
 
     public ReportServiceImpl(
             ReportRepository reportRepository,
             WorkEntryRepository workEntryRepository,
             WorkEntryPhotoRepository photoRepository,
-            OrganizationService organizationService
+            OrganizationService organizationService,
+            @Value("${fieldproof.uploads.work-entry-photos-dir:uploads/work-entry-photos}")
+            String uploadDirectory
     ) {
         this.reportRepository = reportRepository;
         this.workEntryRepository = workEntryRepository;
         this.photoRepository = photoRepository;
         this.organizationService = organizationService;
+        this.uploadRoot = Paths.get(uploadDirectory)
+                .toAbsolutePath()
+                .normalize();
     }
 
     @Override
@@ -76,6 +88,52 @@ public class ReportServiceImpl implements ReportService {
         );
 
         return report;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReportPhotoContent getReportPhotoContent(
+            User currentUser,
+            Long reportId,
+            Long photoId
+    ) {
+        if (photoId == null) {
+            throw new IllegalArgumentException("Photo id is required");
+        }
+
+        Report report = getReport(currentUser, reportId);
+
+        WorkEntryPhoto photo = photoRepository
+                .findByIdAndWorkEntry(photoId, report.getWorkEntry())
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Report photo not found"
+                ));
+
+        if (!reportSnapshotContainsPhoto(report, photoId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Report photo not found"
+            );
+        }
+
+        Path storedFile = uploadRoot
+                .resolve(photo.getStoragePath())
+                .normalize();
+
+        ensurePathStaysInside(storedFile, uploadRoot);
+
+        try {
+            return new ReportPhotoContent(
+                    Files.readAllBytes(storedFile),
+                    photo.getContentType()
+            );
+        } catch (IOException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Report photo file not found"
+            );
+        }
     }
 
     private WorkEntry requireAccessibleWorkEntry(
@@ -125,6 +183,53 @@ public class ReportServiceImpl implements ReportService {
                 .build();
 
         return reportRepository.save(report);
+    }
+
+    private boolean reportSnapshotContainsPhoto(
+            Report report,
+            Long photoId
+    ) {
+        String snapshotJson = report.getSnapshotJson();
+
+        if (snapshotJson == null || photoId == null) {
+            return false;
+        }
+
+        String photosToken = "\"photos\":[";
+        int photosStart = snapshotJson.indexOf(photosToken);
+
+        if (photosStart < 0) {
+            return false;
+        }
+
+        int photosValueStart = photosStart + photosToken.length();
+        int photosEnd = snapshotJson.indexOf("]", photosValueStart);
+
+        if (photosEnd < 0) {
+            return false;
+        }
+
+        String photosJson = snapshotJson.substring(
+                photosValueStart,
+                photosEnd
+        );
+
+        String idToken = "\"id\":" + photoId;
+
+        return photosJson.contains(idToken + ",")
+                || photosJson.contains(idToken + "}");
+    }
+
+    private void ensurePathStaysInside(
+            Path path,
+            Path expectedParent
+    ) {
+        if (!path.normalize().startsWith(expectedParent.normalize())) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Invalid photo storage path"
+            );
+        }
     }
 
     private void requireProofReady(WorkEntry workEntry) {
