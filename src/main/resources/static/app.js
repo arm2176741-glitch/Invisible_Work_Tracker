@@ -244,6 +244,14 @@ if (window.FieldProofWorkEntries) {
         onPhotoUploadSuccess: (message) => {
             showWorkspaceToast(message || "Photo upload complete.");
         },
+        onReportGenerated: async (workEntries) => {
+            currentWorkEntries = Array.isArray(workEntries)
+                ? workEntries
+                : currentWorkEntries;
+            renderDashboardGuidance();
+            showWorkspaceToast("Report generated.");
+            return currentWorkEntries;
+        },
         onAuthenticationExpired: (message) => {
             sessionStorage.removeItem(tokenKey);
             currentUserId = null;
@@ -628,6 +636,9 @@ function renderDashboardGuidance() {
     const hasProofReadyEntry = currentWorkEntries.some((workEntry) => {
         return Boolean(workEntry.proofReady);
     });
+    const hasGeneratedReport = currentWorkEntries.some((workEntry) => {
+        return Boolean(workEntry.report);
+    });
 
     if (!hasSelectedOrganization) {
         setDashboardHero({
@@ -669,6 +680,27 @@ function renderDashboardGuidance() {
         return;
     }
 
+    if (hasGeneratedReport) {
+        setDashboardHero({
+            eyebrow: "Report ready",
+            title: "Customer report generated",
+            description: "A proof report is ready to review. Open the customer-ready snapshot before PDF export is added.",
+            primaryLabel: "Create another work entry",
+            secondaryLabel: "Review entries"
+        });
+        renderSetupProgress(4, "Report ready");
+        setQuickActionCopy({
+            title: "Next: review the deliverable",
+            createTitle: "Create another entry",
+            createCopy: "Keep documenting job activity.",
+            photoCopy: "Add more job photos.",
+            reportTitle: "View report",
+            reportCopy: "Review the generated proof report.",
+            crewCopy: "Crew management remains optional for solo owners."
+        });
+        return;
+    }
+
     if (!hasProofReadyEntry) {
         setDashboardHero({
             eyebrow: "Proof status",
@@ -692,19 +724,20 @@ function renderDashboardGuidance() {
     setDashboardHero({
         eyebrow: "Report readiness",
         title: "Proof-ready job found",
-        description: "At least one work entry has before and after photo coverage. The next backend slice can turn that evidence into a proof report.",
+        description: "At least one work entry has before and after photo coverage. Generate a proof report to review the customer-ready snapshot.",
         primaryLabel: "Create another work entry",
         secondaryLabel: "Review entries"
     });
     renderSetupProgress(3, "Generate first report");
-    setQuickActionCopy({
-        title: "Next: prepare reporting",
-        createTitle: "Create another entry",
-        createCopy: "Keep documenting job activity.",
-        photoCopy: "Add more job photos.",
-        reportCopy: "Report generation is the next backend slice.",
-        crewCopy: "Crew management remains optional for solo owners."
-    });
+        setQuickActionCopy({
+            title: "Next: prepare reporting",
+            createTitle: "Create another entry",
+            createCopy: "Keep documenting job activity.",
+            photoCopy: "Add more job photos.",
+            reportTitle: "Generate report",
+            reportCopy: "Generate a proof report from a ready work entry.",
+            crewCopy: "Crew management remains optional for solo owners."
+        });
 }
 
 function setDashboardHero({ eyebrow, title, description, primaryLabel, secondaryLabel }) {
@@ -760,19 +793,22 @@ function getActiveStepKey(activeStepLabel) {
     return "organization";
 }
 
-function setQuickActionCopy({ title, createTitle, createCopy, photoCopy, reportCopy, crewCopy }) {
+function setQuickActionCopy({ title, createTitle, createCopy, photoCopy, reportTitle = "Generate report", reportCopy, crewCopy }) {
     setOptionalText(quickActionsTitle, title);
     setQuickActionText(quickCreateWorkEntryAction, createTitle, createCopy);
     setQuickActionText(quickPhotoAction, "Add photos", photoCopy);
-    setQuickActionText(quickReportAction, "Generate report", reportCopy);
+    setQuickActionText(quickReportAction, reportTitle, reportCopy);
     setQuickActionText(quickCrewAction, "Add crew member", crewCopy);
 
     const hasProofReadyEntry = currentWorkEntries.some((workEntry) => {
         return Boolean(workEntry.proofReady);
     });
+    const hasGeneratedReport = currentWorkEntries.some((workEntry) => {
+        return Boolean(workEntry.report);
+    });
 
     quickPhotoAction?.classList.toggle("is-highlighted-action", currentWorkEntries.length > 0 && !hasProofReadyEntry);
-    quickReportAction?.classList.toggle("is-highlighted-action", hasProofReadyEntry);
+    quickReportAction?.classList.toggle("is-highlighted-action", hasProofReadyEntry || hasGeneratedReport);
     quickReportAction?.classList.toggle("is-muted-action", currentWorkEntries.length === 0);
     quickCrewAction?.classList.add("is-muted-action");
 }

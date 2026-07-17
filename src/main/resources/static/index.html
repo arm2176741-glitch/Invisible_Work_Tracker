@@ -539,6 +539,24 @@
                                 <p id="detailDescription">No notes added</p>
                             </section>
 
+                            <section class="work-entry-detail-section report-summary-section">
+                                <div class="work-entry-section-title-row">
+                                    <div>
+                                        <p class="eyebrow">Generated report</p>
+                                        <h4>Customer deliverable</h4>
+                                    </div>
+                                    <button class="work-entry-action-button emphasis" id="detailGenerateReportButton" type="button">
+                                        Generate report
+                                    </button>
+                                </div>
+                                <p class="status-message" id="detailReportMessage" role="status" aria-live="polite"></p>
+                                <div class="report-preview-empty" id="detailReportEmpty">
+                                    <strong>No report generated yet</strong>
+                                    <p>Once this work entry has at least one before photo and one after photo, generate a stable proof report snapshot.</p>
+                                </div>
+                                <div class="report-preview-document hidden" id="detailReportPreview" aria-live="polite"></div>
+                            </section>
+
                             <section class="work-entry-detail-section">
                                 <div class="work-entry-section-title-row">
                                     <p class="eyebrow">Photos</p>
@@ -551,6 +569,11 @@
                                     <button class="primary-button" type="button" id="detailAddPhotosEmptyButton">Add photos</button>
                                 </div>
                             </section>
+                        </article>
+
+                        <article class="dashboard-card report-detail hidden" id="reportPreviewView" aria-live="polite">
+                            <button class="ghost-action-button work-entry-detail-back" id="reportPreviewBackButton" type="button">&larr; Back to work entry</button>
+                            <div class="report-page-shell" id="reportPreviewContent"></div>
                         </article>
                     </div>
 
@@ -617,7 +640,7 @@
                                     </div>
                                     <span class="quick-action-chevron" aria-hidden="true">&#8250;</span>
                                 </button>
-                                <button class="quick-action" id="quickReportAction" type="button" data-dashboard-coming-soon="Reports need the report-generation backend slice first.">
+                                <button class="quick-action" id="quickReportAction" type="button">
                                     <span class="quick-action-icon">
                                         <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z"/><path d="M14 3v5h5"/></svg>
                                     </span>
@@ -836,7 +859,7 @@
                 </div>
                 <div>
                     <strong>Photo evidence</strong>
-                    <span>Upload JPEG, PNG, or WebP photos up to 20MB each.</span>
+                    <span>Select a category, choose files, repeat as needed, then upload all staged photos together.</span>
                 </div>
                 <em>Proof</em>
             </div>
@@ -869,12 +892,12 @@
                         <svg viewBox="0 0 24 24"><path d="M4 8h3l1.5-2h7L17 8h3v11H4V8Z"/><path d="M12 17a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/></svg>
                     </span>
                     <span class="photo-dropzone-copy">
-                        <strong>Drop photos here or choose files</strong>
+                        <strong>Drop photos for the selected category</strong>
                         <small>JPEG, PNG, or WebP · 20MB max per file</small>
                     </span>
                     <span class="photo-dropzone-action">Choose files</span>
                 </label>
-                <input class="photo-file-input" id="workEntryPhotoFiles" name="files" type="file" accept="image/jpeg,image/png,image/webp" multiple required>
+                <input class="photo-file-input" id="workEntryPhotoFiles" name="files" type="file" accept="image/jpeg,image/png,image/webp" multiple>
                 <ul class="photo-selected-list" id="photoSelectedList" aria-live="polite"></ul>
             </div>
 

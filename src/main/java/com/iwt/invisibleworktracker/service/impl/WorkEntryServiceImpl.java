@@ -6,6 +6,7 @@ import com.iwt.invisibleworktracker.entity.organization.Organization;
 import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntryStatus;
+import com.iwt.invisibleworktracker.repository.ReportRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryRepository;
 import com.iwt.invisibleworktracker.service.OrganizationService;
 import com.iwt.invisibleworktracker.service.WorkEntryService;
@@ -19,13 +20,16 @@ import java.util.List;
 public class WorkEntryServiceImpl implements WorkEntryService {
 
     private final WorkEntryRepository workEntryRepository;
+    private final ReportRepository reportRepository;
     private final OrganizationService organizationService;
 
     public WorkEntryServiceImpl(
             WorkEntryRepository workEntryRepository,
+            ReportRepository reportRepository,
             OrganizationService organizationService
     ) {
         this.workEntryRepository = workEntryRepository;
+        this.reportRepository = reportRepository;
         this.organizationService = organizationService;
     }
 
@@ -76,7 +80,10 @@ public class WorkEntryServiceImpl implements WorkEntryService {
         return workEntryRepository
                 .findByOrganizationOrderByWorkDateDescCreatedAtDesc(organization)
                 .stream()
-                .map(WorkEntryResponse::from)
+                .map(workEntry -> WorkEntryResponse.from(
+                        workEntry,
+                        reportRepository.findByWorkEntry(workEntry).orElse(null)
+                ))
                 .toList();
     }
 

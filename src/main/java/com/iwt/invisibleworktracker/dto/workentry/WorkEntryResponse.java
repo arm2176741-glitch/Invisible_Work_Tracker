@@ -1,5 +1,7 @@
 package com.iwt.invisibleworktracker.dto.workentry;
 
+import com.iwt.invisibleworktracker.dto.report.ReportResponse;
+import com.iwt.invisibleworktracker.entity.report.Report;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntryStatus;
 
@@ -19,6 +21,7 @@ public class WorkEntryResponse {
     private LocalDate workDate;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private ReportResponse report;
 
     public WorkEntryResponse() {
     }
@@ -34,7 +37,8 @@ public class WorkEntryResponse {
             WorkEntryStatus status,
             LocalDate workDate,
             LocalDateTime createdAt,
-            LocalDateTime updatedAt
+            LocalDateTime updatedAt,
+            ReportResponse report
     ) {
         this.id = id;
         this.organizationId = organizationId;
@@ -47,9 +51,17 @@ public class WorkEntryResponse {
         this.workDate = workDate;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
+        this.report = report;
     }
 
     public static WorkEntryResponse from(WorkEntry workEntry) {
+        return from(workEntry, null);
+    }
+
+    public static WorkEntryResponse from(
+            WorkEntry workEntry,
+            Report report
+    ) {
         return new WorkEntryResponse(
                 workEntry.getId(),
                 workEntry.getOrganization().getId(),
@@ -61,7 +73,8 @@ public class WorkEntryResponse {
                 workEntry.getStatus(),
                 workEntry.getWorkDate(),
                 workEntry.getCreatedAt(),
-                workEntry.getUpdatedAt()
+                workEntry.getUpdatedAt(),
+                report == null ? null : ReportResponse.from(report)
         );
     }
 
@@ -107,5 +120,9 @@ public class WorkEntryResponse {
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
+    }
+
+    public ReportResponse getReport() {
+        return report;
     }
 }

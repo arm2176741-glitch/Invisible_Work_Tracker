@@ -13,11 +13,19 @@ const FieldProofWorkEntries = (() => {
         detailStatus: document.querySelector("#detailStatus"),
         detailProofStatus: document.querySelector("#detailProofStatus"),
         detailReportStatus: document.querySelector("#detailReportStatus"),
+        detailGenerateReportButton: document.querySelector("#detailGenerateReportButton"),
+        detailReportMessage: document.querySelector("#detailReportMessage"),
+        detailReportEmpty: document.querySelector("#detailReportEmpty"),
+        detailReportPreview: document.querySelector("#detailReportPreview"),
+        reportView: document.querySelector("#reportPreviewView"),
+        reportBackButton: document.querySelector("#reportPreviewBackButton"),
+        reportContent: document.querySelector("#reportPreviewContent"),
         detailPhotoList: document.querySelector("#detailPhotoList"),
         detailPhotoPlaceholder: document.querySelector("#detailPhotoPlaceholder"),
         detailAddPhotosButton: document.querySelector("#detailAddPhotosButton"),
         detailAddPhotosEmptyButton: document.querySelector("#detailAddPhotosEmptyButton"),
         quickPhotoButton: document.querySelector("#quickPhotoAction"),
+        quickReportButton: document.querySelector("#quickReportAction"),
 
         modal: document.querySelector("#workEntryModal"),
         form: document.querySelector("#workEntryForm"),
@@ -42,6 +50,7 @@ const FieldProofWorkEntries = (() => {
     let activeDetailWorkEntry = null;
     let activePhotoWorkEntry = null;
     let latestCurrentUserName = "User";
+    let stagedPhotoFiles = createEmptyPhotoStage();
 
     let createFormOptions = {
         getOrganizationId: () => null,
@@ -52,6 +61,7 @@ const FieldProofWorkEntries = (() => {
         onPhotosChanged: async () => {},
         onSuccess: () => {},
         onPhotoUploadSuccess: () => {},
+        onReportGenerated: async () => {},
         onAuthenticationExpired: () => {},
         onUnavailableAction: () => {},
         onMissingOrganization: () => {}
@@ -59,6 +69,7 @@ const FieldProofWorkEntries = (() => {
     let createFormInitialized = false;
     let isCreatingWorkEntry = false;
     let isUploadingPhotos = false;
+    let isGeneratingReport = false;
 
     async function loadForOrganization({ organizationId, authHeaders, currentUserName }) {
         if (!organizationId) {
@@ -175,6 +186,10 @@ const FieldProofWorkEntries = (() => {
             elements.detailBackButton.addEventListener("click", closeDetailView);
         }
 
+        if (elements.reportBackButton) {
+            elements.reportBackButton.addEventListener("click", closeReportPreviewView);
+        }
+
         elements.closePhotoButtons.forEach((button) => {
             button.addEventListener("click", closePhotoUploadForm);
         });
@@ -184,7 +199,11 @@ const FieldProofWorkEntries = (() => {
         }
 
         if (elements.photoFileInput) {
-            elements.photoFileInput.addEventListener("change", renderSelectedPhotoFiles);
+            elements.photoFileInput.addEventListener("change", handlePhotoFileSelection);
+        }
+
+        if (elements.photoSelectedList) {
+            elements.photoSelectedList.addEventListener("click", handleStagedPhotoListClick);
         }
 
         if (elements.photoDropzone) {
@@ -201,12 +220,20 @@ const FieldProofWorkEntries = (() => {
             elements.detailAddPhotosEmptyButton.addEventListener("click", openPhotoUploadForDetail);
         }
 
+        if (elements.detailGenerateReportButton) {
+            elements.detailGenerateReportButton.addEventListener("click", generateReportForDetail);
+        }
+
         if (elements.detailPhotoList) {
             elements.detailPhotoList.addEventListener("click", handleDetailPhotoAction);
         }
 
         if (elements.quickPhotoButton) {
             elements.quickPhotoButton.addEventListener("click", openPhotoUploadForBestEntry);
+        }
+
+        if (elements.quickReportButton) {
+            elements.quickReportButton.addEventListener("click", generateReportForBestEntry);
         }
     }
 
@@ -245,6 +272,7 @@ const FieldProofWorkEntries = (() => {
         elements.preview?.classList.add("hidden");
         elements.hero?.classList.add("hidden");
         elements.metrics?.classList.add("hidden");
+        elements.reportView?.classList.add("hidden");
         elements.detailView?.classList.remove("hidden");
     }
 
@@ -265,10 +293,17 @@ const FieldProofWorkEntries = (() => {
         }
 
         if (elements.detailReportStatus) {
-            elements.detailReportStatus.textContent = "Not generated";
+            elements.detailReportStatus.textContent = getReportStatusLabel(workEntry);
         }
 
+        setReportMessage("");
+        updateGenerateReportButton(workEntry);
+        renderReportPreview(workEntry);
         renderDetailPhotos(workEntry);
+    }
+
+    function getReportStatusLabel(workEntry) {
+        return workEntry.report ? "Generated" : "Not generated";
     }
 
     function renderDetailPhotos(workEntry) {
@@ -341,9 +376,402 @@ const FieldProofWorkEntries = (() => {
     function closeDetailView() {
         activeDetailWorkEntry = null;
         elements.detailView?.classList.add("hidden");
+        elements.reportView?.classList.add("hidden");
         elements.preview?.classList.remove("hidden");
         elements.hero?.classList.remove("hidden");
         elements.metrics?.classList.remove("hidden");
+    }
+
+    async function generateReportForBestEntry() {
+        const reportEntry = getRecentEntries(currentEntries).find((entry) => {
+            return Boolean(entry.report);
+        });
+
+        if (reportEntry) {
+            openReportPreviewView(reportEntry);
+            return;
+        }
+
+        const targetEntry = getRecentEntries(currentEntries).find((entry) => {
+            return Boolean(entry.proofReady);
+        });
+
+        if (!targetEntry) {
+            createFormOptions.onUnavailableAction(
+                "Add at least one before photo and one after photo before generating a report."
+            );
+            return;
+        }
+
+        openDetailView(targetEntry);
+        await generateReportForWorkEntry(targetEntry);
+    }
+
+    async function generateReportForDetail() {
+        if (!activeDetailWorkEntry) {
+            createFormOptions.onUnavailableAction("Open a work entry before generating a report.");
+            return;
+        }
+
+        if (activeDetailWorkEntry.report) {
+            openReportPreviewView(activeDetailWorkEntry);
+            return;
+        }
+
+        await generateReportForWorkEntry(activeDetailWorkEntry);
+    }
+
+    async function generateReportForWorkEntry(workEntry) {
+        if (isGeneratingReport || !workEntry) {
+            return;
+        }
+
+        if (workEntry.report) {
+            openReportPreviewView(workEntry);
+            return;
+        }
+
+        if (!workEntry.proofReady) {
+            setReportMessage(
+                "A report requires at least one BEFORE photo and one AFTER photo.",
+                "error"
+            );
+            return;
+        }
+
+        isGeneratingReport = true;
+        updateGenerateReportButton(workEntry);
+        setReportMessage("Generating report...");
+
+        try {
+            const response = await fetch(`/work-entries/${encodeURIComponent(workEntry.id)}/reports`, {
+                method: "POST",
+                headers: getAuthHeadersOrThrow("generating reports")
+            });
+
+            if (response.status === 401) {
+                handleAuthenticationExpired();
+                throw new Error("Your session expired. Sign in again before generating reports.");
+            }
+
+            if (!response.ok) {
+                const errorBody = await readJson(response);
+                throw new Error(extractErrorMessage(errorBody, response.status));
+            }
+
+            const report = await readJson(response);
+            const updatedWorkEntry = {
+                ...workEntry,
+                report
+            };
+
+            currentEntries = currentEntries.map((entry) => {
+                return String(entry.id) === String(workEntry.id)
+                    ? updatedWorkEntry
+                    : entry;
+            });
+
+            activeDetailWorkEntry = updatedWorkEntry;
+            renderEntries(currentEntries, latestCurrentUserName);
+            openDetailView(updatedWorkEntry);
+            setReportMessage("Report generated.");
+            await createFormOptions.onReportGenerated(currentEntries, report);
+        } catch (error) {
+            setReportMessage(error.message || "Report could not be generated.", "error");
+        } finally {
+            isGeneratingReport = false;
+            updateGenerateReportButton(activeDetailWorkEntry || workEntry);
+        }
+    }
+
+    function updateGenerateReportButton(workEntry) {
+        if (!elements.detailGenerateReportButton) {
+            return;
+        }
+
+        if (isGeneratingReport) {
+            elements.detailGenerateReportButton.disabled = true;
+            elements.detailGenerateReportButton.textContent = "Generating...";
+            return;
+        }
+
+        if (workEntry?.report) {
+            elements.detailGenerateReportButton.disabled = false;
+            elements.detailGenerateReportButton.textContent = "View report";
+            return;
+        }
+
+        if (!workEntry) {
+            elements.detailGenerateReportButton.disabled = true;
+            elements.detailGenerateReportButton.textContent = "Generate report";
+            return;
+        }
+
+        elements.detailGenerateReportButton.disabled = false;
+        elements.detailGenerateReportButton.textContent = workEntry.proofReady
+            ? "Generate report"
+            : "Check requirements";
+    }
+
+    function renderReportPreview(workEntry) {
+        if (!elements.detailReportEmpty || !elements.detailReportPreview) {
+            return;
+        }
+
+        const report = workEntry?.report;
+
+        elements.detailReportPreview.replaceChildren();
+        elements.detailReportEmpty.classList.toggle("hidden", Boolean(report));
+        elements.detailReportPreview.classList.toggle("hidden", !report);
+
+        if (!report) {
+            renderReportEmptyState(workEntry);
+            return;
+        }
+
+        const reportDetails = getReportDetails(workEntry);
+
+        const preview = document.createElement("div");
+        preview.className = "generated-report-card";
+        preview.innerHTML = `
+            <span class="generated-report-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7V3Z"/><path d="M14 3v5h5"/><path d="M10 13h6"/><path d="M10 17h6"/></svg>
+            </span>
+            <div class="generated-report-copy">
+                <span class="report-preview-label">Snapshot saved</span>
+                <strong>${escapeHtml(reportDetails.reportNumber)}</strong>
+                <p>
+                    Generated ${escapeHtml(formatDateTime(reportDetails.generatedAt))}
+                    &middot; ${escapeHtml(pluralize(reportDetails.photos.length, "evidence photo"))}
+                </p>
+            </div>
+            <button class="work-entry-action-button emphasis" type="button" data-view-generated-report>
+                View report
+            </button>
+        `;
+
+        elements.detailReportPreview.appendChild(preview);
+
+        const viewButton = preview.querySelector("[data-view-generated-report]");
+        viewButton?.addEventListener("click", () => {
+            openReportPreviewView(workEntry);
+        });
+    }
+
+    function renderReportEmptyState(workEntry) {
+        if (!elements.detailReportEmpty) {
+            return;
+        }
+
+        const isProofReady = Boolean(workEntry?.proofReady);
+
+        elements.detailReportEmpty.innerHTML = isProofReady
+            ? `
+                <strong>Ready to generate</strong>
+                <p>This work entry has before and after coverage. Generate a stable customer-ready snapshot.</p>
+            `
+            : `
+                <strong>No report generated yet</strong>
+                <p>Add at least one BEFORE photo and one AFTER photo before generating a proof report.</p>
+            `;
+    }
+
+    function openReportPreviewView(workEntry) {
+        if (!workEntry?.report) {
+            setReportMessage("Generate a report before opening the customer preview.", "error");
+            return;
+        }
+
+        activeDetailWorkEntry = workEntry;
+        renderReportPage(workEntry);
+
+        elements.preview?.classList.add("hidden");
+        elements.hero?.classList.add("hidden");
+        elements.metrics?.classList.add("hidden");
+        elements.detailView?.classList.add("hidden");
+        elements.reportView?.classList.remove("hidden");
+    }
+
+    function closeReportPreviewView() {
+        if (activeDetailWorkEntry) {
+            openDetailView(activeDetailWorkEntry);
+            return;
+        }
+
+        closeDetailView();
+    }
+
+    function renderReportPage(workEntry) {
+        if (!elements.reportContent) {
+            return;
+        }
+
+        const details = getReportDetails(workEntry);
+
+        elements.reportContent.innerHTML = `
+            <div class="report-document-toolbar">
+                <div>
+                    <p class="eyebrow">Report preview</p>
+                    <h3>${escapeHtml(details.reportNumber)}</h3>
+                </div>
+                <div class="report-document-actions">
+                    <button class="work-entry-action-button" type="button" disabled>Download PDF soon</button>
+                    <button class="work-entry-action-button" type="button" disabled>Print soon</button>
+                </div>
+            </div>
+
+            <article class="report-page">
+                <header class="report-page-header">
+                    <div>
+                        <span class="report-brand-mark">FP</span>
+                        <p>FieldProof</p>
+                    </div>
+                    <div>
+                        <span>Proof of Work Report</span>
+                        <strong>${escapeHtml(details.reportNumber)}</strong>
+                    </div>
+                </header>
+
+                <section class="report-page-hero">
+                    <p class="report-document-label">Generated report</p>
+                    <h2>${escapeHtml(formatDisplayText(details.jobName))}</h2>
+                    <p>${escapeHtml(details.jobAddress)}</p>
+                </section>
+
+                <section class="report-page-summary">
+                    <div>
+                        <span>Company workspace</span>
+                        <strong>${escapeHtml(details.organizationName)}</strong>
+                    </div>
+                    <div>
+                        <span>Generated</span>
+                        <strong>${escapeHtml(formatDateTime(details.generatedAt))}</strong>
+                    </div>
+                    <div>
+                        <span>Work date</span>
+                        <strong>${escapeHtml(formatDate(details.workDate))}</strong>
+                    </div>
+                    <div>
+                        <span>Work type</span>
+                        <strong>${escapeHtml(formatDisplayText(details.workType))}</strong>
+                    </div>
+                    <div>
+                        <span>Job status</span>
+                        <strong>${escapeHtml(formatStatus(details.status))}</strong>
+                    </div>
+                    <div>
+                        <span>Proof status</span>
+                        <strong>Proof ready</strong>
+                    </div>
+                </section>
+
+                <section class="report-page-section">
+                    <p class="report-document-label">Work summary</p>
+                    <p>${escapeHtml(formatDescription(details.description))}</p>
+                </section>
+
+                <section class="report-page-section">
+                    <div class="report-page-section-heading">
+                        <div>
+                            <p class="report-document-label">Evidence snapshot</p>
+                            <h3>Before, during, and after photos</h3>
+                        </div>
+                        <span>${escapeHtml(pluralize(details.photos.length, "photo"))}</span>
+                    </div>
+                    ${renderReportEvidenceSections(details.photos)}
+                </section>
+            </article>
+        `;
+    }
+
+    function getReportDetails(workEntry) {
+        const report = workEntry?.report || {};
+        const snapshot = parseReportSnapshot(report.snapshotJson);
+        const job = snapshot.workEntry || {};
+        const photos = Array.isArray(snapshot.photos) ? snapshot.photos : [];
+
+        return {
+            report,
+            snapshot,
+            photos,
+            reportNumber: snapshot.reportNumber || report.reportNumber || "Report",
+            generatedAt: report.generatedAt || snapshot.generatedAt || report.createdAt,
+            organizationName: snapshot.organization?.name || createFormOptions.getOrganizationName() || "Workspace",
+            jobName: job.jobName || workEntry?.jobName || "Work entry",
+            jobAddress: job.jobAddress || workEntry?.jobAddress || "No address added",
+            workType: job.workType || workEntry?.workType || "-",
+            workDate: job.workDate || workEntry?.workDate,
+            status: job.status || workEntry?.status,
+            description: job.description || workEntry?.description || "No notes added"
+        };
+    }
+
+    function renderReportEvidenceSections(photos) {
+        if (photos.length === 0) {
+            return `<p class="report-preview-muted">No photo metadata was included in this report snapshot.</p>`;
+        }
+
+        return ["BEFORE", "DURING", "AFTER"]
+            .map((category) => {
+                const categoryPhotos = photos.filter((photo) => {
+                    return String(photo.category || "").toUpperCase() === category;
+                });
+
+                if (categoryPhotos.length === 0) {
+                    return "";
+                }
+
+                return `
+                    <div class="report-evidence-group">
+                        <h4>${escapeHtml(titleCase(category))} work</h4>
+                        ${renderReportPhotoRows(categoryPhotos)}
+                    </div>
+                `;
+            })
+            .join("");
+    }
+
+    function renderReportPhotoRows(photos) {
+        if (photos.length === 0) {
+            return `<p class="report-preview-muted">No photo metadata was included in this report snapshot.</p>`;
+        }
+
+        return `
+            <div class="report-photo-list">
+                ${photos.map((photo) => `
+                    <article class="report-photo-row">
+                        <span class="photo-category-badge ${escapeHtml(String(photo.category || "").toLowerCase())}">
+                            ${escapeHtml(titleCase(photo.category || "Photo"))}
+                        </span>
+                        <div>
+                            <strong>${escapeHtml(photo.originalFilename || "Uploaded photo")}</strong>
+                            <p>${escapeHtml(photo.contentType || "image")} &middot; ${escapeHtml(formatFileSize(photo.fileSizeBytes))} &middot; ${escapeHtml(formatDate(photo.createdAt))}</p>
+                        </div>
+                    </article>
+                `).join("")}
+            </div>
+        `;
+    }
+
+    function parseReportSnapshot(snapshotJson) {
+        try {
+            return JSON.parse(snapshotJson || "{}");
+        } catch (error) {
+            return {};
+        }
+    }
+
+    function setReportMessage(message, type = "") {
+        if (!elements.detailReportMessage) {
+            return;
+        }
+
+        elements.detailReportMessage.textContent = message;
+        elements.detailReportMessage.className = "status-message";
+
+        if (type) {
+            elements.detailReportMessage.classList.add(type);
+        }
     }
 
     function openPhotoUploadForBestEntry() {
@@ -386,6 +814,7 @@ const FieldProofWorkEntries = (() => {
 
         activePhotoWorkEntry = workEntry;
         renderPhotoModalContext(workEntry);
+        resetStagedPhotoFiles();
         setPhotoMessage("");
         elements.photoForm?.reset();
         renderSelectedPhotoFiles();
@@ -404,6 +833,7 @@ const FieldProofWorkEntries = (() => {
 
         elements.photoModal.classList.add("hidden");
         activePhotoWorkEntry = null;
+        resetStagedPhotoFiles();
         setPhotoMessage("");
         elements.photoForm?.reset();
         renderSelectedPhotoFiles();
@@ -441,11 +871,76 @@ const FieldProofWorkEntries = (() => {
         event.preventDefault();
         elements.photoDropzone?.classList.remove("is-dragging");
 
-        if (!elements.photoFileInput || !event.dataTransfer?.files?.length) {
+        if (!event.dataTransfer?.files?.length) {
             return;
         }
 
-        elements.photoFileInput.files = event.dataTransfer.files;
+        stagePhotoFiles(Array.from(event.dataTransfer.files));
+    }
+
+    function handlePhotoFileSelection() {
+        const files = Array.from(elements.photoFileInput?.files || []);
+        stagePhotoFiles(files);
+
+        if (elements.photoFileInput) {
+            elements.photoFileInput.value = "";
+        }
+    }
+
+    function stagePhotoFiles(files, category = getSelectedPhotoCategory()) {
+        if (!files.length) {
+            return;
+        }
+
+        if (!["BEFORE", "DURING", "AFTER"].includes(category)) {
+            setPhotoMessage("Choose before, during, or after before adding files.", "error");
+            return;
+        }
+
+        const existingFileKeys = new Set(
+            stagedPhotoFiles[category].map(getPhotoFileKey)
+        );
+        let addedCount = 0;
+
+        files.forEach((file) => {
+            const fileKey = getPhotoFileKey(file);
+
+            if (existingFileKeys.has(fileKey)) {
+                return;
+            }
+
+            stagedPhotoFiles[category].push(file);
+            existingFileKeys.add(fileKey);
+            addedCount += 1;
+        });
+
+        if (addedCount === 0) {
+            setPhotoMessage("Those files are already staged for this category.");
+        } else {
+            setPhotoMessage(
+                `${pluralize(addedCount, "photo")} staged for ${titleCase(category)}.`
+            );
+        }
+
+        renderSelectedPhotoFiles();
+    }
+
+    function handleStagedPhotoListClick(event) {
+        const removeButton = event.target.closest("[data-remove-staged-photo]");
+
+        if (!removeButton) {
+            return;
+        }
+
+        const category = removeButton.dataset.category;
+        const index = Number(removeButton.dataset.index);
+
+        if (!["BEFORE", "DURING", "AFTER"].includes(category) || Number.isNaN(index)) {
+            return;
+        }
+
+        stagedPhotoFiles[category].splice(index, 1);
+        setPhotoMessage("");
         renderSelectedPhotoFiles();
     }
 
@@ -454,19 +949,25 @@ const FieldProofWorkEntries = (() => {
             return;
         }
 
-        const files = Array.from(elements.photoFileInput?.files || []);
+        const stagedItems = getStagedPhotoItems();
         elements.photoSelectedList.replaceChildren();
-        elements.photoSelectedList.classList.toggle("hidden", files.length === 0);
-        updatePhotoSubmitState(files);
+        elements.photoSelectedList.classList.toggle("hidden", stagedItems.length === 0);
+        updatePhotoSubmitState(stagedItems);
 
-        files.forEach((file) => {
+        stagedItems.forEach(({ category, file, index }) => {
             const item = document.createElement("li");
             item.innerHTML = `
+                <span class="photo-category-badge ${escapeHtml(category.toLowerCase())}">
+                    ${escapeHtml(titleCase(category))}
+                </span>
                 <span>
                     <strong>${escapeHtml(file.name)}</strong>
                     <small>${escapeHtml(file.type || "image")} · ${escapeHtml(formatFileSize(file.size))}</small>
                 </span>
                 <em>${file.size > 20 * 1024 * 1024 ? "Too large" : "Ready"}</em>
+                <button class="photo-staged-remove" type="button" data-remove-staged-photo data-category="${escapeHtml(category)}" data-index="${escapeHtml(index)}">
+                    Remove
+                </button>
             `;
 
             if (file.size > 20 * 1024 * 1024) {
@@ -477,11 +978,12 @@ const FieldProofWorkEntries = (() => {
         });
     }
 
-    function updatePhotoSubmitState(files = []) {
+    function updatePhotoSubmitState(stagedItems = getStagedPhotoItems()) {
         if (!elements.photoSubmitButton) {
             return;
         }
 
+        const files = stagedItems.map((item) => item.file);
         const hasFiles = files.length > 0;
         const hasOversizedFiles = files.some((file) => {
             return file.size > 20 * 1024 * 1024;
@@ -501,10 +1003,8 @@ const FieldProofWorkEntries = (() => {
             return;
         }
 
-        const formData = new FormData(elements.photoForm);
-        const category = String(formData.get("category") || "").trim();
-        const files = Array.from(elements.photoFileInput?.files || []);
-        const validationMessage = validatePhotoUpload(category, files);
+        const stagedItems = getStagedPhotoItems();
+        const validationMessage = validatePhotoUpload(stagedItems);
 
         if (validationMessage) {
             setPhotoMessage(validationMessage, "error");
@@ -522,15 +1022,21 @@ const FieldProofWorkEntries = (() => {
         }
 
         try {
-            for (let index = 0; index < files.length; index++) {
+            for (let index = 0; index < stagedItems.length; index++) {
+                const stagedItem = stagedItems[index];
+
                 if (submitButton) {
-                    submitButton.textContent = `Uploading ${index + 1} of ${files.length}...`;
+                    submitButton.textContent = `Uploading ${index + 1} of ${stagedItems.length}...`;
                 }
 
-                await uploadSinglePhoto(activePhotoWorkEntry.id, category, files[index]);
+                await uploadSinglePhoto(
+                    activePhotoWorkEntry.id,
+                    stagedItem.category,
+                    stagedItem.file
+                );
             }
 
-            const uploadedCount = files.length;
+            const uploadedCount = stagedItems.length;
             const workEntryId = activePhotoWorkEntry.id;
 
             closePhotoUploadForm();
@@ -544,38 +1050,84 @@ const FieldProofWorkEntries = (() => {
             isUploadingPhotos = false;
 
             if (submitButton) {
-                updatePhotoSubmitState(Array.from(elements.photoFileInput?.files || []));
+                updatePhotoSubmitState();
                 submitButton.innerHTML = originalButtonContent;
             }
         }
     }
 
-    function validatePhotoUpload(category, files) {
-        if (!["BEFORE", "DURING", "AFTER"].includes(category)) {
-            return "Choose before, during, or after.";
-        }
-
-        if (files.length === 0) {
+    function validatePhotoUpload(stagedItems) {
+        if (stagedItems.length === 0) {
             return "Choose at least one photo.";
         }
 
-        const invalidType = files.find((file) => {
-            return !["image/jpeg", "image/png", "image/webp"].includes(file.type);
+        const invalidCategory = stagedItems.find((item) => {
+            return !["BEFORE", "DURING", "AFTER"].includes(item.category);
+        });
+
+        if (invalidCategory) {
+            return "Every photo needs a before, during, or after category.";
+        }
+
+        const invalidType = stagedItems.find((item) => {
+            return !["image/jpeg", "image/png", "image/webp"].includes(item.file.type);
         });
 
         if (invalidType) {
-            return `${invalidType.name} must be JPEG, PNG, or WebP.`;
+            return `${invalidType.file.name} must be JPEG, PNG, or WebP.`;
         }
 
-        const oversizedFile = files.find((file) => {
-            return file.size > 20 * 1024 * 1024;
+        const oversizedFile = stagedItems.find((item) => {
+            return item.file.size > 20 * 1024 * 1024;
         });
 
         if (oversizedFile) {
-            return `${oversizedFile.name} is larger than 20MB.`;
+            return `${oversizedFile.file.name} is larger than 20MB.`;
         }
 
         return "";
+    }
+
+    function getSelectedPhotoCategory() {
+        const checkedInput = elements.photoForm?.querySelector('input[name="category"]:checked');
+        return String(checkedInput?.value || "")
+            .trim()
+            .toUpperCase();
+    }
+
+    function getStagedPhotoItems() {
+        return ["BEFORE", "DURING", "AFTER"].flatMap((category) => {
+            return stagedPhotoFiles[category].map((file, index) => ({
+                category,
+                file,
+                index
+            }));
+        });
+    }
+
+    function createEmptyPhotoStage() {
+        return {
+            BEFORE: [],
+            DURING: [],
+            AFTER: []
+        };
+    }
+
+    function resetStagedPhotoFiles() {
+        stagedPhotoFiles = createEmptyPhotoStage();
+
+        if (elements.photoFileInput) {
+            elements.photoFileInput.value = "";
+        }
+    }
+
+    function getPhotoFileKey(file) {
+        return [
+            file.name,
+            file.size,
+            file.lastModified,
+            file.type
+        ].join("|");
     }
 
     async function uploadSinglePhoto(workEntryId, category, file) {
@@ -585,7 +1137,7 @@ const FieldProofWorkEntries = (() => {
 
         const response = await fetch(`/work-entries/${encodeURIComponent(workEntryId)}/photos`, {
             method: "POST",
-            headers: getAuthHeadersOrThrow(),
+            headers: getAuthHeadersOrThrow("uploading photos"),
             body: formData
         });
 
@@ -602,7 +1154,7 @@ const FieldProofWorkEntries = (() => {
         return readJson(response);
     }
 
-    function getAuthHeadersOrThrow() {
+    function getAuthHeadersOrThrow(action = "continuing") {
         const headers = typeof createFormOptions.authHeaders === "function"
             ? createFormOptions.authHeaders()
             : {};
@@ -615,7 +1167,7 @@ const FieldProofWorkEntries = (() => {
             || authorization.trim() === "Bearer"
         ) {
             handleAuthenticationExpired();
-            throw new Error("Your session expired. Sign in again before uploading photos.");
+            throw new Error(`Your session expired. Sign in again before ${action}.`);
         }
 
         return headers;
@@ -695,7 +1247,7 @@ const FieldProofWorkEntries = (() => {
                 `/work-entries/${encodeURIComponent(activeDetailWorkEntry.id)}/photos/${encodeURIComponent(photoId)}`,
                 {
                     method: "DELETE",
-                    headers: getAuthHeadersOrThrow()
+                    headers: getAuthHeadersOrThrow("deleting photos")
                 }
             );
 
@@ -943,6 +1495,7 @@ const FieldProofWorkEntries = (() => {
 
     function renderLoading() {
         updateCount(0);
+        elements.reportView?.classList.add("hidden");
 
         if (elements.title) {
             elements.title.textContent = "Loading job documentation";
@@ -1010,7 +1563,13 @@ const FieldProofWorkEntries = (() => {
 
     function clear(message = "Your documented jobs will appear here after the first work entry is created.") {
         currentEntries = [];
+        activeDetailWorkEntry = null;
         updateCount(0);
+        elements.detailView?.classList.add("hidden");
+        elements.reportView?.classList.add("hidden");
+        elements.preview?.classList.remove("hidden");
+        elements.hero?.classList.remove("hidden");
+        elements.metrics?.classList.remove("hidden");
 
         if (elements.title) {
             elements.title.textContent = "Job documentation will appear here";
@@ -1030,6 +1589,8 @@ const FieldProofWorkEntries = (() => {
     }
 
     function renderError(message) {
+        elements.reportView?.classList.add("hidden");
+
         if (elements.title) {
             elements.title.textContent = "Work entries unavailable";
         }
@@ -1176,6 +1737,16 @@ const FieldProofWorkEntries = (() => {
         }).format(date);
     }
 
+    function formatDateTime(value) {
+        const date = parseDateValue(value);
+
+        if (!date) {
+            return "Date not set";
+        }
+
+        return `${formatDate(value)} at ${formatTime(value)}`;
+    }
+
     function formatDisplayText(value) {
         const normalizedValue = String(value || "").trim();
 
@@ -1187,6 +1758,10 @@ const FieldProofWorkEntries = (() => {
             .split(/\s+/)
             .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
             .join(" ");
+    }
+
+    function pluralize(count, singular, plural = `${singular}s`) {
+        return `${count} ${count === 1 ? singular : plural}`;
     }
 
     function formatDescription(description) {
