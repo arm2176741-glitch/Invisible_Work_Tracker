@@ -12,6 +12,7 @@ public interface WorkEntryPhotoService {
             User currentUser,
             Long workEntryId,
             String category,
+            String caption,
             MultipartFile file
     );
 

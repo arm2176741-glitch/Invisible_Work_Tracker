@@ -205,6 +205,7 @@ const FieldProofWorkEntries = (() => {
 
         if (elements.photoSelectedList) {
             elements.photoSelectedList.addEventListener("click", handleStagedPhotoListClick);
+            elements.photoSelectedList.addEventListener("input", handleStagedPhotoCaptionInput);
         }
 
         if (elements.photoDropzone) {
@@ -330,7 +331,7 @@ const FieldProofWorkEntries = (() => {
                     ${escapeHtml(titleCase(photo.category || "Photo"))}
                 </span>
                 <div class="photo-card-copy">
-                    <strong>${escapeHtml(photo.originalFilename || "Uploaded photo")}</strong>
+                    <strong>${escapeHtml(photo.caption || photo.originalFilename || "Uploaded photo")}</strong>
                     <span>${escapeHtml(formatPhotoMeta(photo))}</span>
                 </div>
                 <button class="work-entry-action-button" type="button" data-delete-photo-id="${escapeHtml(photo.id)}">Delete</button>
@@ -756,8 +757,8 @@ const FieldProofWorkEntries = (() => {
                             ${escapeHtml(titleCase(photo.category || "Photo"))}
                         </span>
                         <div>
-                            <strong>${escapeHtml(photo.originalFilename || "Uploaded photo")}</strong>
-                            <p>${escapeHtml(photo.contentType || "image")} &middot; ${escapeHtml(formatFileSize(photo.fileSizeBytes))} &middot; ${escapeHtml(formatDate(photo.createdAt))}</p>
+                            <strong>${escapeHtml(photo.caption || photo.originalFilename || "Uploaded photo")}</strong>
+                            <p>${escapeHtml(titleCase(photo.category || "Photo"))} work &middot; Uploaded ${escapeHtml(formatDate(photo.createdAt))}</p>
                         </div>
                     </article>
                 `).join("")}
@@ -979,7 +980,7 @@ const FieldProofWorkEntries = (() => {
         }
 
         const existingFileKeys = new Set(
-            stagedPhotoFiles[category].map(getPhotoFileKey)
+            stagedPhotoFiles[category].map((stagedPhoto) => getPhotoFileKey(stagedPhoto.file))
         );
         let addedCount = 0;
 
@@ -990,7 +991,10 @@ const FieldProofWorkEntries = (() => {
                 return;
             }
 
-            stagedPhotoFiles[category].push(file);
+            stagedPhotoFiles[category].push({
+                file,
+                caption: defaultPhotoCaption(category, stagedPhotoFiles[category].length + 1)
+            });
             existingFileKeys.add(fileKey);
             addedCount += 1;
         });
@@ -1025,6 +1029,27 @@ const FieldProofWorkEntries = (() => {
         renderSelectedPhotoFiles();
     }
 
+    function handleStagedPhotoCaptionInput(event) {
+        const captionInput = event.target.closest("[data-staged-photo-caption]");
+
+        if (!captionInput) {
+            return;
+        }
+
+        const category = captionInput.dataset.category;
+        const index = Number(captionInput.dataset.index);
+
+        if (!["BEFORE", "DURING", "AFTER"].includes(category) || Number.isNaN(index)) {
+            return;
+        }
+
+        if (!stagedPhotoFiles[category][index]) {
+            return;
+        }
+
+        stagedPhotoFiles[category][index].caption = captionInput.value;
+    }
+
     function renderSelectedPhotoFiles() {
         if (!elements.photoSelectedList) {
             return;
@@ -1035,16 +1060,29 @@ const FieldProofWorkEntries = (() => {
         elements.photoSelectedList.classList.toggle("hidden", stagedItems.length === 0);
         updatePhotoSubmitState(stagedItems);
 
-        stagedItems.forEach(({ category, file, index }) => {
+        stagedItems.forEach(({ category, file, caption, index }) => {
             const item = document.createElement("li");
             item.innerHTML = `
                 <span class="photo-category-badge ${escapeHtml(category.toLowerCase())}">
                     ${escapeHtml(titleCase(category))}
                 </span>
-                <span>
+                <span class="photo-selected-copy">
                     <strong>${escapeHtml(file.name)}</strong>
-                    <small>${escapeHtml(file.type || "image")} · ${escapeHtml(formatFileSize(file.size))}</small>
+                    <small>${escapeHtml(file.type || "image")} &middot; ${escapeHtml(formatFileSize(file.size))}</small>
                 </span>
+                <label class="photo-caption-field">
+                    <span>Caption</span>
+                    <input
+                        class="photo-caption-input"
+                        type="text"
+                        maxlength="255"
+                        value="${escapeHtml(caption || "")}"
+                        placeholder="Describe what this photo shows"
+                        data-staged-photo-caption
+                        data-category="${escapeHtml(category)}"
+                        data-index="${escapeHtml(index)}"
+                    >
+                </label>
                 <em>${file.size > 20 * 1024 * 1024 ? "Too large" : "Ready"}</em>
                 <button class="photo-staged-remove" type="button" data-remove-staged-photo data-category="${escapeHtml(category)}" data-index="${escapeHtml(index)}">
                     Remove
@@ -1113,7 +1151,8 @@ const FieldProofWorkEntries = (() => {
                 await uploadSinglePhoto(
                     activePhotoWorkEntry.id,
                     stagedItem.category,
-                    stagedItem.file
+                    stagedItem.file,
+                    stagedItem.caption
                 );
             }
 
@@ -1178,9 +1217,10 @@ const FieldProofWorkEntries = (() => {
 
     function getStagedPhotoItems() {
         return ["BEFORE", "DURING", "AFTER"].flatMap((category) => {
-            return stagedPhotoFiles[category].map((file, index) => ({
+            return stagedPhotoFiles[category].map((stagedPhoto, index) => ({
                 category,
-                file,
+                file: stagedPhoto.file,
+                caption: stagedPhoto.caption,
                 index
             }));
         });
@@ -1192,6 +1232,10 @@ const FieldProofWorkEntries = (() => {
             DURING: [],
             AFTER: []
         };
+    }
+
+    function defaultPhotoCaption(category, number = 1) {
+        return `${titleCase(category)} photo ${number}`;
     }
 
     function resetStagedPhotoFiles() {
@@ -1211,9 +1255,10 @@ const FieldProofWorkEntries = (() => {
         ].join("|");
     }
 
-    async function uploadSinglePhoto(workEntryId, category, file) {
+    async function uploadSinglePhoto(workEntryId, category, file, caption) {
         const formData = new FormData();
         formData.append("category", category);
+        formData.append("caption", caption || "");
         formData.append("file", file);
 
         const response = await fetch(`/work-entries/${encodeURIComponent(workEntryId)}/photos`, {

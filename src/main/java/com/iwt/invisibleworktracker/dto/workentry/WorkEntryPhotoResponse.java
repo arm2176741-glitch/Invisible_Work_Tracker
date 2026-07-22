@@ -12,6 +12,7 @@ public class WorkEntryPhotoResponse {
     private Long uploadedByUserId;
     private PhotoCategory category;
     private String originalFilename;
+    private String caption;
     private String contentType;
     private long fileSizeBytes;
     private LocalDateTime createdAt;
@@ -25,6 +26,7 @@ public class WorkEntryPhotoResponse {
             Long uploadedByUserId,
             PhotoCategory category,
             String originalFilename,
+            String caption,
             String contentType,
             long fileSizeBytes,
             LocalDateTime createdAt
@@ -34,6 +36,7 @@ public class WorkEntryPhotoResponse {
         this.uploadedByUserId = uploadedByUserId;
         this.category = category;
         this.originalFilename = originalFilename;
+        this.caption = caption;
         this.contentType = contentType;
         this.fileSizeBytes = fileSizeBytes;
         this.createdAt = createdAt;
@@ -46,6 +49,7 @@ public class WorkEntryPhotoResponse {
                 photo.getUploadedBy().getId(),
                 photo.getCategory(),
                 photo.getOriginalFilename(),
+                photo.getCaption(),
                 photo.getContentType(),
                 photo.getFileSizeBytes(),
                 photo.getCreatedAt()
@@ -70,6 +74,10 @@ public class WorkEntryPhotoResponse {
 
     public String getOriginalFilename() {
         return originalFilename;
+    }
+
+    public String getCaption() {
+        return caption;
     }
 
     public String getContentType() {

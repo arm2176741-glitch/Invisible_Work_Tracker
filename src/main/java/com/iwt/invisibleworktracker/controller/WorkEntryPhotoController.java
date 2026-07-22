@@ -33,17 +33,21 @@ public class WorkEntryPhotoController {
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<WorkEntryPhotoResponse> uploadPhoto(
             @PathVariable Long workEntryId,
-            @RequestParam String category,
+           @RequestParam String category,
+            @RequestParam(required = false) String caption,
             @RequestParam MultipartFile file,
             Authentication authentication
     ) {
         User currentUser = (User) authentication.getPrincipal();
+
+
 
         WorkEntryPhotoResponse photo =
                 workEntryPhotoService.uploadPhoto(
                         currentUser,
                         workEntryId,
                         category,
+                        caption,
                         file
                 );
 

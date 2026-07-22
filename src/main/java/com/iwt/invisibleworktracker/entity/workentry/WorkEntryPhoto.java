@@ -54,6 +54,9 @@ public class WorkEntryPhoto {
     @Column(name = "original_filename", nullable = false, length = 255)
     private String originalFilename;
 
+    @Column(length = 255)
+    private String caption;
+
     @Column(name = "stored_filename", nullable = false, unique = true, length = 255)
     private String storedFilename;
 

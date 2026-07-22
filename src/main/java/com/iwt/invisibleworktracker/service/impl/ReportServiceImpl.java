@@ -322,6 +322,8 @@ public class ReportServiceImpl implements ReportService {
         json.append(",");
         appendJsonStringField(json, "originalFilename", photo.getOriginalFilename());
         json.append(",");
+        appendJsonStringField(json, "caption", photo.getCaption());
+        json.append(",");
         appendJsonStringField(json, "contentType", photo.getContentType());
         json.append(",");
         appendJsonNumberField(json, "fileSizeBytes", photo.getFileSizeBytes());

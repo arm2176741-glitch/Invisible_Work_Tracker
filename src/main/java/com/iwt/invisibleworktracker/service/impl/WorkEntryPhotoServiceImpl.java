@@ -64,6 +64,7 @@ public class WorkEntryPhotoServiceImpl implements WorkEntryPhotoService {
             User currentUser,
             Long workEntryId,
             String category,
+            String caption,
             MultipartFile file
     ) {
         WorkEntry workEntry = requireAccessibleWorkEntry(currentUser, workEntryId);
@@ -72,7 +73,9 @@ public class WorkEntryPhotoServiceImpl implements WorkEntryPhotoService {
         String contentType = normalizeContentType(file.getContentType());
         String storedFilename =
                 UUID.randomUUID() + extensionForContentType(contentType);
+
         String originalFilename = normalizeOriginalFilename(file.getOriginalFilename());
+        String normalizedCaption = normalizeCaption(caption, photoCategory);
 
         Path workEntryDirectory = uploadRoot
                 .resolve(String.valueOf(workEntry.getId()))
@@ -96,6 +99,7 @@ public class WorkEntryPhotoServiceImpl implements WorkEntryPhotoService {
                 .workEntry(workEntry)
                 .uploadedBy(currentUser)
                 .category(photoCategory)
+                .caption(normalizedCaption)
                 .originalFilename(originalFilename)
                 .storedFilename(storedFilename)
                 .contentType(contentType)
@@ -308,6 +312,23 @@ public class WorkEntryPhotoServiceImpl implements WorkEntryPhotoService {
                     "Unsupported photo file type"
             );
         };
+    }
+
+    private String normalizeCaption(String caption , PhotoCategory category){
+        if (caption == null || caption.trim().isEmpty()) {
+            return switch (category) {
+
+                case BEFORE -> "Before photo";
+                case DURING -> "During photo";
+                case AFTER -> "After photo";
+
+            };
+        }
+        String normalized = caption.trim();
+        if (normalized.length() > 255) {
+            normalized = normalized.substring(0, 255);
+        }
+        return normalized;
     }
 
     private String normalizeOriginalFilename(String originalFilename) {
