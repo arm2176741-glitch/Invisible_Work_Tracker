@@ -23,6 +23,7 @@ import java.util.regex.Pattern;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -284,6 +285,130 @@ class WorkEntryIntegrationTests {
                 .andExpect(jsonPath("$.status").value(403));
     }
 
+    @Test
+    void updateWorkEntryStatusMarksAccessibleEntryCompleted() throws Exception {
+        String token = registerLoginAndGetToken(
+                "work-status@example.com",
+                "Password123!",
+                "Work Status User"
+        );
+
+        Organization organization =
+                createOrganizationAndGetSaved(token, "Status Roofing");
+
+        mockMvc.perform(post("/work-entries")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(workEntryJson(
+                                organization.getId(),
+                                "Status Roof Repair",
+                                "700 Status St",
+                                "Repair",
+                                "Completed status repair.",
+                                "2026-06-27"
+                        )))
+                .andExpect(status().isCreated());
+
+        WorkEntry workEntry = workEntryRepository.findAll().get(0);
+
+        mockMvc.perform(patch("/work-entries/{workEntryId}/status", workEntry.getId())
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(statusJson("COMPLETED")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(workEntry.getId()))
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
+
+        WorkEntry updatedWorkEntry = workEntryRepository.findById(workEntry.getId())
+                .orElseThrow();
+
+        assertThat(updatedWorkEntry.getStatus()).isEqualTo(WorkEntryStatus.COMPLETED);
+    }
+
+    @Test
+    void updateWorkEntryStatusRejectsOtherUsersWorkEntry() throws Exception {
+        String ownerToken = registerLoginAndGetToken(
+                "work-status-owner@example.com",
+                "Password123!",
+                "Work Status Owner"
+        );
+
+        Organization ownerOrganization =
+                createOrganizationAndGetSaved(ownerToken, "Owner Status Roofing");
+
+        mockMvc.perform(post("/work-entries")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(workEntryJson(
+                                ownerOrganization.getId(),
+                                "Private Status Roof",
+                                "800 Private Status St",
+                                "Repair",
+                                "Private status repair.",
+                                "2026-06-27"
+                        )))
+                .andExpect(status().isCreated());
+
+        WorkEntry ownerWorkEntry = workEntryRepository.findAll().get(0);
+
+        String outsiderToken = registerLoginAndGetToken(
+                "work-status-outsider@example.com",
+                "Password123!",
+                "Work Status Outsider"
+        );
+
+        mockMvc.perform(patch("/work-entries/{workEntryId}/status", ownerWorkEntry.getId())
+                        .header("Authorization", "Bearer " + outsiderToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(statusJson("COMPLETED")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+
+        WorkEntry unchangedWorkEntry = workEntryRepository.findById(ownerWorkEntry.getId())
+                .orElseThrow();
+
+        assertThat(unchangedWorkEntry.getStatus()).isEqualTo(WorkEntryStatus.DRAFT);
+    }
+
+    @Test
+    void updateWorkEntryStatusRejectsUnsupportedUserStatus() throws Exception {
+        String token = registerLoginAndGetToken(
+                "work-status-invalid@example.com",
+                "Password123!",
+                "Work Status Invalid"
+        );
+
+        Organization organization =
+                createOrganizationAndGetSaved(token, "Invalid Status Roofing");
+
+        mockMvc.perform(post("/work-entries")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(workEntryJson(
+                                organization.getId(),
+                                "Invalid Status Roof",
+                                "900 Invalid Status St",
+                                "Repair",
+                                "Invalid status repair.",
+                                "2026-06-27"
+                        )))
+                .andExpect(status().isCreated());
+
+        WorkEntry workEntry = workEntryRepository.findAll().get(0);
+
+        mockMvc.perform(patch("/work-entries/{workEntryId}/status", workEntry.getId())
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(statusJson("SUBMITTED")))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Status can only be DRAFT or COMPLETED"));
+
+        WorkEntry unchangedWorkEntry = workEntryRepository.findById(workEntry.getId())
+                .orElseThrow();
+
+        assertThat(unchangedWorkEntry.getStatus()).isEqualTo(WorkEntryStatus.DRAFT);
+    }
+
     private Organization createOrganizationAndGetSaved(
             String token,
             String name
@@ -372,6 +497,14 @@ class WorkEntryIntegrationTests {
                 description,
                 workDate
         );
+    }
+
+    private String statusJson(String status) {
+        return """
+                {
+                  "status": "%s"
+                }
+                """.formatted(status);
     }
 
     private String extractToken(String responseBody) {

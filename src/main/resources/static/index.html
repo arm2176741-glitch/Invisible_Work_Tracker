@@ -534,8 +534,21 @@
                                 </div>
                             </section>
 
+                            <section class="work-entry-detail-section report-readiness-section">
+                                <div class="work-entry-section-title-row">
+                                    <div>
+                                        <p class="eyebrow">Report readiness</p>
+                                        <h4 id="detailReadinessTitle">Requirements before report</h4>
+                                    </div>
+                                    <button class="work-entry-action-button" id="detailMarkCompletedButton" type="button">
+                                        Mark completed
+                                    </button>
+                                </div>
+                                <ul class="report-readiness-list" id="detailReadinessList"></ul>
+                            </section>
+
                             <section class="work-entry-detail-section">
-                                <p class="eyebrow">Notes</p>
+                                <p class="eyebrow">Work performed</p>
                                 <p id="detailDescription">No notes added</p>
                             </section>
 
@@ -552,7 +565,7 @@
                                 <p class="status-message" id="detailReportMessage" role="status" aria-live="polite"></p>
                                 <div class="report-preview-empty" id="detailReportEmpty">
                                     <strong>No report generated yet</strong>
-                                    <p>Once this work entry has at least one before photo and one after photo, generate a stable proof report snapshot.</p>
+                                    <p>Complete the readiness checklist to generate a stable proof report snapshot.</p>
                                 </div>
                                 <div class="report-preview-document hidden" id="detailReportPreview" aria-live="polite"></div>
                             </section>
@@ -813,7 +826,7 @@
             </div>
 
             <div class="work-entry-field">
-                <label for="workEntryDescription">Description</label>
+                <label for="workEntryDescription">Work performed</label>
                 <textarea id="workEntryDescription" name="description" maxlength="2000" rows="5" placeholder="What work was completed? Add notes, materials, or job conditions." required></textarea>
             </div>
 

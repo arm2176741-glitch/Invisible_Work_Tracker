@@ -8,6 +8,7 @@ import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.entity.workentry.PhotoCategory;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntryPhoto;
+import com.iwt.invisibleworktracker.entity.workentry.WorkEntryStatus;
 import com.iwt.invisibleworktracker.repository.ReportRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryPhotoRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryRepository;
@@ -247,6 +248,32 @@ public class ReportServiceImpl implements ReportService {
                     "A report requires at least one BEFORE photo and one AFTER photo"
             );
         }
+
+        if (!hasMeaningfulWorkSummary(workEntry.getDescription())) {
+            throw new IllegalArgumentException(
+                    "Add a work performed summary before generating a report"
+            );
+        }
+
+        if (workEntry.getStatus() != WorkEntryStatus.COMPLETED) {
+            throw new IllegalArgumentException(
+                    "Mark the work entry completed before generating a report"
+            );
+        }
+    }
+
+    private boolean hasMeaningfulWorkSummary(String description) {
+        if (description == null) {
+            return false;
+        }
+
+        String normalizedDescription = description.trim();
+
+        if (normalizedDescription.isEmpty()) {
+            return false;
+        }
+
+        return !normalizedDescription.matches("(?i)^(.)\\1{4,}$");
     }
 
     private String buildReportNumber(

@@ -1,6 +1,7 @@
 package com.iwt.invisibleworktracker.service.impl;
 
 import com.iwt.invisibleworktracker.dto.workentry.CreateWorkEntryRequest;
+import com.iwt.invisibleworktracker.dto.workentry.UpdateWorkEntryStatusRequest;
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryResponse;
 import com.iwt.invisibleworktracker.entity.organization.Organization;
 import com.iwt.invisibleworktracker.entity.user.User;
@@ -10,11 +11,15 @@ import com.iwt.invisibleworktracker.repository.ReportRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryRepository;
 import com.iwt.invisibleworktracker.service.OrganizationService;
 import com.iwt.invisibleworktracker.service.WorkEntryService;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDate;
+import java.util.EnumSet;
 import java.util.List;
+import java.util.Set;
 
 @Service
 public class WorkEntryServiceImpl implements WorkEntryService {
@@ -22,6 +27,11 @@ public class WorkEntryServiceImpl implements WorkEntryService {
     private final WorkEntryRepository workEntryRepository;
     private final ReportRepository reportRepository;
     private final OrganizationService organizationService;
+    private static final Set<WorkEntryStatus> USER_SELECTABLE_STATUSES =
+            EnumSet.of(
+                    WorkEntryStatus.DRAFT,
+                    WorkEntryStatus.COMPLETED
+            );
 
     public WorkEntryServiceImpl(
             WorkEntryRepository workEntryRepository,
@@ -87,6 +97,36 @@ public class WorkEntryServiceImpl implements WorkEntryService {
                 .toList();
     }
 
+    @Override
+    @Transactional
+    public WorkEntryResponse updateWorkEntryStatus(
+            User currentUser,
+            Long workEntryId,
+            UpdateWorkEntryStatusRequest request
+    ) {
+        if (request == null) {
+            throw new IllegalArgumentException("Status request is required");
+        }
+
+        if (request.getStatus() == null) {
+            throw new IllegalArgumentException("Status is required");
+        }
+
+        if (!USER_SELECTABLE_STATUSES.contains(request.getStatus())) {
+            throw new IllegalArgumentException("Status can only be DRAFT or COMPLETED");
+        }
+
+        WorkEntry workEntry = requireAccessibleWorkEntry(currentUser, workEntryId);
+        workEntry.setStatus(request.getStatus());
+
+        WorkEntry savedWorkEntry = workEntryRepository.save(workEntry);
+
+        return WorkEntryResponse.from(
+                savedWorkEntry,
+                reportRepository.findByWorkEntry(savedWorkEntry).orElse(null)
+        );
+    }
+
     private String normalizeText(
             String value,
             String fieldName,
@@ -117,5 +157,28 @@ public class WorkEntryServiceImpl implements WorkEntryService {
         }
 
         return workDate;
+    }
+
+    private WorkEntry requireAccessibleWorkEntry(
+            User currentUser,
+            Long workEntryId
+    ) {
+        if (workEntryId == null) {
+            throw new IllegalArgumentException("Work entry id is required");
+        }
+
+        WorkEntry workEntry = workEntryRepository
+                .findById(workEntryId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Work entry not found"
+                ));
+
+        organizationService.requireActiveOrganizationMember(
+                currentUser,
+                workEntry.getOrganization().getId()
+        );
+
+        return workEntry;
     }
 }

@@ -13,6 +13,9 @@ const FieldProofWorkEntries = (() => {
         detailStatus: document.querySelector("#detailStatus"),
         detailProofStatus: document.querySelector("#detailProofStatus"),
         detailReportStatus: document.querySelector("#detailReportStatus"),
+        detailReadinessTitle: document.querySelector("#detailReadinessTitle"),
+        detailReadinessList: document.querySelector("#detailReadinessList"),
+        detailMarkCompletedButton: document.querySelector("#detailMarkCompletedButton"),
         detailGenerateReportButton: document.querySelector("#detailGenerateReportButton"),
         detailReportMessage: document.querySelector("#detailReportMessage"),
         detailReportEmpty: document.querySelector("#detailReportEmpty"),
@@ -52,6 +55,7 @@ const FieldProofWorkEntries = (() => {
     let latestCurrentUserName = "User";
     let stagedPhotoFiles = createEmptyPhotoStage();
     let reportPhotoObjectUrls = [];
+    let isUpdatingWorkEntryStatus = false;
 
     let createFormOptions = {
         getOrganizationId: () => null,
@@ -226,6 +230,10 @@ const FieldProofWorkEntries = (() => {
             elements.detailGenerateReportButton.addEventListener("click", generateReportForDetail);
         }
 
+        if (elements.detailMarkCompletedButton) {
+            elements.detailMarkCompletedButton.addEventListener("click", markActiveDetailCompleted);
+        }
+
         if (elements.detailPhotoList) {
             elements.detailPhotoList.addEventListener("click", handleDetailPhotoAction);
         }
@@ -299,6 +307,7 @@ const FieldProofWorkEntries = (() => {
         }
 
         setReportMessage("");
+        renderReportReadiness(workEntry);
         updateGenerateReportButton(workEntry);
         renderReportPreview(workEntry);
         renderDetailPhotos(workEntry);
@@ -395,12 +404,12 @@ const FieldProofWorkEntries = (() => {
         }
 
         const targetEntry = getRecentEntries(currentEntries).find((entry) => {
-            return Boolean(entry.proofReady);
+            return isReportReady(entry);
         });
 
         if (!targetEntry) {
             createFormOptions.onUnavailableAction(
-                "Add at least one before photo and one after photo before generating a report."
+                "Open a work entry and complete the report readiness checklist before generating a report."
             );
             return;
         }
@@ -433,9 +442,11 @@ const FieldProofWorkEntries = (() => {
             return;
         }
 
-        if (!workEntry.proofReady) {
+        const reportRequirements = getReportRequirements(workEntry);
+
+        if (!reportRequirements.ready) {
             setReportMessage(
-                "A report requires at least one BEFORE photo and one AFTER photo.",
+                `Finish before generating: ${reportRequirements.missing.join(" ")}`,
                 "error"
             );
             return;
@@ -509,10 +520,197 @@ const FieldProofWorkEntries = (() => {
             return;
         }
 
-        elements.detailGenerateReportButton.disabled = false;
-        elements.detailGenerateReportButton.textContent = workEntry.proofReady
+        const reportRequirements = getReportRequirements(workEntry);
+
+        elements.detailGenerateReportButton.disabled = !reportRequirements.ready;
+        elements.detailGenerateReportButton.textContent = reportRequirements.ready
             ? "Generate report"
-            : "Check requirements";
+            : "Complete requirements";
+    }
+
+    function renderReportReadiness(workEntry) {
+        if (!elements.detailReadinessList || !elements.detailReadinessTitle) {
+            return;
+        }
+
+        const requirements = getReportRequirements(workEntry);
+
+        const readinessIsComplete = requirements.ready;
+
+        elements.detailReadinessTitle.textContent = readinessIsComplete
+            ? workEntry?.report
+                ? "Report generated"
+                : "Ready to generate"
+            : "Requirements before report";
+        elements.detailReadinessList.classList.toggle("is-complete", readinessIsComplete);
+
+        if (readinessIsComplete) {
+            const completionMessage = workEntry?.report
+                ? `${getReportDetails(workEntry).reportNumber} is ready to review.`
+                : "All documentation requirements are complete.";
+
+            elements.detailReadinessList.innerHTML = `
+                <li class="complete readiness-summary-row">
+                    <span aria-hidden="true">&#10003;</span>
+                    <strong>${escapeHtml(completionMessage)}</strong>
+                </li>
+            `;
+
+            updateMarkCompletedButton(workEntry);
+            return;
+        }
+
+        elements.detailReadinessList.innerHTML = requirements.items
+            .map((item) => `
+                <li class="${item.complete ? "complete" : "missing"}">
+                    <span aria-hidden="true">${item.complete ? "&#10003;" : "&#9675;"}</span>
+                    <strong>${escapeHtml(item.label)}</strong>
+                </li>
+            `)
+            .join("");
+
+        updateMarkCompletedButton(workEntry);
+    }
+
+    function getReportRequirements(workEntry) {
+        const hasBeforePhoto = hasPhotoCategory(
+            Array.isArray(workEntry?.photos) ? workEntry.photos : [],
+            "BEFORE"
+        );
+        const hasAfterPhoto = hasPhotoCategory(
+            Array.isArray(workEntry?.photos) ? workEntry.photos : [],
+            "AFTER"
+        );
+        const hasWorkSummary = hasMeaningfulWorkSummary(workEntry?.description);
+        const isCompleted = workEntry?.status === "COMPLETED";
+
+        const items = [
+            {
+                key: "before-photo",
+                label: "Add at least one before photo.",
+                complete: hasBeforePhoto
+            },
+            {
+                key: "after-photo",
+                label: "Add at least one after photo.",
+                complete: hasAfterPhoto
+            },
+            {
+                key: "work-summary",
+                label: "Add a work performed summary.",
+                complete: hasWorkSummary
+            },
+            {
+                key: "completed-status",
+                label: "Mark the work entry completed.",
+                complete: isCompleted
+            }
+        ];
+
+        return {
+            ready: items.every((item) => item.complete),
+            items,
+            missing: items
+                .filter((item) => !item.complete)
+                .map((item) => item.label)
+        };
+    }
+
+    function isReportReady(workEntry) {
+        return getReportRequirements(workEntry).ready;
+    }
+
+    function hasMeaningfulWorkSummary(description) {
+        const normalizedDescription = String(description || "").trim();
+
+        if (!normalizedDescription) {
+            return false;
+        }
+
+        return !/^(.)\1{4,}$/i.test(normalizedDescription);
+    }
+
+    function updateMarkCompletedButton(workEntry) {
+        if (!elements.detailMarkCompletedButton) {
+            return;
+        }
+
+        const isCompleted = workEntry?.status === "COMPLETED";
+
+        elements.detailMarkCompletedButton.disabled = isCompleted || isUpdatingWorkEntryStatus;
+        elements.detailMarkCompletedButton.textContent = isUpdatingWorkEntryStatus
+            ? "Marking..."
+            : isCompleted
+                ? "Completed"
+                : "Mark completed";
+    }
+
+    async function markActiveDetailCompleted() {
+        if (!activeDetailWorkEntry || isUpdatingWorkEntryStatus) {
+            return;
+        }
+
+        if (activeDetailWorkEntry.status === "COMPLETED") {
+            return;
+        }
+
+        isUpdatingWorkEntryStatus = true;
+        updateMarkCompletedButton(activeDetailWorkEntry);
+        setReportMessage("Marking work entry completed...");
+
+        try {
+            const response = await fetch(
+                `/work-entries/${encodeURIComponent(activeDetailWorkEntry.id)}/status`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        ...getAuthHeadersOrThrow("updating work entry status"),
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        status: "COMPLETED"
+                    })
+                }
+            );
+
+            if (response.status === 401) {
+                handleAuthenticationExpired();
+                throw new Error("Your session expired. Sign in again before updating work entries.");
+            }
+
+            if (!response.ok) {
+                const errorBody = await readJson(response);
+                throw new Error(extractErrorMessage(errorBody, response.status));
+            }
+
+            const statusResponse = await readJson(response);
+            const updatedWorkEntry = {
+                ...activeDetailWorkEntry,
+                ...statusResponse,
+                photos: activeDetailWorkEntry.photos,
+                photoCount: activeDetailWorkEntry.photoCount,
+                proofReady: activeDetailWorkEntry.proofReady,
+                report: statusResponse.report || activeDetailWorkEntry.report
+            };
+
+            currentEntries = currentEntries.map((entry) => {
+                return String(entry.id) === String(updatedWorkEntry.id)
+                    ? updatedWorkEntry
+                    : entry;
+            });
+
+            activeDetailWorkEntry = updatedWorkEntry;
+            renderEntries(currentEntries, latestCurrentUserName);
+            openDetailView(updatedWorkEntry);
+            setReportMessage("Work entry marked completed.");
+        } catch (error) {
+            setReportMessage(error.message || "Work entry status could not be updated.", "error");
+            updateMarkCompletedButton(activeDetailWorkEntry);
+        } finally {
+            isUpdatingWorkEntryStatus = false;
+            updateMarkCompletedButton(activeDetailWorkEntry);
+            updateGenerateReportButton(activeDetailWorkEntry);
+        }
     }
 
     function renderReportPreview(workEntry) {
@@ -547,17 +745,9 @@ const FieldProofWorkEntries = (() => {
                     &middot; ${escapeHtml(pluralize(reportDetails.photos.length, "evidence photo"))}
                 </p>
             </div>
-            <button class="work-entry-action-button emphasis" type="button" data-view-generated-report>
-                View report
-            </button>
         `;
 
         elements.detailReportPreview.appendChild(preview);
-
-        const viewButton = preview.querySelector("[data-view-generated-report]");
-        viewButton?.addEventListener("click", () => {
-            openReportPreviewView(workEntry);
-        });
     }
 
     function renderReportEmptyState(workEntry) {
@@ -1555,7 +1745,7 @@ const FieldProofWorkEntries = (() => {
         }
 
         if (payload.description.length < 5) {
-            return "Description must contain at least 5 characters.";
+            return "Work performed summary must contain at least 5 characters.";
         }
 
         return "";
@@ -1897,13 +2087,13 @@ const FieldProofWorkEntries = (() => {
         const normalizedDescription = String(description || "").trim();
 
         if (!normalizedDescription) {
-            return "No notes added.";
+            return "No work performed summary added.";
         }
 
         const repeatedCharacterOnly = /^(.)\1{4,}$/i.test(normalizedDescription);
 
         if (repeatedCharacterOnly) {
-            return "No meaningful notes added yet.";
+            return "No meaningful work performed summary added yet.";
         }
 
         return normalizedDescription;
@@ -1940,6 +2130,10 @@ const FieldProofWorkEntries = (() => {
     }
 
     function formatStatus(status) {
+        if (status === "COMPLETED") {
+            return "Completed";
+        }
+
         if (status === "SUBMITTED") {
             return "Submitted";
         }
@@ -1952,6 +2146,10 @@ const FieldProofWorkEntries = (() => {
     }
 
     function getStatusClass(status) {
+        if (status === "COMPLETED") {
+            return "completed";
+        }
+
         if (status === "SUBMITTED") {
             return "submitted";
         }

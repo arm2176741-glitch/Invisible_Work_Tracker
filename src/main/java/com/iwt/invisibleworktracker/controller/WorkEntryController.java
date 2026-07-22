@@ -1,6 +1,7 @@
 package com.iwt.invisibleworktracker.controller;
 
 import com.iwt.invisibleworktracker.dto.workentry.CreateWorkEntryRequest;
+import com.iwt.invisibleworktracker.dto.workentry.UpdateWorkEntryStatusRequest;
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryResponse;
 import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.service.WorkEntryService;
@@ -9,6 +10,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -61,5 +64,23 @@ public class WorkEntryController {
                 );
 
         return ResponseEntity.ok(workEntries);
+    }
+
+    @PatchMapping("/{workEntryId}/status")
+    public ResponseEntity<WorkEntryResponse> updateWorkEntryStatus(
+            @PathVariable Long workEntryId,
+            @Valid @RequestBody UpdateWorkEntryStatusRequest request,
+            Authentication authentication
+    ) {
+        User currentUser = (User) authentication.getPrincipal();
+
+        WorkEntryResponse workEntry =
+                workEntryService.updateWorkEntryStatus(
+                        currentUser,
+                        workEntryId,
+                        request
+                );
+
+        return ResponseEntity.ok(workEntry);
     }
 }

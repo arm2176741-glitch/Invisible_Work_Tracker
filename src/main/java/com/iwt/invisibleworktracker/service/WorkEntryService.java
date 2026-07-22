@@ -1,6 +1,7 @@
 package com.iwt.invisibleworktracker.service;
 
 import com.iwt.invisibleworktracker.dto.workentry.CreateWorkEntryRequest;
+import com.iwt.invisibleworktracker.dto.workentry.UpdateWorkEntryStatusRequest;
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryResponse;
 import com.iwt.invisibleworktracker.entity.user.User;
 
@@ -16,5 +17,11 @@ public interface WorkEntryService {
     List<WorkEntryResponse> listWorkEntries(
             User currentUser,
             Long organizationId
+    );
+
+    WorkEntryResponse updateWorkEntryStatus(
+            User currentUser,
+            Long workEntryId,
+            UpdateWorkEntryStatusRequest request
     );
 }

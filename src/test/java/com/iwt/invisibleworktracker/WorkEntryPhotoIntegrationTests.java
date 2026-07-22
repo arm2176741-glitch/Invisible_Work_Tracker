@@ -5,6 +5,7 @@ import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntryPhoto;
 import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;
 import com.iwt.invisibleworktracker.repository.OrganizationRepository;
+import com.iwt.invisibleworktracker.repository.ReportRepository;
 import com.iwt.invisibleworktracker.repository.SessionRepository;
 import com.iwt.invisibleworktracker.repository.UserRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryPhotoRepository;
@@ -31,6 +32,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -49,6 +51,9 @@ class WorkEntryPhotoIntegrationTests {
 
     @Autowired
     private WorkEntryPhotoRepository photoRepository;
+
+    @Autowired
+    private ReportRepository reportRepository;
 
     @Autowired
     private WorkEntryRepository workEntryRepository;
@@ -341,7 +346,71 @@ class WorkEntryPhotoIntegrationTests {
         assertThat(storedFile).doesNotExist();
     }
 
+    @Test
+    void generateReportRejectsProofPhotosUntilWorkEntryIsCompleted() throws Exception {
+        String token = registerLoginAndGetToken(
+                "report-ready-status@example.com",
+                "Password123!",
+                "Report Ready Status"
+        );
+
+        Organization organization =
+                createOrganizationAndGetSaved(token, "Report Ready Roofing");
+
+        WorkEntry workEntry =
+                createWorkEntryAndGetSaved(
+                        token,
+                        organization.getId(),
+                        "Report Ready Job"
+                );
+
+        uploadPhoto(token, workEntry.getId(), "BEFORE", pngPhoto("before-ready.png"));
+        uploadPhoto(token, workEntry.getId(), "AFTER", jpegPhoto("after-ready.jpg"));
+
+        mockMvc.perform(post("/work-entries/{workEntryId}/reports", workEntry.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message")
+                        .value("Mark the work entry completed before generating a report"));
+
+        assertThat(reportRepository.findAll()).isEmpty();
+    }
+
+    @Test
+    void generateReportSucceedsAfterRequiredPhotosAndCompletedStatus() throws Exception {
+        String token = registerLoginAndGetToken(
+                "report-ready-complete@example.com",
+                "Password123!",
+                "Report Ready Complete"
+        );
+
+        Organization organization =
+                createOrganizationAndGetSaved(token, "Report Complete Roofing");
+
+        WorkEntry workEntry =
+                createWorkEntryAndGetSaved(
+                        token,
+                        organization.getId(),
+                        "Report Complete Job"
+                );
+
+        uploadPhoto(token, workEntry.getId(), "BEFORE", pngPhoto("before-complete.png"));
+        uploadPhoto(token, workEntry.getId(), "AFTER", jpegPhoto("after-complete.jpg"));
+        markWorkEntryCompleted(token, workEntry.getId());
+
+        mockMvc.perform(post("/work-entries/{workEntryId}/reports", workEntry.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.reportNumber").isString())
+                .andExpect(jsonPath("$.status").value("GENERATED"))
+                .andExpect(jsonPath("$.snapshotJson").isString());
+
+        assertThat(reportRepository.findAll()).hasSize(1);
+    }
+
     private void cleanDatabase() {
+        reportRepository.deleteAll();
         photoRepository.deleteAll();
         workEntryRepository.deleteAll();
         membershipRepository.deleteAll();
@@ -382,6 +451,18 @@ class WorkEntryPhotoIntegrationTests {
                         .param("category", category)
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isCreated());
+    }
+
+    private void markWorkEntryCompleted(
+            String token,
+            Long workEntryId
+    ) throws Exception {
+        mockMvc.perform(patch("/work-entries/{workEntryId}/status", workEntryId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(statusJson("COMPLETED")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("COMPLETED"));
     }
 
     private Organization createOrganizationAndGetSaved(
@@ -546,6 +627,14 @@ class WorkEntryPhotoIntegrationTests {
                 description,
                 workDate
         );
+    }
+
+    private String statusJson(String status) {
+        return """
+                {
+                  "status": "%s"
+                }
+                """.formatted(status);
     }
 
     private String extractToken(String responseBody) {
