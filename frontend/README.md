@@ -46,16 +46,40 @@ The static frontend is the visual/workflow reference.
 The React frontend should turn approved patterns into reusable components instead of copying
 every static file line-for-line.
 
-First anchor components:
+Current anchor components:
 
 - `AppShell`
 - `AppSidebar`
 - `DashboardPage`
+- `CreateWorkspaceDialog`
+- `CreateWorkEntryStep`
+- `OperationalSummary`
 - `WorkspaceCard`
 - `WorkEntryList`
 - `ReportPreviewPage`
 - shared `Button`
+- onboarding state helpers in `src/lib/onboarding.ts`
 - shared domain types
+
+Current onboarding flow:
+
+```text
+CREATE_WORKSPACE
+→ CREATE_WORK_ENTRY
+→ ADD_EVIDENCE
+→ GENERATE_REPORT
+→ REVIEW_REPORT
+→ COMPLETE
+```
+
+Implemented in React mock state:
+
+- Step 1: create workspace
+- Step 2: create first work entry
+
+Next milestone:
+
+- Step 3: add Before / During / After evidence with captions
 
 Initial shadcn components installed:
 
@@ -80,3 +104,5 @@ The generated `button` component has been adapted to preserve FieldProof's
 - GPS/camera native APIs
 - speculative backend endpoints
 - PDF generation
+
+The React app is currently using local/mock onboarding state. Backend integration should happen after the proof-report flow is stable enough to justify API contracts.

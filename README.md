@@ -1,74 +1,151 @@
-# InvisibleWorkTracker / FieldProof
+# FieldProof
 
 ## Rights Notice
 
-Copyright © 2026 Arman. All rights reserved.
+Copyright (c) 2026 Arman. All rights reserved.
 
 This project is proprietary. The source code is not licensed for copying, modification, distribution, or commercial use without written permission.
 
-Spring Boot backend for FieldProof, a roofing contractor field documentation and proof-of-work app.
+## What FieldProof Is
 
-Roofing crews often track field work through texts, camera rolls, and verbal updates. That works in the moment, but it becomes hard to verify later when there is a warranty question, insurance issue, customer dispute, or manager review.
+FieldProof is a contractor proof-of-work platform for documenting jobsite work and turning that documentation into customer-ready proof reports.
 
-FieldProof is being built to give crews a simple way to record job-site activity and keep that documentation tied to the right user, company, and job.
+The core product loop is:
+
+```text
+Create workspace
+-> create work entry
+-> add job documentation
+-> add Before / During / After evidence
+-> generate proof report
+-> review customer-ready report
+```
+
+The product is being built around one practical problem:
+
+```text
+Contractors often need to prove what happened on a job, but their evidence is scattered across camera rolls, texts, notes, and memory.
+```
+
+FieldProof is intended to help contractors protect payment, reputation, and customer trust by keeping work documentation organized under the correct company, job, user, and report.
 
 ## Current Status
 
-The project is in active development. The authentication foundation is implemented and covered by integration tests. The first organization foundation slice is also implemented, so authenticated users can create companies, automatically become organization owners, and list their active organizations.
+FieldProof is in active development.
 
-A small static frontend is included so the auth flow and organization flow can be tested from the browser.
+The project currently contains:
 
-Built so far:
+- A permanent Spring Boot backend.
+- A MySQL-backed data model.
+- A working authentication foundation.
+- Organization/workspace foundations.
+- Work-entry, photo evidence, and report foundations in the existing prototype/backend direction.
+- A newer React web frontend migration in `/frontend`.
+- A polished React onboarding prototype for the first user flow.
 
-- User registration and login
-- BCrypt password hashing
-- Database-backed bearer session tokens
-- SHA-256 hashed session token storage
-- 30-day session expiration
-- Logout and session invalidation
-- Protected `/auth/me` endpoint
-- Account lockout after repeated failed login attempts
-- Custom Spring Security token filter
-- Global JSON error handling
-- MySQL runtime configuration
-- H2 test configuration
-- Auth integration tests
-- Organization creation and listing
-- Creator automatically receives an active `OWNER` membership
-- Reusable organization access helper for future organization-scoped features
-- Organization integration tests
-- Local H2 profile for browser testing without MySQL
-- Basic static login/register/logout frontend
-- Static organization create/list frontend panel
-- Browser-side selected organization state for the next WorkEntry slice
+The React web frontend is now the production-direction UI. The older static frontend remains useful as historical reference and for backend/browser testing, but it is not the final frontend direction.
 
-The next backend milestone is WorkEntry, the first core proof-of-work feature. Work entries will belong to organizations so access can be limited to users with active organization memberships.
+## Current React Web Progress
 
-## Product Direction
+The React frontend currently includes:
 
-The product is evolving toward a roofing-focused proof-of-work operating layer. The near-term product direction is based around:
+- Login / create-account screen.
+- Cinematic FieldProof visual direction.
+- Dashboard shell and sidebar.
+- Onboarding state machine.
+- Step 1: create workspace.
+- Step 2: create first work entry.
+- Operational dashboard mock state.
+- Work-entry list.
+- Workspace summary card.
+- Report preview screen.
+- Reusable product-level dashboard components.
+- shadcn/ui and Base UI primitives adapted to the FieldProof style.
 
-- Jobs and work entries
-- Before, during, and after field documentation
-- Photo-backed proof capture
-- Organization-scoped access control
-- Proof reports for customers, managers, warranty questions, and disputes
-- Audit-style proof history over time
+The onboarding state machine currently models:
 
-Later dashboards such as scorecards, gap roadmaps, lead pipelines, and monthly summaries should be built after enough job and proof data exists to make those views useful.
+```text
+CREATE_WORKSPACE
+CREATE_WORK_ENTRY
+ADD_EVIDENCE
+GENERATE_REPORT
+REVIEW_REPORT
+COMPLETE
+```
+
+The next React milestone is Step 3:
+
+```text
+Add Evidence
+```
+
+That screen should collect Before / During / After evidence, captions, and proof-readiness state.
+
+## Current Backend Progress
+
+The Spring Boot backend foundation includes:
+
+- User registration and login.
+- BCrypt password hashing.
+- Database-backed bearer session tokens.
+- SHA-256 hashed session token storage.
+- 30-day session expiration.
+- Logout and session invalidation.
+- Protected `/auth/me` endpoint.
+- Account lockout after repeated failed login attempts.
+- Custom Spring Security token filter.
+- Global JSON error handling.
+- MySQL runtime configuration.
+- H2 test configuration.
+- Auth integration tests.
+- Organization creation and listing.
+- Automatic active `OWNER` membership for organization creators.
+- Reusable organization access helper for organization-scoped features.
+- Organization integration tests.
+
+The backend remains the permanent engine for:
+
+- authentication
+- users
+- workspaces / organizations
+- memberships
+- work entries
+- photo metadata
+- reports
+- permissions
+- future API sharing with mobile
 
 ## Tech Stack
 
+Backend:
+
 - Java 17
-- Spring Boot 4
+- Spring Boot
 - Spring Security
 - Spring Data JPA
 - Hibernate
 - MySQL
-- H2 for tests and local browser testing
+- H2 for tests/local profile
 - Gradle
 - Lombok
-- HTML, CSS, and vanilla JavaScript for the current static frontend
+
+Frontend:
+
+- React
+- TypeScript
+- Vite
+- Tailwind CSS v4
+- shadcn/ui
+- Base UI primitives
+- Geist font
+
+Future mobile direction:
+
+- React Native
+- Expo
+- TypeScript
+
+Mobile is future planning only. The current production work is the React web frontend and Spring Boot backend.
 
 ## Project Structure
 
@@ -82,205 +159,52 @@ src/main/java/com/iwt/invisibleworktracker
 |-- repository
 |-- security
 `-- service
-```
 
-Package responsibilities:
-
-- `config` - Spring and security configuration
-- `controller` - REST API endpoints
-- `dto` - request and response objects
-- `entity` - database models
-- `exception` - global error handling
-- `repository` - database access
-- `security` - bearer token filter and security helpers
-- `service` - business logic
-
-Static frontend files live in:
-
-```text
 src/main/resources/static
+`-- legacy/static browser prototype
+
+frontend
+`-- React + TypeScript web frontend migration
 ```
 
-## Authentication Design
+## Running the React Frontend
 
-This project uses custom database-backed bearer sessions instead of JWT.
+From the repo root:
 
-Login flow:
+```powershell
+cd frontend
+$env:PATH = 'C:\Program Files\nodejs;' + $env:PATH
+npm run dev
+```
+
+Then open the Vite URL, usually:
 
 ```text
-User submits email and password
-Password is checked with BCrypt
-Backend generates a secure random token
-Raw token is returned to the client
-SHA-256 hash of the token is stored in the database
-Client sends the raw token as a Bearer token on future requests
+http://localhost:5173
 ```
 
-Authenticated requests use:
+Frontend checks:
 
-```http
-Authorization: Bearer <token>
+```powershell
+cd frontend
+$env:PATH = 'C:\Program Files\nodejs;' + $env:PATH
+npm run build
+npm run lint
 ```
 
-The `SessionTokenFilter` validates the token, checks that the session is still valid and not expired, and then sets the authenticated user in the Spring Security context.
-
-## API Endpoints
-
-Local base URL:
+Current lint note:
 
 ```text
-http://localhost:8080
+The shadcn `button.tsx` and `badge.tsx` files currently produce Fast Refresh warnings because they export component helpers/constants from the same file.
 ```
 
-### Register
+These are warnings, not build failures.
 
-```http
-POST /auth/register
-```
+## Running the Spring Boot Backend
 
-Request body:
+### Local H2 profile
 
-```json
-{
-  "email": "test@example.com",
-  "password": "Password123!",
-  "name": "Test User"
-}
-```
-
-### Login
-
-```http
-POST /auth/login
-```
-
-Request body:
-
-```json
-{
-  "email": "test@example.com",
-  "password": "Password123!"
-}
-```
-
-Example response:
-
-```json
-{
-  "token": "example-session-token",
-  "message": "Login successful"
-}
-```
-
-### Current User
-
-```http
-GET /auth/me
-Authorization: Bearer <token>
-```
-
-### Logout
-
-```http
-POST /auth/logout
-Authorization: Bearer <token>
-```
-
-Expected response:
-
-```text
-204 No Content
-```
-
-### Create Organization
-
-```http
-POST /organizations
-Authorization: Bearer <token>
-```
-
-Request body:
-
-```json
-{
-  "name": "Desert Roofing"
-}
-```
-
-Example response:
-
-```json
-{
-  "id": 1,
-  "name": "Desert Roofing",
-  "active": true,
-  "createdByUserId": 1,
-  "role": "OWNER",
-  "membershipStatus": "ACTIVE",
-  "createdAt": "2026-06-23T10:00:00",
-  "updatedAt": "2026-06-23T10:00:00"
-}
-```
-
-Rules:
-
-- The request must be authenticated.
-- Organization names are trimmed before storage.
-- Organization names cannot be blank or longer than 150 characters.
-- Duplicate organization names are allowed.
-- The creator automatically becomes an active `OWNER`.
-
-### List Organizations
-
-```http
-GET /organizations
-Authorization: Bearer <token>
-```
-
-Example response:
-
-```json
-[
-  {
-    "id": 1,
-    "name": "Desert Roofing",
-    "active": true,
-    "createdByUserId": 1,
-    "role": "OWNER",
-    "membershipStatus": "ACTIVE",
-    "createdAt": "2026-06-23T10:00:00",
-    "updatedAt": "2026-06-23T10:00:00"
-  }
-]
-```
-
-Only organizations where the authenticated user has an active membership are returned.
-
-### Organization Access Rule
-
-Future organization-owned features use a shared service rule:
-
-```text
-requireActiveOrganizationMember(currentUser, organizationId)
-```
-
-This rule:
-
-- Finds the organization by id.
-- Requires the organization to be active.
-- Requires the authenticated user to have an active membership.
-- Returns `404 Not Found` when the organization does not exist or is inactive.
-- Returns `403 Forbidden` when the user does not have access.
-
-WorkEntry, Jobs, Photos, Proof Reports, and future dashboards should use this rule before reading or writing organization-owned data.
-
-## Running Locally
-
-The app uses environment variables for local database credentials. Do not commit real database passwords.
-
-### Option 1: Run with local H2
-
-This is the fastest way to test the browser frontend. It does not require MySQL.
+Fastest local backend run:
 
 ```powershell
 .\gradlew.bat bootRun --args="--spring.profiles.active=local"
@@ -292,176 +216,138 @@ Then open:
 http://localhost:8080
 ```
 
-The `local` profile uses an in-memory H2 database. Data is reset when the app stops.
+The local H2 profile resets data when the app stops.
 
-### Option 2: Run with MySQL
+### MySQL profile
 
-Example `application.properties` pattern:
+The app reads database credentials from environment variables.
 
-```properties
-spring.datasource.url=${DB_URL:jdbc:mysql://localhost:3306/invisible_work_tracker_dev}
-spring.datasource.username=${DB_USERNAME:iwt_user}
-spring.datasource.password=${DB_PASSWORD:}
-spring.jpa.hibernate.ddl-auto=update
-spring.jpa.show-sql=true
-```
-
-PowerShell example:
+Example:
 
 ```powershell
 $env:DB_PASSWORD="your_local_db_password"
 .\gradlew.bat bootRun
 ```
 
-Then open:
+Do not commit real database passwords.
 
-```text
-http://localhost:8080
-```
-
-## Frontend Browser Testing
-
-The static frontend supports:
-
-- Register
-- Login
-- Logout
-- Current user display
-- Organization creation
-- Organization listing
-- Organization selection persisted in browser `localStorage`
-
-Browser flow:
-
-```text
-Start the app
-Open http://localhost:8080
-Create an account or sign in
-Create an organization
-Confirm it appears in the organization list
-Select an organization
-Confirm "Current organization" shows the selected organization
-Refresh the page
-Confirm the selected organization is still selected
-Logout
-```
-
-## Running Tests
+## Running Backend Tests
 
 ```powershell
 .\gradlew.bat test
 ```
 
-The test suite uses an H2 in-memory database, so MySQL is not required for tests.
+The backend test suite uses H2, so MySQL is not required for tests.
 
-Current tests cover:
+## Current Product Roadmap
 
-- Registration
-- Duplicate registration
-- Invalid request validation
-- Login
-- Wrong password rejection
-- Password length validation
-- Account lockout
-- Session expiration window
-- Protected `/auth/me`
-- Logout
-- Token rejection after logout
-- Password hash not being exposed by `/auth/me`
-- Organization endpoints requiring authentication
-- Organization name validation
-- Organization name trimming
-- Duplicate organization names
-- Automatic active owner membership creation
-- Listing organizations for the authenticated user
-- Empty organization list responses
-- Tenant isolation between users
-- Excluding inactive memberships from organization listing
-- Organization access helper allowing active members
-- Organization access helper rejecting unknown or inactive organizations
-- Organization access helper rejecting users without active membership
+### 1. React onboarding loop
 
-## Roadmap
+Status: in progress.
 
-### Phase 1: Auth Foundation
-
-Status: implemented and covered by integration tests.
-
-### Phase 2: Organization Foundation
-
-Status: first slice implemented and covered by integration tests.
-
-The goal is to support multiple companies before building work entries. A user can belong to more than one organization, and the user who creates an organization becomes its owner.
-
-Implemented model:
+Goal:
 
 ```text
-User
-Organization
-OrganizationMembership
-MembershipRole
-MembershipStatus
+Create workspace
+-> create work entry
+-> add evidence
+-> generate report
+-> review report
 ```
 
-Initial roles:
+Current status:
+
+- Step 1 workspace creation prototype is implemented with local mock state.
+- Step 2 work-entry creation prototype is implemented with local mock state.
+- Step 3 Add Evidence is the next task.
+
+### 2. Evidence and report loop
+
+Next technical goal:
 
 ```text
-OWNER
-MANAGER
-FOREMAN
-WORKER
+Add Before / During / After evidence
+-> attach captions
+-> mark evidence ready
+-> generate report
+-> view report
 ```
 
-Organization access control is also implemented through a reusable service helper. This is the backend gate that future job, work-entry, photo, report, and dashboard features will use to enforce tenant isolation.
+This is the main FieldProof value loop.
 
-### Phase 3: WorkEntry Backend
+### 3. Backend integration
 
-After the organization foundation, WorkEntry will become the first core product feature. This phase starts the path toward the job/work-entry/proof-capture mockups by recording real field activity against the selected organization.
-
-Planned fields:
+After the React flow is stable, replace local mock state with real API calls:
 
 ```text
-id
-organization
-user
-jobName
-jobAddress
-workType
-description
-status
-workDate
-createdAt
-updatedAt
-```
-
-Planned endpoints:
-
-```http
+GET /dashboard
+POST /organizations
 POST /work-entries
-GET /work-entries
-GET /work-entries/{id}
-PUT /work-entries/{id}
-DELETE /work-entries/{id}
+POST /work-entries/{id}/photos
+POST /work-entries/{id}/report
+GET /reports/{id}
 ```
 
-Main rule:
+Do not treat these endpoint names as final until backend contracts are implemented or verified.
+
+### 4. Report PDF
+
+The report is the customer-facing deliverable.
+
+Future PDF work should be generated from a stable report snapshot, not from mutable dashboard UI.
+
+### 5. Future mobile app
+
+Future mobile is intended for field users:
 
 ```text
-Users should only access work entries for organizations they belong to.
+assigned jobs
+photo capture
+notes
+checklists
+address confirmation
+offline-safe documentation
+sync when online
 ```
 
-### Phase 4: Field Documentation Workflow
+Do not build React Native, Expo, offline sync, GPS, or photo-upload queues in the current web migration unless explicitly scoped.
 
-Later versions may add:
+## Business Direction
 
-- Photo upload
-- GPS capture
-- Daily work timelines
-- Manager review
-- Crew assignment
-- Employee hours
-- Proof-of-work reports
+FieldProof is not meant to be generic photo storage.
 
-## Current Goal
+The sharper business wedge is:
 
-The immediate goal is to move from the completed authentication and organization foundations into WorkEntry, where real job-site documentation can be tied to the correct organization and user.
+```text
+Evidence-to-report software for contractors.
+```
+
+Potential customer value:
+
+- protect payment
+- reduce disputes
+- document job completion
+- create professional customer reports
+- organize job evidence
+- improve customer trust
+- protect contractor reputation
+
+The strongest validation question is:
+
+```text
+Tell me about the last time a customer questioned your work, delayed payment, or claimed something was incomplete. What proof did you have?
+```
+
+## Current Priority
+
+The current best technical priority is:
+
+```text
+Build Step 3: Add Evidence in React.
+```
+
+The current best business priority is:
+
+```text
+Show the proof-report flow to contractors and learn whether it solves a painful enough problem to pay for.
+```
