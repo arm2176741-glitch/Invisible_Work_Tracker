@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Fascia repair evidence">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#c0c6bd"/>
+      <stop offset=".55" stop-color="#b48154"/>
+      <stop offset="1" stop-color="#1a222b"/>
+    </linearGradient>
+    <linearGradient id="wood" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8b6b4c"/>
+      <stop offset="1" stop-color="#30271f"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#bg)"/>
+  <path d="M0 190 320 70l320 120v170H0z" fill="#222b33"/>
+  <path d="M0 205 320 85l320 120v44L320 126 0 249z" fill="#ded3bd"/>
+  <path d="M0 250 320 128l320 122v110H0z" fill="url(#wood)"/>
+  <g stroke="#e3d2b5" stroke-width="5" opacity=".38">
+    <path d="M80 270 320 178l240 92"/>
+    <path d="M0 320 320 208l320 112"/>
+  </g>
+  <rect x="410" y="238" width="150" height="34" rx="5" fill="#e9ad22" opacity=".75"/>
+  <rect width="640" height="360" fill="#000" opacity=".2"/>
+</svg>

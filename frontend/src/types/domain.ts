@@ -6,6 +6,8 @@ export type PhotoCategory = "BEFORE" | "DURING" | "AFTER"
 
 export type ReportStatus = "GENERATED"
 
+export type DashboardMode = "onboarding" | "operational"
+
 export interface Workspace {
   id: number
   name: string
@@ -33,6 +35,9 @@ export interface WorkEntry {
   workPerformed: string
   proofReady: boolean
   reportId?: number
+  reportNumber?: string
+  thumbnailUrl: string
+  updatedLabel: string
   photoCount: number
   photos: WorkEntryPhoto[]
 }
@@ -50,4 +55,30 @@ export interface ReportSnapshot {
   workStatus: WorkEntryStatus
   workPerformed: string
   photos: WorkEntryPhoto[]
+}
+
+export interface DashboardSummary {
+  activeJobs: number
+  needsEvidence: number
+  proofReady: number
+  reportsGenerated: number
+}
+
+export interface AttentionItem {
+  id: number
+  title: string
+  detail: string
+  tone: "warning" | "info"
+}
+
+export interface ActivityItem {
+  id: number
+  title: string
+  detail: string
+  tone: "success" | "neutral" | "report"
+}
+
+export interface LoginResult {
+  userName: string
+  dashboardMode: DashboardMode
 }

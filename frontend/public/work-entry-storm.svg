@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Storm damage inspection evidence">
+  <defs>
+    <linearGradient id="storm" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8e9aaa"/>
+      <stop offset=".45" stop-color="#455361"/>
+      <stop offset="1" stop-color="#0b1118"/>
+    </linearGradient>
+    <linearGradient id="damage" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c4d2d"/>
+      <stop offset="1" stop-color="#191817"/>
+    </linearGradient>
+  </defs>
+  <rect width="640" height="360" fill="url(#storm)"/>
+  <path d="M-20 246 660 112v248H-20z" fill="#1b222a"/>
+  <path d="M0 274 640 152v44L0 318z" fill="#39362f"/>
+  <path d="M210 218 332 196 396 232 286 260z" fill="url(#damage)"/>
+  <path d="m265 203 24 42 42-53" fill="none" stroke="#e9ad22" stroke-width="8" opacity=".75"/>
+  <g opacity=".25" stroke="#d9e1ea" stroke-width="3">
+    <path d="M60 266 640 156"/>
+    <path d="M0 308 640 198"/>
+    <path d="M390 155 548 360"/>
+  </g>
+  <rect width="640" height="360" fill="#000" opacity=".24"/>
+</svg>

@@ -9,7 +9,7 @@ interface StatCardProps {
 
 export function StatCard({ label, value, helper, icon: Icon }: StatCardProps) {
   return (
-    <article className="card stat-card">
+    <article className="stat-card">
       <div className="stat-icon">
         <Icon size={21} />
       </div>

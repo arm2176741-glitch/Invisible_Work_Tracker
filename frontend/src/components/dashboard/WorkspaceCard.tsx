@@ -1,42 +1,24 @@
 import type { Workspace } from "@/types/domain"
 
-import { Button } from "@/components/ui/button"
-
-interface WorkspaceCardProps {
-  workspace: Workspace
-}
-
-export function WorkspaceCard({ workspace }: WorkspaceCardProps) {
+export function WorkspaceCard({ workspace }: { workspace: Workspace }) {
   return (
     <section className="card workspace-card">
-      <p className="eyebrow">Company workspace</p>
-      <div className="workspace-header">
+      <p className="eyebrow">Workspace</p>
+
+      <div className="workspace-compact-header">
         <div className="workspace-icon">A</div>
         <div>
           <h3>{workspace.name}</h3>
-          <div className="workspace-badges">
-            <span className="badge warning">{workspace.role}</span>
-            <span className="badge success">{workspace.status}</span>
-          </div>
+          <p className="workspace-summary">
+            {workspace.memberCount} members - {workspace.workEntryCount} active jobs - {workspace.reportCount} reports
+          </p>
         </div>
       </div>
 
-      <div className="workspace-stats">
-        <div className="workspace-stat">
-          <span>Members</span>
-          <strong>{workspace.memberCount}</strong>
-        </div>
-        <div className="workspace-stat">
-          <span>Entries</span>
-          <strong>{workspace.workEntryCount}</strong>
-        </div>
-        <div className="workspace-stat">
-          <span>Reports</span>
-          <strong>{workspace.reportCount}</strong>
-        </div>
-      </div>
-
-      <Button variant="secondary">Manage workspace</Button>
+      <button className="workspace-manage-link" type="button">
+        Manage workspace
+        <span aria-hidden="true">-&gt;</span>
+      </button>
     </section>
   )
 }

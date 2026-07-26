@@ -5,13 +5,14 @@ import { DashboardPage } from "@/components/dashboard/DashboardPage"
 import { ReportPreviewPage } from "@/components/reports/ReportPreviewPage"
 import { AppShell } from "@/components/shell/AppShell"
 import { mockReport } from "@/data/mockFieldProof"
+import type { LoginResult } from "@/types/domain"
 
 function App() {
-  const [currentUserName, setCurrentUserName] = useState<string | null>(null)
+  const [session, setSession] = useState<LoginResult | null>(null)
   const [activeReportId, setActiveReportId] = useState<number | null>(null)
 
-  if (!currentUserName) {
-    return <LoginPage onLogin={setCurrentUserName} />
+  if (!session) {
+    return <LoginPage onLogin={setSession} />
   }
 
   const activeReport = activeReportId === mockReport.id ? mockReport : null
@@ -24,7 +25,12 @@ function App() {
           onBack={() => setActiveReportId(null)}
         />
       ) : (
-        <DashboardPage onOpenReport={setActiveReportId} />
+        <DashboardPage
+          dashboardMode={session.dashboardMode}
+          userName={session.userName}
+          onExploreDemo={() => setSession({ ...session, dashboardMode: "operational" })}
+          onOpenReport={setActiveReportId}
+        />
       )}
     </AppShell>
   )

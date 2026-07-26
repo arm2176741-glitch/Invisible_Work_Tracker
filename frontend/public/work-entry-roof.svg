@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Roof work evidence">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7f9ab5"/>
+      <stop offset="0.48" stop-color="#d58a52"/>
+      <stop offset="1" stop-color="#221823"/>
+    </linearGradient>
+    <linearGradient id="roof" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4c4a45"/>
+      <stop offset="1" stop-color="#14191e"/>
+    </linearGradient>
+    <filter id="grain">
+      <feTurbulence baseFrequency="0.85" numOctaves="2" seed="12" type="fractalNoise"/>
+      <feColorMatrix type="saturate" values="0"/>
+      <feComponentTransfer>
+        <feFuncA type="table" tableValues="0 0.12"/>
+      </feComponentTransfer>
+      <feBlend in2="SourceGraphic" mode="overlay"/>
+    </filter>
+  </defs>
+  <rect width="640" height="360" fill="url(#sky)"/>
+  <path d="M0 236 640 118v242H0z" fill="url(#roof)"/>
+  <g opacity=".28" stroke="#d8c58e" stroke-width="3">
+    <path d="M30 250 640 142"/>
+    <path d="M0 286 640 180"/>
+    <path d="M0 326 640 218"/>
+    <path d="M120 220 450 360"/>
+    <path d="M235 200 560 360"/>
+  </g>
+  <circle cx="416" cy="126" r="34" fill="#f5b82e"/>
+  <path d="M383 150c27-24 59-27 92-10l-18 26c-22-10-43-7-64 10z" fill="#1d2b33"/>
+  <path d="M421 162h34l17 75h-24l-8-46-14 46h-24z" fill="#d6deca"/>
+  <path d="M370 215h130v26H370z" fill="#12181f" opacity=".75"/>
+  <rect width="640" height="360" fill="#000" opacity=".18"/>
+  <rect width="640" height="360" filter="url(#grain)" opacity=".5"/>
+</svg>
