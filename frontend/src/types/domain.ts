@@ -4,7 +4,7 @@ export type WorkEntryStatus = "DRAFT" | "SUBMITTED" | "COMPLETED"
 
 export type PhotoCategory = "BEFORE" | "DURING" | "AFTER"
 
-export type ReportStatus = "GENERATED"
+export type ReportStatus = "GENERATED" | "SHARED"
 
 export type DashboardMode = "onboarding" | "operational"
 
@@ -23,14 +23,26 @@ export interface WorkEntryPhoto {
   category: PhotoCategory
   caption: string
   uploadedAt: string
+  previewUrl?: string
+  contentUrl?: string
 }
 
 export interface WorkEntry {
   id: number
   jobName: string
   jobAddress: string
+  customerName: string
+  customerPhone?: string | null
+  customerEmail?: string | null
+  customerContactName?: string | null
   workType: string
-  workDate: string
+  workDate?: string | null
+  scheduledStartTime?: string | null
+  arrivalWindow?: string | null
+  estimatedDuration?: string | null
+  assignedCrew?: string | null
+  siteAccessNotes?: string | null
+  internalNotes?: string | null
   status: WorkEntryStatus
   workPerformed: string
   proofReady: boolean
@@ -44,14 +56,23 @@ export interface WorkEntry {
 
 export interface ReportSnapshot {
   id: number
+  workEntryId?: number
   reportNumber: string
   status: ReportStatus
   generatedAt: string
+  reviewedAt?: string | null
   workspaceName: string
   jobName: string
   jobAddress: string
+  customerName: string
+  customerPhone?: string | null
+  customerEmail?: string | null
+  customerContactName?: string | null
   workType: string
-  workDate: string
+  workDate?: string | null
+  scheduledStartTime?: string | null
+  arrivalWindow?: string | null
+  estimatedDuration?: string | null
   workStatus: WorkEntryStatus
   workPerformed: string
   photos: WorkEntryPhoto[]
@@ -60,6 +81,7 @@ export interface ReportSnapshot {
 export interface DashboardSummary {
   activeJobs: number
   needsEvidence: number
+  readyForReport: number
   proofReady: number
   reportsGenerated: number
 }
@@ -69,6 +91,13 @@ export interface AttentionItem {
   title: string
   detail: string
   tone: "warning" | "info"
+}
+
+export interface UpcomingItem {
+  id: number
+  title: string
+  detail: string
+  timeLabel: string
 }
 
 export interface ActivityItem {
@@ -81,4 +110,6 @@ export interface ActivityItem {
 export interface LoginResult {
   userName: string
   dashboardMode: DashboardMode
+  token: string
+  rememberSession?: boolean
 }

@@ -1,6 +1,7 @@
 package com.iwt.invisibleworktracker.service.impl;
 
 import com.iwt.invisibleworktracker.dto.workentry.CreateWorkEntryRequest;
+import com.iwt.invisibleworktracker.dto.workentry.UpdateWorkEntrySummaryRequest;
 import com.iwt.invisibleworktracker.dto.workentry.UpdateWorkEntryStatusRequest;
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryResponse;
 import com.iwt.invisibleworktracker.entity.organization.Organization;
@@ -16,7 +17,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.time.LocalDate;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -64,9 +64,27 @@ public class WorkEntryServiceImpl implements WorkEntryService {
                 .user(currentUser)
                 .jobName(normalizeText(request.getJobName(), "Job name", 150))
                 .jobAddress(normalizeText(request.getJobAddress(), "Job address", 255))
+                .customerName(normalizeText(request.getCustomerName(), "Customer name", 150))
+                .customerPhone(normalizeOptionalText(request.getCustomerPhone(), "Customer phone", 40))
+                .customerEmail(normalizeOptionalText(request.getCustomerEmail(), "Customer email", 150))
+                .customerContactName(normalizeOptionalText(
+                        request.getCustomerContactName(),
+                        "Customer contact person",
+                        150
+                ))
                 .workType(normalizeText(request.getWorkType(), "Work type", 100))
-                .description(normalizeText(request.getDescription(), "Description", 2000))
-                .workDate(requireWorkDate(request.getWorkDate()))
+                .description(normalizeOptionalText(request.getDescription(), "Description", 2000))
+                .workDate(request.getWorkDate())
+                .scheduledStartTime(request.getScheduledStartTime())
+                .arrivalWindow(normalizeOptionalText(request.getArrivalWindow(), "Arrival window", 100))
+                .estimatedDuration(normalizeOptionalText(
+                        request.getEstimatedDuration(),
+                        "Estimated duration",
+                        80
+                ))
+                .assignedCrew(normalizeOptionalText(request.getAssignedCrew(), "Assigned crew", 500))
+                .siteAccessNotes(normalizeOptionalText(request.getSiteAccessNotes(), "Site access notes", 1000))
+                .internalNotes(normalizeOptionalText(request.getInternalNotes(), "Internal notes", 1000))
                 .status(WorkEntryStatus.DRAFT)
                 .build();
 
@@ -127,6 +145,30 @@ public class WorkEntryServiceImpl implements WorkEntryService {
         );
     }
 
+    @Override
+    @Transactional
+    public WorkEntryResponse updateWorkEntrySummary(
+            User currentUser,
+            Long workEntryId,
+            UpdateWorkEntrySummaryRequest request
+    ) {
+        if (request == null) {
+            throw new IllegalArgumentException("Work performed summary request is required");
+        }
+
+        WorkEntry workEntry = requireAccessibleWorkEntry(currentUser, workEntryId);
+        workEntry.setDescription(
+                normalizeText(request.getDescription(), "Work performed summary", 2000)
+        );
+
+        WorkEntry savedWorkEntry = workEntryRepository.save(workEntry);
+
+        return WorkEntryResponse.from(
+                savedWorkEntry,
+                reportRepository.findByWorkEntry(savedWorkEntry).orElse(null)
+        );
+    }
+
     private String normalizeText(
             String value,
             String fieldName,
@@ -151,12 +193,24 @@ public class WorkEntryServiceImpl implements WorkEntryService {
         return normalizedValue;
     }
 
-    private LocalDate requireWorkDate(LocalDate workDate) {
-        if (workDate == null) {
-            throw new IllegalArgumentException("Work date is required");
+    private String normalizeOptionalText(
+            String value,
+            String fieldName,
+            int maxLength
+    ) {
+        if (value == null) {
+            return "";
         }
 
-        return workDate;
+        String normalizedValue = value.trim();
+
+        if (normalizedValue.length() > maxLength) {
+            throw new IllegalArgumentException(
+                    fieldName + " cannot exceed " + maxLength + " characters"
+            );
+        }
+
+        return normalizedValue;
     }
 
     private WorkEntry requireAccessibleWorkEntry(

@@ -226,7 +226,7 @@ export function CreateWorkspaceDialog({
                     <BriefcaseBusiness aria-hidden="true" size={16} />
                   </span>
                   <div>
-                    <strong>1. Create your first work entry</strong>
+                    <strong>1. Create your first job</strong>
                     <p>Add job details, schedule, and assignment in minutes.</p>
                   </div>
                 </div>
@@ -235,7 +235,7 @@ export function CreateWorkspaceDialog({
                     <Image aria-hidden="true" size={16} />
                   </span>
                   <div>
-                    <strong>2. Add Before and After evidence</strong>
+                    <strong>2. Add Before and After photos</strong>
                     <p>Upload photos and notes to document completed work.</p>
                   </div>
                 </div>

@@ -61,6 +61,8 @@ public class Report {
     @Column(nullable = false)
     private LocalDateTime generatedAt;
 
+    @Column
+    private LocalDateTime reviewedAt;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "created_by_user_id", nullable = false)

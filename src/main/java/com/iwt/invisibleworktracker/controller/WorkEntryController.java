@@ -1,6 +1,7 @@
 package com.iwt.invisibleworktracker.controller;
 
 import com.iwt.invisibleworktracker.dto.workentry.CreateWorkEntryRequest;
+import com.iwt.invisibleworktracker.dto.workentry.UpdateWorkEntrySummaryRequest;
 import com.iwt.invisibleworktracker.dto.workentry.UpdateWorkEntryStatusRequest;
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryResponse;
 import com.iwt.invisibleworktracker.entity.user.User;
@@ -76,6 +77,24 @@ public class WorkEntryController {
 
         WorkEntryResponse workEntry =
                 workEntryService.updateWorkEntryStatus(
+                        currentUser,
+                        workEntryId,
+                        request
+                );
+
+        return ResponseEntity.ok(workEntry);
+    }
+
+    @PatchMapping("/{workEntryId}/summary")
+    public ResponseEntity<WorkEntryResponse> updateWorkEntrySummary(
+            @PathVariable Long workEntryId,
+            @Valid @RequestBody UpdateWorkEntrySummaryRequest request,
+            Authentication authentication
+    ) {
+        User currentUser = (User) authentication.getPrincipal();
+
+        WorkEntryResponse workEntry =
+                workEntryService.updateWorkEntrySummary(
                         currentUser,
                         workEntryId,
                         request

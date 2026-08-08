@@ -13,6 +13,12 @@ import java.util.Optional;
 public interface OrganizationMembershipRepository extends JpaRepository<OrganizationMembership, Long> {
     Optional<OrganizationMembership> findByUserAndOrganization(User user, Organization organization);
 
+    Optional<OrganizationMembership> findByUserAndOrganizationAndStatus(
+            User user,
+            Organization organization,
+            MembershipStatus status
+    );
+
     @EntityGraph(attributePaths = {
             "organization",
             "organization.createdBy"

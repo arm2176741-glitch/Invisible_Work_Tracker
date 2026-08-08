@@ -17,6 +17,7 @@ public class ReportResponse {
     private ReportStatus status;
     private String snapshotJson;
     private LocalDateTime generatedAt;
+    private LocalDateTime reviewedAt;
     private LocalDateTime createdAt;
 
     public static ReportResponse from(Report report) {
@@ -27,6 +28,7 @@ public class ReportResponse {
                 .status(report.getStatus())
                 .snapshotJson(report.getSnapshotJson())
                 .generatedAt(report.getGeneratedAt())
+                .reviewedAt(report.getReviewedAt())
                 .createdAt(report.getCreatedAt())
                 .build();
     }

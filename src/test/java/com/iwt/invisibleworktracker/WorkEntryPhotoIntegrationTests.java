@@ -1,11 +1,15 @@
 package com.iwt.invisibleworktracker;
 
 import com.iwt.invisibleworktracker.entity.organization.Organization;
+import com.iwt.invisibleworktracker.entity.report.Report;
+import com.iwt.invisibleworktracker.entity.report.ReportShareLink;
+import com.iwt.invisibleworktracker.entity.report.ReportStatus;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntryPhoto;
 import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;
 import com.iwt.invisibleworktracker.repository.OrganizationRepository;
 import com.iwt.invisibleworktracker.repository.ReportRepository;
+import com.iwt.invisibleworktracker.repository.ReportShareLinkRepository;
 import com.iwt.invisibleworktracker.repository.SessionRepository;
 import com.iwt.invisibleworktracker.repository.UserRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryPhotoRepository;
@@ -54,6 +58,9 @@ class WorkEntryPhotoIntegrationTests {
 
     @Autowired
     private ReportRepository reportRepository;
+
+    @Autowired
+    private ReportShareLinkRepository reportShareLinkRepository;
 
     @Autowired
     private WorkEntryRepository workEntryRepository;
@@ -409,7 +416,141 @@ class WorkEntryPhotoIntegrationTests {
         assertThat(reportRepository.findAll()).hasSize(1);
     }
 
+    @Test
+    void markReportReviewedStoresReviewedTimestamp() throws Exception {
+        String token = registerLoginAndGetToken(
+                "report-reviewed@example.com",
+                "Password123!",
+                "Report Reviewed"
+        );
+        Report report = createGeneratedReport(
+                token,
+                "Reviewed Report Roofing",
+                "Reviewed Report Job"
+        );
+
+        mockMvc.perform(post("/reports/{reportId}/reviewed", report.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(report.getId()))
+                .andExpect(jsonPath("$.reviewedAt").isString());
+
+        Report savedReport = reportRepository
+                .findById(report.getId())
+                .orElseThrow();
+
+        assertThat(savedReport.getReviewedAt()).isNotNull();
+    }
+
+    @Test
+    void createShareLinkReturnsPublicUrlAndStoresOnlyTokenHash() throws Exception {
+        String token = registerLoginAndGetToken(
+                "report-share@example.com",
+                "Password123!",
+                "Report Share"
+        );
+        Report report = createGeneratedReport(
+                token,
+                "Share Report Roofing",
+                "Share Report Job"
+        );
+
+        MvcResult shareResult = mockMvc
+                .perform(post("/reports/{reportId}/share-links", report.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").isNumber())
+                .andExpect(jsonPath("$.reportId").value(report.getId()))
+                .andExpect(jsonPath("$.shareUrl").isString())
+                .andExpect(jsonPath("$.expiresAt").isString())
+                .andReturn();
+
+        String shareUrl = extractJsonString(
+                shareResult.getResponse().getContentAsString(),
+                "shareUrl"
+        );
+        String rawToken = shareUrl.substring(
+                shareUrl.lastIndexOf("/") + 1
+        );
+        ReportShareLink savedShareLink =
+                reportShareLinkRepository.findAll().get(0);
+
+        assertThat(shareUrl).contains("/shared/reports/");
+        assertThat(savedShareLink.getTokenHash()).isNotEqualTo(rawToken);
+        assertThat(savedShareLink.getTokenHash()).doesNotContain(rawToken);
+        assertThat(savedShareLink.getRevokedAt()).isNull();
+        assertThat(reportRepository.findById(report.getId()).orElseThrow().getStatus())
+                .isEqualTo(ReportStatus.SHARED);
+    }
+
+    @Test
+    void sharedReportEndpointReturnsSnapshotWithoutAuthentication() throws Exception {
+        String token = registerLoginAndGetToken(
+                "report-public-share@example.com",
+                "Password123!",
+                "Report Public Share"
+        );
+        Report report = createGeneratedReport(
+                token,
+                "Public Share Roofing",
+                "Public Share Job"
+        );
+        MvcResult shareResult = mockMvc
+                .perform(post("/reports/{reportId}/share-links", report.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn();
+        String rawToken = extractRawTokenFromShareResponse(
+                shareResult.getResponse().getContentAsString()
+        );
+
+        mockMvc.perform(get("/shared/reports/{rawToken}", rawToken))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(report.getId()))
+                .andExpect(jsonPath("$.status").value("SHARED"))
+                .andExpect(jsonPath("$.snapshotJson").isString());
+    }
+
+    @Test
+    void revokedShareLinkNoLongerReturnsSharedReport() throws Exception {
+        String token = registerLoginAndGetToken(
+                "report-revoke-share@example.com",
+                "Password123!",
+                "Report Revoke Share"
+        );
+        Report report = createGeneratedReport(
+                token,
+                "Revoke Share Roofing",
+                "Revoke Share Job"
+        );
+        MvcResult shareResult = mockMvc
+                .perform(post("/reports/{reportId}/share-links", report.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andReturn();
+        String rawToken = extractRawTokenFromShareResponse(
+                shareResult.getResponse().getContentAsString()
+        );
+        ReportShareLink savedShareLink =
+                reportShareLinkRepository.findAll().get(0);
+
+        mockMvc.perform(delete(
+                        "/reports/{reportId}/share-links/{shareLinkId}",
+                        report.getId(),
+                        savedShareLink.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.revokedAt").isString());
+
+        mockMvc.perform(get("/shared/reports/{rawToken}", rawToken))
+                .andExpect(status().isNotFound());
+
+        assertThat(reportRepository.findById(report.getId()).orElseThrow().getStatus())
+                .isEqualTo(ReportStatus.GENERATED);
+    }
+
     private void cleanDatabase() {
+        reportShareLinkRepository.deleteAll();
         reportRepository.deleteAll();
         photoRepository.deleteAll();
         workEntryRepository.deleteAll();
@@ -463,6 +604,35 @@ class WorkEntryPhotoIntegrationTests {
                         .content(statusJson("COMPLETED")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
+    }
+
+    private Report createGeneratedReport(
+            String token,
+            String organizationName,
+            String jobName
+    ) throws Exception {
+        Organization organization =
+                createOrganizationAndGetSaved(token, organizationName);
+        WorkEntry workEntry =
+                createWorkEntryAndGetSaved(
+                        token,
+                        organization.getId(),
+                        jobName
+                );
+
+        uploadPhoto(token, workEntry.getId(), "BEFORE", pngPhoto("before.png"));
+        uploadPhoto(token, workEntry.getId(), "AFTER", jpegPhoto("after.jpg"));
+        markWorkEntryCompleted(token, workEntry.getId());
+
+        mockMvc.perform(post("/work-entries/{workEntryId}/reports", workEntry.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        return reportRepository.findAll()
+                .stream()
+                .filter(report -> report.getWorkEntry().getId().equals(workEntry.getId()))
+                .findFirst()
+                .orElseThrow();
     }
 
     private Organization createOrganizationAndGetSaved(
@@ -615,6 +785,7 @@ class WorkEntryPhotoIntegrationTests {
                   "organizationId": %d,
                   "jobName": "%s",
                   "jobAddress": "%s",
+                  "customerName": "Smith Residence",
                   "workType": "%s",
                   "description": "%s",
                   "workDate": "%s"
@@ -644,6 +815,29 @@ class WorkEntryPhotoIntegrationTests {
 
         if (!matcher.find()) {
             throw new AssertionError("Login response did not contain a token: " + responseBody);
+        }
+
+        return matcher.group(1);
+    }
+
+    private String extractRawTokenFromShareResponse(String responseBody) {
+        String shareUrl = extractJsonString(responseBody, "shareUrl");
+
+        return shareUrl.substring(shareUrl.lastIndexOf("/") + 1);
+    }
+
+    private String extractJsonString(
+            String responseBody,
+            String fieldName
+    ) {
+        Matcher matcher = Pattern
+                .compile("\"" + Pattern.quote(fieldName) + "\"\\s*:\\s*\"([^\"]+)\"")
+                .matcher(responseBody);
+
+        if (!matcher.find()) {
+            throw new AssertionError(
+                    "Response did not contain " + fieldName + ": " + responseBody
+            );
         }
 
         return matcher.group(1);

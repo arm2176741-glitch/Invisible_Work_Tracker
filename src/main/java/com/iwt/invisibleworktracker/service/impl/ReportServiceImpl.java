@@ -1,15 +1,21 @@
 package com.iwt.invisibleworktracker.service.impl;
 
 import com.iwt.invisibleworktracker.dto.report.ReportPhotoContent;
+import com.iwt.invisibleworktracker.dto.report.ReportShareLinkResponse;
+import com.iwt.invisibleworktracker.entity.organization.MembershipStatus;
 import com.iwt.invisibleworktracker.entity.organization.Organization;
+import com.iwt.invisibleworktracker.entity.organization.OrganizationMembership;
 import com.iwt.invisibleworktracker.entity.report.Report;
+import com.iwt.invisibleworktracker.entity.report.ReportShareLink;
 import com.iwt.invisibleworktracker.entity.report.ReportStatus;
 import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.entity.workentry.PhotoCategory;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntryPhoto;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntryStatus;
+import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;
 import com.iwt.invisibleworktracker.repository.ReportRepository;
+import com.iwt.invisibleworktracker.repository.ReportShareLinkRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryPhotoRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryRepository;
 import com.iwt.invisibleworktracker.service.OrganizationService;
@@ -21,36 +27,55 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.util.Base64;
 import java.util.List;
 
 @Service
 public class ReportServiceImpl implements ReportService {
 
+    private static final int SHARE_TOKEN_BYTES = 32;
+    private static final int SHARE_LINK_DAYS = 30;
+
     private final ReportRepository reportRepository;
+    private final ReportShareLinkRepository reportShareLinkRepository;
     private final WorkEntryRepository workEntryRepository;
     private final WorkEntryPhotoRepository photoRepository;
+    private final OrganizationMembershipRepository membershipRepository;
     private final OrganizationService organizationService;
+    private final SecureRandom secureRandom = new SecureRandom();
     private final Path uploadRoot;
+    private final String shareBaseUrl;
 
     public ReportServiceImpl(
             ReportRepository reportRepository,
+            ReportShareLinkRepository reportShareLinkRepository,
             WorkEntryRepository workEntryRepository,
             WorkEntryPhotoRepository photoRepository,
+            OrganizationMembershipRepository membershipRepository,
             OrganizationService organizationService,
             @Value("${fieldproof.uploads.work-entry-photos-dir:uploads/work-entry-photos}")
-            String uploadDirectory
+            String uploadDirectory,
+            @Value("${fieldproof.share-base-url:http://127.0.0.1:5174}")
+            String shareBaseUrl
     ) {
         this.reportRepository = reportRepository;
+        this.reportShareLinkRepository = reportShareLinkRepository;
         this.workEntryRepository = workEntryRepository;
         this.photoRepository = photoRepository;
+        this.membershipRepository = membershipRepository;
         this.organizationService = organizationService;
         this.uploadRoot = Paths.get(uploadDirectory)
                 .toAbsolutePath()
                 .normalize();
+        this.shareBaseUrl = shareBaseUrl;
     }
 
     @Override
@@ -92,6 +117,113 @@ public class ReportServiceImpl implements ReportService {
     }
 
     @Override
+    @Transactional
+    public Report markReportReviewed(
+            User currentUser,
+            Long reportId
+    ) {
+        Report report = getReport(currentUser, reportId);
+
+        if (report.getReviewedAt() == null) {
+            report.setReviewedAt(LocalDateTime.now());
+            return reportRepository.save(report);
+        }
+
+        return report;
+    }
+
+    @Override
+    @Transactional
+    public ReportShareLinkResponse createShareLink(
+            User currentUser,
+            Long reportId
+    ) {
+        Report report = getReport(currentUser, reportId);
+        Organization organization = report.getWorkEntry().getOrganization();
+        OrganizationMembership membership = membershipRepository
+                .findByUserAndOrganizationAndStatus(
+                        currentUser,
+                        organization,
+                        MembershipStatus.ACTIVE
+                )
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "You do not have access to this organization"
+                ));
+        String rawToken = generateUniqueShareToken();
+        String tokenHash = hashToken(rawToken);
+
+        ReportShareLink shareLink = ReportShareLink.builder()
+                .report(report)
+                .tokenHash(tokenHash)
+                .createdByMembership(membership)
+                .expiresAt(LocalDateTime.now().plusDays(SHARE_LINK_DAYS))
+                .build();
+
+        report.setStatus(ReportStatus.SHARED);
+        ReportShareLink savedShareLink =
+                reportShareLinkRepository.save(shareLink);
+
+        return ReportShareLinkResponse.from(
+                savedShareLink,
+                buildShareUrl(rawToken)
+        );
+    }
+
+    @Override
+    @Transactional
+    public ReportShareLinkResponse revokeShareLink(
+            User currentUser,
+            Long reportId,
+            Long shareLinkId
+    ) {
+        Report report = getReport(currentUser, reportId);
+
+        ReportShareLink shareLink = reportShareLinkRepository
+                .findByIdAndReport(shareLinkId, report)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Report share link not found"
+                ));
+
+        if (shareLink.getRevokedAt() == null) {
+            shareLink.setRevokedAt(LocalDateTime.now());
+            reportShareLinkRepository.save(shareLink);
+        }
+
+        boolean hasActiveShareLink = reportShareLinkRepository
+                .existsByReportAndRevokedAtIsNullAndExpiresAtAfter(
+                        report,
+                        LocalDateTime.now()
+                );
+
+        if (!hasActiveShareLink) {
+            report.setStatus(ReportStatus.GENERATED);
+        }
+
+        return ReportShareLinkResponse.from(shareLink, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Report getSharedReport(String rawToken) {
+        ReportShareLink shareLink = getActiveShareLink(rawToken);
+
+        return shareLink.getReport();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ReportPhotoContent getSharedReportPhotoContent(
+            String rawToken,
+            Long photoId
+    ) {
+        Report report = getSharedReport(rawToken);
+
+        return getReportPhotoContent(report, photoId);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public ReportPhotoContent getReportPhotoContent(
             User currentUser,
@@ -103,6 +235,17 @@ public class ReportServiceImpl implements ReportService {
         }
 
         Report report = getReport(currentUser, reportId);
+
+        return getReportPhotoContent(report, photoId);
+    }
+
+    private ReportPhotoContent getReportPhotoContent(
+            Report report,
+            Long photoId
+    ) {
+        if (photoId == null) {
+            throw new IllegalArgumentException("Photo id is required");
+        }
 
         WorkEntryPhoto photo = photoRepository
                 .findByIdAndWorkEntry(photoId, report.getWorkEntry())
@@ -135,6 +278,65 @@ public class ReportServiceImpl implements ReportService {
                     "Report photo file not found"
             );
         }
+    }
+
+    private ReportShareLink getActiveShareLink(String rawToken) {
+        if (rawToken == null || rawToken.isBlank()) {
+            throw new ResponseStatusException(
+                    HttpStatus.NOT_FOUND,
+                    "Report share link not found"
+            );
+        }
+
+        ReportShareLink shareLink = reportShareLinkRepository
+                .findByTokenHashAndRevokedAtIsNull(hashToken(rawToken))
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Report share link not found"
+                ));
+
+        if (!shareLink.getExpiresAt().isAfter(LocalDateTime.now())) {
+            throw new ResponseStatusException(
+                    HttpStatus.GONE,
+                    "Report share link has expired"
+            );
+        }
+
+        return shareLink;
+    }
+
+    private String generateUniqueShareToken() {
+        String rawToken;
+
+        do {
+            byte[] randomBytes = new byte[SHARE_TOKEN_BYTES];
+            secureRandom.nextBytes(randomBytes);
+            rawToken = Base64.getUrlEncoder()
+                    .withoutPadding()
+                    .encodeToString(randomBytes);
+        } while (reportShareLinkRepository.existsByTokenHash(hashToken(rawToken)));
+
+        return rawToken;
+    }
+
+    private String hashToken(String rawToken) {
+        try {
+            byte[] digest = MessageDigest
+                    .getInstance("SHA-256")
+                    .digest(rawToken.getBytes(StandardCharsets.UTF_8));
+
+            return Base64.getUrlEncoder()
+                    .withoutPadding()
+                    .encodeToString(digest);
+        } catch (NoSuchAlgorithmException ex) {
+            throw new IllegalStateException("SHA-256 is not available", ex);
+        }
+    }
+
+    private String buildShareUrl(String rawToken) {
+        return shareBaseUrl.replaceAll("/+$", "")
+                + "/shared/reports/"
+                + rawToken;
     }
 
     private WorkEntry requireAccessibleWorkEntry(
@@ -314,11 +516,35 @@ public class ReportServiceImpl implements ReportService {
         json.append(",");
         appendJsonStringField(json, "jobAddress", workEntry.getJobAddress());
         json.append(",");
+        appendJsonStringField(json, "customerName", workEntry.getCustomerName());
+        json.append(",");
+        appendJsonStringField(json, "customerPhone", workEntry.getCustomerPhone());
+        json.append(",");
+        appendJsonStringField(json, "customerEmail", workEntry.getCustomerEmail());
+        json.append(",");
+        appendJsonStringField(json, "customerContactName", workEntry.getCustomerContactName());
+        json.append(",");
         appendJsonStringField(json, "workType", workEntry.getWorkType());
         json.append(",");
         appendJsonStringField(json, "description", workEntry.getDescription());
         json.append(",");
-        appendJsonStringField(json, "workDate", workEntry.getWorkDate().toString());
+        appendJsonStringField(
+                json,
+                "workDate",
+                workEntry.getWorkDate() == null ? "" : workEntry.getWorkDate().toString()
+        );
+        json.append(",");
+        appendJsonStringField(
+                json,
+                "scheduledStartTime",
+                workEntry.getScheduledStartTime() == null
+                        ? ""
+                        : workEntry.getScheduledStartTime().toString()
+        );
+        json.append(",");
+        appendJsonStringField(json, "arrivalWindow", workEntry.getArrivalWindow());
+        json.append(",");
+        appendJsonStringField(json, "estimatedDuration", workEntry.getEstimatedDuration());
         json.append(",");
         appendJsonStringField(json, "status", workEntry.getStatus().name());
         json.append("},");

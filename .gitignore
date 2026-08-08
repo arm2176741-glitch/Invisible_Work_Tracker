@@ -4,6 +4,9 @@ build/
 *.log
 node_modules/
 uploads/
+frontend/.dev/
+mobile-login-expo/
+prototypes/mobile-login-expo/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/

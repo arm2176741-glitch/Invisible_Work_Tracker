@@ -1,3 +1,15 @@
+export type EvidenceCategory = "BEFORE" | "DURING" | "AFTER"
+
+export interface OnboardingEvidenceItem {
+  id: number
+  category: EvidenceCategory
+  caption: string
+  fileName?: string
+  fileSizeBytes?: number
+  previewUrl?: string
+  createdAt: string
+}
+
 export type OnboardingStep =
   | "CREATE_WORKSPACE"
   | "CREATE_WORK_ENTRY"
@@ -8,16 +20,33 @@ export type OnboardingStep =
 
 export interface OnboardingReportSummary {
   id: number
+  status?: "GENERATED" | "SHARED"
+  reportNumber?: string
+  snapshotJson?: string
+  generatedAt?: string
   reviewedAt?: string | null
 }
 
 export interface OnboardingFirstWorkEntry {
   id: number
-  evidenceReady: boolean
+  evidenceReady?: boolean
+  evidence?: OnboardingEvidenceItem[]
   jobTitle?: string
   propertyAddress?: string
+  customerName?: string
+  customerPhone?: string | null
+  customerEmail?: string | null
+  customerContactName?: string | null
   workType?: string
-  workDate?: string
+  workDate?: string | null
+  scheduledStartTime?: string | null
+  arrivalWindow?: string | null
+  estimatedDuration?: string | null
+  assignedCrew?: string | null
+  siteAccessNotes?: string | null
+  internalNotes?: string | null
+  status?: "DRAFT" | "SUBMITTED" | "COMPLETED"
+  description?: string
   report?: OnboardingReportSummary | null
 }
 
@@ -29,6 +58,7 @@ export interface OnboardingWorkspaceSummary {
 export interface OnboardingDashboardSnapshot {
   workspace: OnboardingWorkspaceSummary | null
   workEntryCount: number
+  workEntries?: OnboardingFirstWorkEntry[]
   firstWorkEntry?: OnboardingFirstWorkEntry | null
 }
 
@@ -67,42 +97,41 @@ export const ONBOARDING_STEP_CONTENT: Record<VisibleOnboardingStep, OnboardingSt
     eyebrow: "Current step",
     title: "Create your workspace",
     description:
-      "Set up the company where jobs, crew members, evidence, and reports will live.",
+      "Set up the company container for your jobs, crew, photos, and reports.",
     actionLabel: "Create workspace",
-    secondaryLabel: "Explore demo workspace",
-    image: "/roofing-hero.png",
+    image: "/images/onboarding/step-1-create-workspace.png",
   },
   CREATE_WORK_ENTRY: {
     eyebrow: "Current step",
-    title: "Create your first work entry",
+    title: "Create your first job",
     description:
-      "Record the property, work type, scheduled date, and planned scope.",
-    actionLabel: "Create work entry",
-    image: "/roofing-hero.png",
+      "Record the property, work type, date, crew assignment, and planned scope.",
+    actionLabel: "Create job",
+    image: "/images/onboarding/step-2-create-entry.png",
   },
   ADD_EVIDENCE: {
     eyebrow: "Current step",
-    title: "Add Before and After evidence",
+    title: "Add before and after photos",
     description:
-      "Document the job with at least one Before photo and one After photo.",
-    actionLabel: "Add evidence",
-    image: "/roofing-hero.png",
+      "Upload clear jobsite photos so the report shows the property condition before work and the completed result after work.",
+    actionLabel: "Add photos",
+    image: "/images/onboarding/step-3-add-evidence.png",
   },
   GENERATE_REPORT: {
     eyebrow: "Current step",
     title: "Generate your first proof report",
     description:
-      "Create a stable customer-ready record from the job documentation and evidence.",
-    actionLabel: "Generate report",
-    image: "/roofing-hero.png",
+      "Review what will be locked into the saved report snapshot before generating it.",
+    actionLabel: "Generate final report",
+    image: "/images/onboarding/step-4-generate-report.png",
   },
   REVIEW_REPORT: {
     eyebrow: "Final step",
     title: "Review your first report",
     description:
-      "Confirm the documentation and evidence before downloading or sharing the report.",
+      "Inspect the customer-ready document, then download, print, or share it.",
     actionLabel: "View report",
-    image: "/roofing-hero.png",
+    image: "/images/onboarding/step-5-review-report.png",
   },
 }
 
@@ -134,7 +163,7 @@ export function deriveOnboardingState(
 
   const firstEntry = dashboard.firstWorkEntry
 
-  if (!firstEntry.evidenceReady) {
+  if (!hasRequiredEvidence(firstEntry)) {
     return buildOnboardingState(
       "ADD_EVIDENCE",
       ["CREATE_WORKSPACE", "CREATE_WORK_ENTRY"],
@@ -159,6 +188,14 @@ export function deriveOnboardingState(
   }
 
   return buildOnboardingState("COMPLETE", [...ONBOARDING_STEP_ORDER])
+}
+
+export function hasRequiredEvidence(entry: OnboardingFirstWorkEntry) {
+  const evidence = entry.evidence ?? []
+  const hasBefore = evidence.some((item) => item.category === "BEFORE")
+  const hasAfter = evidence.some((item) => item.category === "AFTER")
+
+  return hasBefore && hasAfter
 }
 
 export function getCurrentStepNumber(onboarding: OnboardingState) {

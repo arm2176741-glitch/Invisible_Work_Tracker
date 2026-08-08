@@ -104,10 +104,17 @@ class WorkEntryIntegrationTests {
                 .andExpect(jsonPath("$.userId").isNumber())
                 .andExpect(jsonPath("$.jobName").value("Smith Roof Repair"))
                 .andExpect(jsonPath("$.jobAddress").value("123 Main St"))
+                .andExpect(jsonPath("$.customerName").value("Smith Residence"))
                 .andExpect(jsonPath("$.workType").value("Leak repair"))
                 .andExpect(jsonPath("$.description").value("Replaced damaged shingles near rear valley."))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.workDate").value("2026-06-27"))
+                .andExpect(jsonPath("$.scheduledStartTime").value("08:30:00"))
+                .andExpect(jsonPath("$.arrivalWindow").value("8:00-10:00 AM"))
+                .andExpect(jsonPath("$.estimatedDuration").value("1 day"))
+                .andExpect(jsonPath("$.assignedCrew").value("Armando Arvizu, Alan"))
+                .andExpect(jsonPath("$.siteAccessNotes").value("Gate on west side. Homeowner will leave it unlocked."))
+                .andExpect(jsonPath("$.internalNotes").value("Do not include gate code in report."))
                 .andExpect(jsonPath("$.createdAt").isString())
                 .andExpect(jsonPath("$.updatedAt").isString());
 
@@ -120,10 +127,17 @@ class WorkEntryIntegrationTests {
         assertThat(workEntry.getUser().getId()).isEqualTo(user.getId());
         assertThat(workEntry.getJobName()).isEqualTo("Smith Roof Repair");
         assertThat(workEntry.getJobAddress()).isEqualTo("123 Main St");
+        assertThat(workEntry.getCustomerName()).isEqualTo("Smith Residence");
         assertThat(workEntry.getWorkType()).isEqualTo("Leak repair");
         assertThat(workEntry.getDescription()).isEqualTo("Replaced damaged shingles near rear valley.");
         assertThat(workEntry.getStatus()).isEqualTo(WorkEntryStatus.DRAFT);
         assertThat(workEntry.getWorkDate().toString()).isEqualTo("2026-06-27");
+        assertThat(workEntry.getScheduledStartTime().toString()).isEqualTo("08:30");
+        assertThat(workEntry.getArrivalWindow()).isEqualTo("8:00-10:00 AM");
+        assertThat(workEntry.getEstimatedDuration()).isEqualTo("1 day");
+        assertThat(workEntry.getAssignedCrew()).isEqualTo("Armando Arvizu, Alan");
+        assertThat(workEntry.getSiteAccessNotes()).isEqualTo("Gate on west side. Homeowner will leave it unlocked.");
+        assertThat(workEntry.getInternalNotes()).isEqualTo("Do not include gate code in report.");
         assertThat(workEntry.getCreatedAt()).isNotNull();
         assertThat(workEntry.getUpdatedAt()).isNotNull();
     }
@@ -409,6 +423,93 @@ class WorkEntryIntegrationTests {
         assertThat(unchangedWorkEntry.getStatus()).isEqualTo(WorkEntryStatus.DRAFT);
     }
 
+    @Test
+    void updateWorkEntrySummaryUpdatesAccessibleEntryDescription() throws Exception {
+        String token = registerLoginAndGetToken(
+                "work-summary@example.com",
+                "Password123!",
+                "Work Summary User"
+        );
+
+        Organization organization =
+                createOrganizationAndGetSaved(token, "Summary Roofing");
+
+        mockMvc.perform(post("/work-entries")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(workEntryJson(
+                                organization.getId(),
+                                "Summary Roof Repair",
+                                "1200 Summary St",
+                                "Repair",
+                                "Initial placeholder summary.",
+                                "2026-06-27"
+                        )))
+                .andExpect(status().isCreated());
+
+        WorkEntry workEntry = workEntryRepository.findAll().get(0);
+
+        mockMvc.perform(patch("/work-entries/{workEntryId}/summary", workEntry.getId())
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(summaryJson("  Replaced damaged shingles and sealed exposed fasteners.  ")))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(workEntry.getId()))
+                .andExpect(jsonPath("$.description")
+                        .value("Replaced damaged shingles and sealed exposed fasteners."));
+
+        WorkEntry updatedWorkEntry = workEntryRepository.findById(workEntry.getId())
+                .orElseThrow();
+
+        assertThat(updatedWorkEntry.getDescription())
+                .isEqualTo("Replaced damaged shingles and sealed exposed fasteners.");
+    }
+
+    @Test
+    void updateWorkEntrySummaryRejectsOtherUsersWorkEntry() throws Exception {
+        String ownerToken = registerLoginAndGetToken(
+                "work-summary-owner@example.com",
+                "Password123!",
+                "Work Summary Owner"
+        );
+
+        Organization ownerOrganization =
+                createOrganizationAndGetSaved(ownerToken, "Owner Summary Roofing");
+
+        mockMvc.perform(post("/work-entries")
+                        .header("Authorization", "Bearer " + ownerToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(workEntryJson(
+                                ownerOrganization.getId(),
+                                "Private Summary Roof",
+                                "1300 Private Summary St",
+                                "Repair",
+                                "Private summary repair.",
+                                "2026-06-27"
+                        )))
+                .andExpect(status().isCreated());
+
+        WorkEntry ownerWorkEntry = workEntryRepository.findAll().get(0);
+
+        String outsiderToken = registerLoginAndGetToken(
+                "work-summary-outsider@example.com",
+                "Password123!",
+                "Work Summary Outsider"
+        );
+
+        mockMvc.perform(patch("/work-entries/{workEntryId}/summary", ownerWorkEntry.getId())
+                        .header("Authorization", "Bearer " + outsiderToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(summaryJson("This should not update the entry.")))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.status").value(403));
+
+        WorkEntry unchangedWorkEntry = workEntryRepository.findById(ownerWorkEntry.getId())
+                .orElseThrow();
+
+        assertThat(unchangedWorkEntry.getDescription()).isEqualTo("Private summary repair.");
+    }
+
     private Organization createOrganizationAndGetSaved(
             String token,
             String name
@@ -485,9 +586,16 @@ class WorkEntryIntegrationTests {
                   "organizationId": %d,
                   "jobName": "%s",
                   "jobAddress": "%s",
+                  "customerName": "  Smith Residence  ",
                   "workType": "%s",
                   "description": "%s",
-                  "workDate": "%s"
+                  "workDate": "%s",
+                  "scheduledStartTime": "08:30",
+                  "arrivalWindow": "  8:00-10:00 AM  ",
+                  "estimatedDuration": "  1 day  ",
+                  "assignedCrew": "  Armando Arvizu, Alan  ",
+                  "siteAccessNotes": "  Gate on west side. Homeowner will leave it unlocked.  ",
+                  "internalNotes": "  Do not include gate code in report.  "
                 }
                 """.formatted(
                 organizationId,
@@ -505,6 +613,14 @@ class WorkEntryIntegrationTests {
                   "status": "%s"
                 }
                 """.formatted(status);
+    }
+
+    private String summaryJson(String description) {
+        return """
+                {
+                  "description": "%s"
+                }
+                """.formatted(description);
     }
 
     private String extractToken(String responseBody) {

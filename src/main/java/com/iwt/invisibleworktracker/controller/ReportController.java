@@ -2,12 +2,14 @@ package com.iwt.invisibleworktracker.controller;
 
 import com.iwt.invisibleworktracker.dto.report.ReportPhotoContent;
 import com.iwt.invisibleworktracker.dto.report.ReportResponse;
+import com.iwt.invisibleworktracker.dto.report.ReportShareLinkResponse;
 import com.iwt.invisibleworktracker.entity.report.Report;
 import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.service.ReportService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -54,6 +56,59 @@ public class ReportController {
         return ResponseEntity.ok(ReportResponse.from(report));
     }
 
+    @PostMapping("/reports/{reportId}/reviewed")
+    public ResponseEntity<ReportResponse> markReportReviewed(
+            @PathVariable Long reportId,
+            Authentication authentication
+    ) {
+        User currentUser = (User) authentication.getPrincipal();
+
+        Report report = reportService.markReportReviewed(
+                currentUser,
+                reportId
+        );
+
+        return ResponseEntity.ok(ReportResponse.from(report));
+    }
+
+    @PostMapping("/reports/{reportId}/share-links")
+    public ResponseEntity<ReportShareLinkResponse> createShareLink(
+            @PathVariable Long reportId,
+            Authentication authentication
+    ) {
+        User currentUser = (User) authentication.getPrincipal();
+
+        return ResponseEntity.ok(
+                reportService.createShareLink(currentUser, reportId)
+        );
+    }
+
+    @DeleteMapping("/reports/{reportId}/share-links/{shareLinkId}")
+    public ResponseEntity<ReportShareLinkResponse> revokeShareLink(
+            @PathVariable Long reportId,
+            @PathVariable Long shareLinkId,
+            Authentication authentication
+    ) {
+        User currentUser = (User) authentication.getPrincipal();
+
+        return ResponseEntity.ok(
+                reportService.revokeShareLink(
+                        currentUser,
+                        reportId,
+                        shareLinkId
+                )
+        );
+    }
+
+    @GetMapping("/shared/reports/{rawToken}")
+    public ResponseEntity<ReportResponse> getSharedReport(
+            @PathVariable String rawToken
+    ) {
+        Report report = reportService.getSharedReport(rawToken);
+
+        return ResponseEntity.ok(ReportResponse.from(report));
+    }
+
     @GetMapping("/reports/{reportId}/photos/{photoId}/content")
     public ResponseEntity<byte[]> getReportPhotoContent(
             @PathVariable Long reportId,
@@ -66,6 +121,25 @@ public class ReportController {
                 reportService.getReportPhotoContent(
                         currentUser,
                         reportId,
+                        photoId
+                );
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(content.contentType()))
+                .header("Content-Disposition", "inline")
+                .header("Cache-Control", "private, max-age=300")
+                .header("X-Content-Type-Options", "nosniff")
+                .body(content.bytes());
+    }
+
+    @GetMapping("/shared/reports/{rawToken}/photos/{photoId}/content")
+    public ResponseEntity<byte[]> getSharedReportPhotoContent(
+            @PathVariable String rawToken,
+            @PathVariable Long photoId
+    ) {
+        ReportPhotoContent content =
+                reportService.getSharedReportPhotoContent(
+                        rawToken,
                         photoId
                 );
 
