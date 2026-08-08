@@ -1,12 +1,12 @@
 # FieldProof React Web Frontend
 
-This folder is the production web migration foundation for FieldProof.
+This folder is the current FieldProof web UI.
 
 The existing Spring Boot app and static frontend remain in `src/main/resources/static`.
-This React app starts as a separate workspace so the migration can happen without breaking
-the current working prototype.
+Those static files are legacy browser-prototype files. For current UI review, review this
+Vite app instead.
 
-## Current stack
+## Current Stack
 
 - React
 - TypeScript
@@ -16,7 +16,7 @@ the current working prototype.
 - Base UI primitives
 - Geist font
 
-## Run locally
+## Run Locally
 
 If `node` is not available in your terminal yet, restart PowerShell or IntelliJ.
 If it still does not resolve, temporarily prepend Node to PATH:
@@ -32,7 +32,13 @@ npm install
 npm run dev
 ```
 
-From the repo root, you can run:
+The current UI runs at the Vite URL, usually:
+
+```text
+http://localhost:5173
+```
+
+From the repo root, checks can be run with:
 
 ```powershell
 cd frontend
@@ -40,46 +46,47 @@ npm run build
 npm run lint
 ```
 
-## Migration rule
+## Current UI Scope
 
-The static frontend is the visual/workflow reference.
-The React frontend should turn approved patterns into reusable components instead of copying
-every static file line-for-line.
+The React frontend is the production-direction UI. The static frontend should only be used
+as historical reference or for backend smoke testing.
 
 Current anchor components:
 
 - `AppShell`
 - `AppSidebar`
 - `DashboardPage`
-- `CreateWorkspaceDialog`
 - `CreateWorkEntryStep`
+- `AddEvidenceStep`
+- `GenerateReportStep`
 - `OperationalSummary`
 - `WorkspaceCard`
 - `WorkEntryList`
 - `ReportPreviewPage`
 - shared `Button`
 - onboarding state helpers in `src/lib/onboarding.ts`
+- shared API client in `src/lib/api.ts`
 - shared domain types
 
 Current onboarding flow:
 
 ```text
 CREATE_WORKSPACE
-→ CREATE_WORK_ENTRY
-→ ADD_EVIDENCE
-→ GENERATE_REPORT
-→ REVIEW_REPORT
-→ COMPLETE
+-> CREATE_WORK_ENTRY
+-> ADD_EVIDENCE
+-> GENERATE_REPORT
+-> REVIEW_REPORT
+-> COMPLETE
 ```
 
-Implemented in React mock state:
+Implemented in React:
 
 - Step 1: create workspace
-- Step 2: create first work entry
-
-Next milestone:
-
+- Step 2: create first job
 - Step 3: add Before / During / After evidence with captions
+- Step 4: generate proof report
+- Step 5: review/share report
+- Operational dashboard with unified job status: Active jobs, Needs photos, Ready for report, Ready to send
 
 Initial shadcn components installed:
 
@@ -96,7 +103,7 @@ Initial shadcn components installed:
 The generated `button` component has been adapted to preserve FieldProof's
 `primary`, `secondary`, `ghost`, `sm`, and `md` variants.
 
-## Explicitly out of scope for this folder right now
+## Explicitly Out Of Scope
 
 - React Native
 - Expo
@@ -105,4 +112,5 @@ The generated `button` component has been adapted to preserve FieldProof's
 - speculative backend endpoints
 - PDF generation
 
-The React app is currently using local/mock onboarding state. Backend integration should happen after the proof-report flow is stable enough to justify API contracts.
+The React app now calls the Spring Boot API for the first-account workflow where backend
+contracts exist, while still keeping UI-side state for the guided experience.

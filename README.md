@@ -33,6 +33,22 @@ FieldProof is intended to help contractors protect payment, reputation, and cust
 
 FieldProof is in active development.
 
+For UI review, use the React/Vite frontend in:
+
+```text
+frontend/
+```
+
+That is the app behind the recent `localhost:5173` / `127.0.0.1:5173` screenshots.
+
+The Spring Boot static files in:
+
+```text
+src/main/resources/static/
+```
+
+are legacy browser-prototype files kept for historical reference and backend smoke testing. They are not the current FieldProof product UI.
+
 The project currently contains:
 
 - A permanent Spring Boot backend.
@@ -40,8 +56,9 @@ The project currently contains:
 - A working authentication foundation.
 - Organization/workspace foundations.
 - Work-entry, photo evidence, and report foundations in the existing prototype/backend direction.
-- A newer React web frontend migration in `/frontend`.
-- A polished React onboarding prototype for the first user flow.
+- A React web frontend in `/frontend`.
+- A polished first-account flow: Workspace -> Job -> Photos -> Report -> Share.
+- An operational dashboard with action-oriented job status.
 
 The React web frontend is now the production-direction UI. The older static frontend remains useful as historical reference and for backend/browser testing, but it is not the final frontend direction.
 
@@ -55,10 +72,15 @@ The React frontend currently includes:
 - Onboarding state machine.
 - Step 1: create workspace.
 - Step 2: create first work entry.
-- Operational dashboard mock state.
+- Step 3: add Before / During / After evidence.
+- Step 4: generate a proof report.
+- Step 5: review and share the report.
+- Operational dashboard state.
+- Unified job-status workflow row.
 - Work-entry list.
 - Workspace summary card.
 - Report preview screen.
+- Secure share-link flow.
 - Reusable product-level dashboard components.
 - shadcn/ui and Base UI primitives adapted to the FieldProof style.
 
@@ -72,14 +94,6 @@ GENERATE_REPORT
 REVIEW_REPORT
 COMPLETE
 ```
-
-The next React milestone is Step 3:
-
-```text
-Add Evidence
-```
-
-That screen should collect Before / During / After evidence, captions, and proof-readiness state.
 
 ## Current Backend Progress
 
@@ -150,6 +164,9 @@ Mobile is future planning only. The current production work is the React web fro
 ## Project Structure
 
 ```text
+frontend
+`-- current React + TypeScript + Vite frontend
+
 src/main/java/com/iwt/invisibleworktracker
 |-- config
 |-- controller
@@ -162,9 +179,6 @@ src/main/java/com/iwt/invisibleworktracker
 
 src/main/resources/static
 `-- legacy/static browser prototype
-
-frontend
-`-- React + TypeScript web frontend migration
 ```
 
 ## Running the React Frontend
@@ -182,6 +196,8 @@ Then open the Vite URL, usually:
 ```text
 http://localhost:5173
 ```
+
+This is the current UI review target.
 
 Frontend checks:
 
@@ -243,7 +259,7 @@ The backend test suite uses H2, so MySQL is not required for tests.
 
 ### 1. React onboarding loop
 
-Status: in progress.
+Status: implemented as the current product prototype.
 
 Goal:
 
@@ -257,13 +273,16 @@ Create workspace
 
 Current status:
 
-- Step 1 workspace creation prototype is implemented with local mock state.
-- Step 2 work-entry creation prototype is implemented with local mock state.
-- Step 3 Add Evidence is the next task.
+- Step 1 workspace creation is implemented.
+- Step 2 job creation is implemented.
+- Step 3 photo evidence is implemented.
+- Step 4 report generation is implemented.
+- Step 5 report review/share is implemented.
+- The operational dashboard now presents the workflow as Active jobs, Needs photos, Ready for report, and Ready to send.
 
 ### 2. Evidence and report loop
 
-Next technical goal:
+Current technical loop:
 
 ```text
 Add Before / During / After evidence
@@ -343,7 +362,7 @@ Tell me about the last time a customer questioned your work, delayed payment, or
 The current best technical priority is:
 
 ```text
-Build Step 3: Add Evidence in React.
+Polish the React operational workflow, wire durable dashboard filters/routes, and keep the backend API contracts aligned with the FieldProof proof-report loop.
 ```
 
 The current best business priority is:
