@@ -84,8 +84,11 @@ public class WorkEntry {
     @Column(name = "work_type", nullable = false, length = 100)
     private String workType;
 
-    @Column(nullable = false, length = 2000)
-    private String description;
+    @Column(name = "description", nullable = false, length = 2000)
+    private String plannedScope;
+
+    @Column(name = "work_performed_summary", length = 2000)
+    private String workPerformedSummary;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 30)
@@ -131,5 +134,23 @@ public class WorkEntry {
     @PreUpdate
     protected void onUpdate() {
         this.updatedAt = LocalDateTime.now();
+    }
+
+    /**
+     * Legacy alias retained for older callers while the API migrates to
+     * plannedScope and workPerformedSummary.
+     */
+    @Deprecated
+    public String getDescription() {
+        if (workPerformedSummary != null && !workPerformedSummary.isBlank()) {
+            return workPerformedSummary;
+        }
+
+        return plannedScope;
+    }
+
+    @Deprecated
+    public void setDescription(String description) {
+        this.workPerformedSummary = description;
     }
 }

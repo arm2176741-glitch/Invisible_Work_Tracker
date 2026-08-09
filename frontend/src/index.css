@@ -5456,7 +5456,6 @@ a:focus-visible {
   border-radius: 8px;
   background: #151516;
   color: rgba(247, 248, 250, 0.42);
-  cursor: pointer;
   font-size: 0.68rem;
   font-weight: 720;
   transition:
@@ -5473,6 +5472,33 @@ a:focus-visible {
 
 .evidence-dropzone svg {
   color: rgba(247, 248, 250, 0.38);
+}
+
+.evidence-file-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.evidence-file-actions label {
+  min-height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: 0 10px;
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(247, 248, 250, 0.76);
+  cursor: pointer;
+}
+
+.evidence-file-actions label:hover {
+  border-color: rgba(245, 184, 46, 0.38);
+  color: rgba(255, 235, 184, 0.95);
 }
 
 .evidence-file-input {
@@ -5521,12 +5547,17 @@ a:focus-visible {
 .selected-evidence-preview span {
   display: block;
   overflow: hidden;
-  padding: 8px;
+  padding: 8px 8px 0;
   color: rgba(247, 248, 250, 0.76);
   font-size: 0.72rem;
   font-weight: 760;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.selected-evidence-preview .evidence-caption-input {
+  width: calc(100% - 16px);
+  margin: 8px;
 }
 
 .evidence-list {

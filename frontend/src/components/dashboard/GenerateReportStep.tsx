@@ -152,8 +152,9 @@ export function GenerateReportStep({
   onGenerateReport,
   onReviewEvidence,
 }: GenerateReportStepProps) {
-  const [summary, setSummary] = useState(workEntry.description ?? "")
-  const [lastSavedSummary, setLastSavedSummary] = useState(workEntry.description?.trim() ?? "")
+  const initialSummary = workEntry.workPerformedSummary ?? workEntry.description ?? ""
+  const [summary, setSummary] = useState(initialSummary)
+  const [lastSavedSummary, setLastSavedSummary] = useState(initialSummary.trim())
   const [isSaving, setIsSaving] = useState(false)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)

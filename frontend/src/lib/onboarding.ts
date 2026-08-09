@@ -46,6 +46,8 @@ export interface OnboardingFirstWorkEntry {
   siteAccessNotes?: string | null
   internalNotes?: string | null
   status?: "DRAFT" | "SUBMITTED" | "COMPLETED"
+  plannedScope?: string
+  workPerformedSummary?: string
   description?: string
   report?: OnboardingReportSummary | null
 }

@@ -15,9 +15,6 @@ import { Label } from "@/components/ui/label"
 
 export interface CreateWorkspaceInput {
   name: string
-  primaryTrade: string
-  phone?: string
-  email?: string
 }
 
 interface CreateWorkspaceDialogProps {
@@ -50,14 +47,8 @@ export function CreateWorkspaceDialog({
   onCreateWorkspace,
 }: CreateWorkspaceDialogProps) {
   const nameInputId = useId()
-  const tradeInputId = useId()
-  const phoneInputId = useId()
-  const emailInputId = useId()
   const errorId = useId()
   const [workspaceName, setWorkspaceName] = useState("")
-  const [primaryTrade, setPrimaryTrade] = useState("Roofing")
-  const [phone, setPhone] = useState("")
-  const [email, setEmail] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -78,14 +69,8 @@ export function CreateWorkspaceDialog({
     try {
       await onCreateWorkspace({
         name: normalizedName,
-        primaryTrade,
-        phone: phone.trim() || undefined,
-        email: email.trim() || undefined,
       })
       setWorkspaceName("")
-      setPrimaryTrade("Roofing")
-      setPhone("")
-      setEmail("")
       onOpenChange(false)
     } catch {
       setError("Workspace could not be created. Try again.")
@@ -162,59 +147,6 @@ export function CreateWorkspaceDialog({
                   )}
                 </div>
 
-                <div className="workspace-form-field">
-                  <Label htmlFor={tradeInputId}>Primary trade *</Label>
-                  <select
-                    id={tradeInputId}
-                    name="primaryTrade"
-                    value={primaryTrade}
-                    onChange={(event) => setPrimaryTrade(event.target.value)}
-                    disabled={isSubmitting}
-                  >
-                    <option>Roofing</option>
-                    <option>General contracting</option>
-                    <option>Remodeling</option>
-                    <option>Restoration</option>
-                    <option>Painting</option>
-                    <option>Other</option>
-                  </select>
-                  <p className="workspace-form-help">
-                    Select the trade that best represents your work.
-                  </p>
-                </div>
-
-                <div className="workspace-form-field">
-                  <Label htmlFor={phoneInputId}>Company phone (optional)</Label>
-                  <Input
-                    id={phoneInputId}
-                    name="companyPhone"
-                    value={phone}
-                    onChange={(event) => setPhone(event.target.value)}
-                    placeholder="(555) 123-4567"
-                    autoComplete="tel"
-                    disabled={isSubmitting}
-                  />
-                  <p className="workspace-form-help">
-                    Used on reports and for customer communication.
-                  </p>
-                </div>
-
-                <div className="workspace-form-field">
-                  <Label htmlFor={emailInputId}>Company email (optional)</Label>
-                  <Input
-                    id={emailInputId}
-                    name="companyEmail"
-                    type="email"
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    placeholder="info@arvizuroofing.com"
-                    autoComplete="email"
-                    disabled={isSubmitting}
-                  />
-                  <p className="workspace-form-help">
-                    Used on reports and for customer communication.
-                  </p>
-                </div>
               </div>
             </div>
 

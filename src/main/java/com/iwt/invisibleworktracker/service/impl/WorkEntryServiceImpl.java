@@ -59,6 +59,11 @@ public class WorkEntryServiceImpl implements WorkEntryService {
                         request.getOrganizationId()
                 );
 
+        String plannedScope = firstPresent(
+                request.getPlannedScope(),
+                request.getDescription()
+        );
+
         WorkEntry workEntry = WorkEntry.builder()
                 .organization(organization)
                 .user(currentUser)
@@ -73,7 +78,8 @@ public class WorkEntryServiceImpl implements WorkEntryService {
                         150
                 ))
                 .workType(normalizeText(request.getWorkType(), "Work type", 100))
-                .description(normalizeOptionalText(request.getDescription(), "Description", 2000))
+                .plannedScope(normalizeOptionalText(plannedScope, "Planned scope", 2000))
+                .workPerformedSummary("")
                 .workDate(request.getWorkDate())
                 .scheduledStartTime(request.getScheduledStartTime())
                 .arrivalWindow(normalizeOptionalText(request.getArrivalWindow(), "Arrival window", 100))
@@ -157,8 +163,13 @@ public class WorkEntryServiceImpl implements WorkEntryService {
         }
 
         WorkEntry workEntry = requireAccessibleWorkEntry(currentUser, workEntryId);
-        workEntry.setDescription(
-                normalizeText(request.getDescription(), "Work performed summary", 2000)
+        String workPerformedSummary = firstPresent(
+                request.getWorkPerformedSummary(),
+                request.getDescription()
+        );
+
+        workEntry.setWorkPerformedSummary(
+                normalizeText(workPerformedSummary, "Work performed summary", 2000)
         );
 
         WorkEntry savedWorkEntry = workEntryRepository.save(workEntry);
@@ -191,6 +202,17 @@ public class WorkEntryServiceImpl implements WorkEntryService {
         }
 
         return normalizedValue;
+    }
+
+    private String firstPresent(
+            String preferredValue,
+            String fallbackValue
+    ) {
+        if (preferredValue != null) {
+            return preferredValue;
+        }
+
+        return fallbackValue;
     }
 
     private String normalizeOptionalText(

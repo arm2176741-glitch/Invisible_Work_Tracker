@@ -347,7 +347,8 @@ function buildOperationalEntries(
       workType: entry.workType ?? "General work",
       workDate: entry.workDate ?? new Date().toISOString(),
       status: entry.status ?? (report ? "COMPLETED" : "DRAFT"),
-      workPerformed: entry.description ?? "",
+      workPerformed: entry.workPerformedSummary ?? entry.description ?? "",
+      plannedScope: entry.plannedScope,
       proofReady,
       reportId: report?.id,
       reportNumber: report?.reportNumber,
@@ -537,7 +538,7 @@ function buildOnboardingGuide(
   const hasBeforePhoto = evidence.some((item) => item.category === "BEFORE")
   const hasAfterPhoto = evidence.some((item) => item.category === "AFTER")
   const hasCaption = evidence.some((item) => item.caption.trim().length > 0)
-  const hasWorkSummary = Boolean(firstEntry?.description?.trim())
+  const hasWorkSummary = Boolean(firstEntry?.workPerformedSummary?.trim())
   const jobLabel = firstEntry?.jobTitle ?? "your first job"
 
   if (currentStep === "CREATE_WORKSPACE") {
@@ -719,13 +720,8 @@ function OnboardingDashboard({
     detail: string
   } | null>(null)
   const workspaceNameId = useId()
-  const workspacePhoneId = useId()
-  const workspaceLogoId = useId()
   const workspaceErrorId = useId()
   const [workspaceName, setWorkspaceName] = useState("")
-  const [workspacePhone, setWorkspacePhone] = useState("")
-  const [workspaceLogoPreview, setWorkspaceLogoPreview] = useState<string | null>(null)
-  const [workspaceLogoName, setWorkspaceLogoName] = useState("")
   const [workspaceInlineError, setWorkspaceInlineError] = useState<string | null>(null)
   const [workspaceSubmitting, setWorkspaceSubmitting] = useState(false)
   const onboarding = deriveOnboardingState(dashboard)
@@ -762,14 +758,6 @@ function OnboardingDashboard({
 
     setWelcomeEvaluated(true)
   }, [dashboard.workspace, dashboardLoadError, welcomeEvaluated])
-
-  useEffect(() => {
-    return () => {
-      if (workspaceLogoPreview) {
-        URL.revokeObjectURL(workspaceLogoPreview)
-      }
-    }
-  }, [workspaceLogoPreview])
 
   function handleStartFirstReport() {
     writeLocalPreference(ONBOARDING_WELCOME_SEEN_KEY)
@@ -818,19 +806,6 @@ function OnboardingDashboard({
     }
   }
 
-  function handleWorkspaceLogoChange(files: FileList | null) {
-    const file = files?.[0]
-
-    if (!file || !file.type.startsWith("image/")) {
-      setWorkspaceLogoPreview(null)
-      setWorkspaceLogoName("")
-      return
-    }
-
-    setWorkspaceLogoPreview(URL.createObjectURL(file))
-    setWorkspaceLogoName(file.name)
-  }
-
   async function handleInlineWorkspaceSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
@@ -847,13 +822,8 @@ function OnboardingDashboard({
     try {
       await handleCreateWorkspace({
         name: normalizedName,
-        primaryTrade: "Roofing",
-        phone: workspacePhone.trim() || undefined,
       })
       setWorkspaceName("")
-      setWorkspacePhone("")
-      setWorkspaceLogoName("")
-      setWorkspaceLogoPreview(null)
     } catch {
       setWorkspaceInlineError("Workspace could not be created. Try again.")
     } finally {
@@ -895,7 +865,7 @@ function OnboardingDashboard({
       customerEmail: input.customerEmail,
       customerContactName: input.customerContactName,
       workType: input.workType,
-      description: input.plannedScope?.trim() ?? "",
+      plannedScope: input.plannedScope?.trim() ?? "",
       workDate: input.workDate,
       scheduledStartTime: input.scheduledStartTime,
       arrivalWindow: input.arrivalWindow,
@@ -923,6 +893,8 @@ function OnboardingDashboard({
       siteAccessNotes: savedWorkEntry.siteAccessNotes,
       internalNotes: savedWorkEntry.internalNotes,
       status: savedWorkEntry.status,
+      plannedScope: savedWorkEntry.plannedScope,
+      workPerformedSummary: savedWorkEntry.workPerformedSummary,
       description: savedWorkEntry.description,
     }
 
@@ -1025,6 +997,7 @@ function OnboardingDashboard({
       }
       const nextFirstWorkEntry = {
         ...currentDashboard.firstWorkEntry,
+        workPerformedSummary: savedWorkEntry.workPerformedSummary,
         description: savedWorkEntry.description,
       }
 
@@ -1061,6 +1034,7 @@ function OnboardingDashboard({
       }
       const nextFirstWorkEntry = {
         ...currentDashboard.firstWorkEntry,
+        workPerformedSummary: savedWorkEntry.workPerformedSummary,
         description: savedWorkEntry.description,
         status: completedWorkEntry.status,
         report: {
@@ -1255,8 +1229,8 @@ function OnboardingDashboard({
               </p>
               <h2>Set up your workspace</h2>
               <p>
-                Add your business details so your jobs and customer reports stay
-                organized.
+                Create the company workspace where your jobs, photos, crew activity,
+                and proof reports will live.
               </p>
 
               <div className="onboarding-workspace-form">
@@ -1285,32 +1259,6 @@ function OnboardingDashboard({
                   ) : null}
                 </div>
 
-                <div className="create-entry-field">
-                  <label htmlFor={workspacePhoneId}>Business phone</label>
-                  <input
-                    id={workspacePhoneId}
-                    value={workspacePhone}
-                    type="tel"
-                    autoComplete="tel"
-                    placeholder="Optional"
-                    disabled={workspaceSubmitting}
-                    onChange={(event) => setWorkspacePhone(event.target.value)}
-                  />
-                </div>
-
-                <div className="create-entry-field">
-                  <label htmlFor={workspaceLogoId}>Company logo</label>
-                  <input
-                    id={workspaceLogoId}
-                    accept="image/*"
-                    type="file"
-                    disabled={workspaceSubmitting}
-                    onChange={(event) => handleWorkspaceLogoChange(event.target.files)}
-                  />
-                  <p className="field-helper-text">
-                    Logo preview only for now. Report branding persistence comes later.
-                  </p>
-                </div>
               </div>
 
               <div className="onboarding-hero-actions">
@@ -1344,16 +1292,10 @@ function OnboardingDashboard({
               <p className="onboarding-card-label">Report preview</p>
               <div className="onboarding-report-preview-page">
                 <div className="onboarding-report-preview-header">
-                  <span>
-                    {workspaceLogoPreview ? (
-                      <img src={workspaceLogoPreview} alt="" />
-                    ) : (
-                      (workspaceName.trim()[0] ?? "F").toUpperCase()
-                    )}
-                  </span>
+                  <span>{(workspaceName.trim()[0] ?? "F").toUpperCase()}</span>
                   <div>
                     <strong>{workspaceName.trim() || "Your company name"}</strong>
-                    <small>{workspacePhone.trim() || "Company phone"}</small>
+                    <small>Workspace setup</small>
                   </div>
                 </div>
                 <div className="onboarding-report-preview-lines" aria-hidden="true">
@@ -1362,10 +1304,9 @@ function OnboardingDashboard({
                   <span />
                 </div>
                 <p>
-                  Your company name, contact details, and logo will appear on the
-                  customer-facing proof report.
+                  Your company name appears on FieldProof jobs and customer-facing
+                  proof reports. Full profile and branding fields come later.
                 </p>
-                {workspaceLogoName ? <small>{workspaceLogoName}</small> : null}
               </div>
             </aside>
           </form>
@@ -1658,7 +1599,7 @@ function OperationalDashboard({
       customerEmail: input.customerEmail,
       customerContactName: input.customerContactName,
       workType: input.workType,
-      description: input.plannedScope?.trim() ?? "",
+      plannedScope: input.plannedScope?.trim() ?? "",
       workDate: input.workDate,
       scheduledStartTime: input.scheduledStartTime,
       arrivalWindow: input.arrivalWindow,
@@ -1685,6 +1626,8 @@ function OperationalDashboard({
       siteAccessNotes: savedWorkEntry.siteAccessNotes,
       internalNotes: savedWorkEntry.internalNotes,
       status: savedWorkEntry.status,
+      plannedScope: savedWorkEntry.plannedScope,
+      workPerformedSummary: savedWorkEntry.workPerformedSummary,
       description: savedWorkEntry.description,
       evidence: [],
       report: null,
@@ -1789,6 +1732,7 @@ function OperationalDashboard({
     )
     const nextWorkEntry = {
       ...activeLoopWorkEntry,
+      workPerformedSummary: savedWorkEntry.workPerformedSummary,
       description: savedWorkEntry.description,
     }
 
@@ -1813,6 +1757,7 @@ function OperationalDashboard({
     const report = await generateReport(authToken, activeLoopWorkEntry.id)
     const nextWorkEntry = {
       ...activeLoopWorkEntry,
+      workPerformedSummary: savedWorkEntry.workPerformedSummary,
       description: savedWorkEntry.description,
       status: completedWorkEntry.status,
       report: {

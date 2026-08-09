@@ -4,6 +4,7 @@ import com.iwt.invisibleworktracker.entity.organization.Organization;
 import com.iwt.invisibleworktracker.entity.report.Report;
 import com.iwt.invisibleworktracker.entity.report.ReportShareLink;
 import com.iwt.invisibleworktracker.entity.report.ReportStatus;
+import com.iwt.invisibleworktracker.entity.workentry.PhotoCategory;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntryPhoto;
 import com.iwt.invisibleworktracker.repository.OrganizationMembershipRepository;
@@ -373,6 +374,7 @@ class WorkEntryPhotoIntegrationTests {
 
         uploadPhoto(token, workEntry.getId(), "BEFORE", pngPhoto("before-ready.png"));
         uploadPhoto(token, workEntry.getId(), "AFTER", jpegPhoto("after-ready.jpg"));
+        updateWorkPerformedSummary(token, workEntry.getId(), "Completed documented roof repair.");
 
         mockMvc.perform(post("/work-entries/{workEntryId}/reports", workEntry.getId())
                         .header("Authorization", "Bearer " + token))
@@ -403,17 +405,72 @@ class WorkEntryPhotoIntegrationTests {
 
         uploadPhoto(token, workEntry.getId(), "BEFORE", pngPhoto("before-complete.png"));
         uploadPhoto(token, workEntry.getId(), "AFTER", jpegPhoto("after-complete.jpg"));
+        updateWorkPerformedSummary(token, workEntry.getId(), "Completed documented roof repair.");
         markWorkEntryCompleted(token, workEntry.getId());
 
-        mockMvc.perform(post("/work-entries/{workEntryId}/reports", workEntry.getId())
+        MvcResult reportResult = mockMvc.perform(post("/work-entries/{workEntryId}/reports", workEntry.getId())
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").isNumber())
                 .andExpect(jsonPath("$.reportNumber").isString())
                 .andExpect(jsonPath("$.status").value("GENERATED"))
-                .andExpect(jsonPath("$.snapshotJson").isString());
+                .andExpect(jsonPath("$.snapshotJson").isString())
+                .andReturn();
 
         assertThat(reportRepository.findAll()).hasSize(1);
+        assertThat(reportResult.getResponse().getContentAsString())
+                .contains("\\\"schemaVersion\\\":1")
+                .contains("\\\"workPerformedSummary\\\":\\\"Completed documented roof repair.\\\"");
+    }
+
+    @Test
+    void deletePhotoRejectsPhotoIncludedInGeneratedReport() throws Exception {
+        String token = registerLoginAndGetToken(
+                "photo-report-lock@example.com",
+                "Password123!",
+                "Photo Report Lock"
+        );
+
+        Organization organization =
+                createOrganizationAndGetSaved(token, "Locked Photo Roofing");
+        WorkEntry workEntry =
+                createWorkEntryAndGetSaved(
+                        token,
+                        organization.getId(),
+                        "Locked Photo Job"
+                );
+
+        uploadPhoto(token, workEntry.getId(), "BEFORE", pngPhoto("before-lock.png"));
+        uploadPhoto(token, workEntry.getId(), "AFTER", jpegPhoto("after-lock.jpg"));
+        updateWorkPerformedSummary(token, workEntry.getId(), "Completed locked-photo roof repair.");
+        markWorkEntryCompleted(token, workEntry.getId());
+
+        mockMvc.perform(post("/work-entries/{workEntryId}/reports", workEntry.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
+
+        Report report = reportRepository.findAll().get(0);
+        WorkEntryPhoto beforePhoto = photoRepository.findAll()
+                .stream()
+                .filter(photo -> photo.getCategory() == PhotoCategory.BEFORE)
+                .findFirst()
+                .orElseThrow();
+        Path storedFile = TEST_UPLOAD_ROOT.resolve(beforePhoto.getStoragePath());
+
+        assertThat(storedFile).exists();
+
+        mockMvc.perform(delete("/work-entries/{workEntryId}/photos/{photoId}",
+                        workEntry.getId(),
+                        beforePhoto.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message")
+                        .value("This photo is included in report "
+                                + report.getReportNumber()
+                                + " and cannot be deleted."));
+
+        assertThat(photoRepository.findById(beforePhoto.getId())).isPresent();
+        assertThat(storedFile).exists();
     }
 
     @Test
@@ -476,6 +533,7 @@ class WorkEntryPhotoIntegrationTests {
                 reportShareLinkRepository.findAll().get(0);
 
         assertThat(shareUrl).contains("/shared/reports/");
+        assertThat(shareUrl).startsWith("http://localhost:5173/shared/reports/");
         assertThat(savedShareLink.getTokenHash()).isNotEqualTo(rawToken);
         assertThat(savedShareLink.getTokenHash()).doesNotContain(rawToken);
         assertThat(savedShareLink.getRevokedAt()).isNull();
@@ -606,6 +664,19 @@ class WorkEntryPhotoIntegrationTests {
                 .andExpect(jsonPath("$.status").value("COMPLETED"));
     }
 
+    private void updateWorkPerformedSummary(
+            String token,
+            Long workEntryId,
+            String summary
+    ) throws Exception {
+        mockMvc.perform(patch("/work-entries/{workEntryId}/summary", workEntryId)
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(summaryJson(summary)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.workPerformedSummary").value(summary));
+    }
+
     private Report createGeneratedReport(
             String token,
             String organizationName,
@@ -622,6 +693,7 @@ class WorkEntryPhotoIntegrationTests {
 
         uploadPhoto(token, workEntry.getId(), "BEFORE", pngPhoto("before.png"));
         uploadPhoto(token, workEntry.getId(), "AFTER", jpegPhoto("after.jpg"));
+        updateWorkPerformedSummary(token, workEntry.getId(), "Completed report-ready work.");
         markWorkEntryCompleted(token, workEntry.getId());
 
         mockMvc.perform(post("/work-entries/{workEntryId}/reports", workEntry.getId())
@@ -777,7 +849,7 @@ class WorkEntryPhotoIntegrationTests {
             String jobName,
             String jobAddress,
             String workType,
-            String description,
+            String plannedScope,
             String workDate
     ) {
         return """
@@ -787,7 +859,7 @@ class WorkEntryPhotoIntegrationTests {
                   "jobAddress": "%s",
                   "customerName": "Smith Residence",
                   "workType": "%s",
-                  "description": "%s",
+                  "plannedScope": "%s",
                   "workDate": "%s"
                 }
                 """.formatted(
@@ -795,9 +867,17 @@ class WorkEntryPhotoIntegrationTests {
                 jobName,
                 jobAddress,
                 workType,
-                description,
+                plannedScope,
                 workDate
         );
+    }
+
+    private String summaryJson(String summary) {
+        return """
+                {
+                  "workPerformedSummary": "%s"
+                }
+                """.formatted(summary);
     }
 
     private String statusJson(String status) {

@@ -92,6 +92,8 @@ interface StoredReportSnapshot {
     customerEmail?: string | null
     customerContactName?: string | null
     workType?: string
+    plannedScope?: string
+    workPerformedSummary?: string
     description?: string
     workDate?: string | null
     scheduledStartTime?: string | null
@@ -243,7 +245,9 @@ function buildReportSnapshot(
       workEntrySnapshot?.status
       ?? "COMPLETED",
     workPerformed:
-      workEntrySnapshot?.description
+      workEntrySnapshot?.workPerformedSummary
+      ?? workEntrySnapshot?.description
+      ?? workEntry?.workPerformedSummary
       ?? workEntry?.description
       ?? "This proof report was generated from documented work and field evidence.",
     photos,
@@ -285,6 +289,8 @@ function mapWorkEntryResponse(
     siteAccessNotes: workEntry.siteAccessNotes,
     internalNotes: workEntry.internalNotes,
     status: workEntry.status,
+    plannedScope: workEntry.plannedScope,
+    workPerformedSummary: workEntry.workPerformedSummary,
     description: workEntry.description,
     report: workEntry.report
       ? {

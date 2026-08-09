@@ -45,6 +45,7 @@ export interface WorkEntry {
   internalNotes?: string | null
   status: WorkEntryStatus
   workPerformed: string
+  plannedScope?: string
   proofReady: boolean
   reportId?: number
   reportNumber?: string

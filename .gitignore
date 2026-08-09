@@ -2,6 +2,9 @@ HELP.md
 .gradle
 build/
 *.log
+.env
+.env.*
+!.env.example
 node_modules/
 uploads/
 frontend/.dev/

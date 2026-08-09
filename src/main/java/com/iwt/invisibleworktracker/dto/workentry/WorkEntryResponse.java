@@ -22,6 +22,8 @@ public class WorkEntryResponse {
     private String customerContactName;
     private String workType;
     private String description;
+    private String plannedScope;
+    private String workPerformedSummary;
     private WorkEntryStatus status;
     private LocalDate workDate;
     private LocalTime scheduledStartTime;
@@ -49,6 +51,8 @@ public class WorkEntryResponse {
             String customerContactName,
             String workType,
             String description,
+            String plannedScope,
+            String workPerformedSummary,
             WorkEntryStatus status,
             LocalDate workDate,
             LocalTime scheduledStartTime,
@@ -72,6 +76,8 @@ public class WorkEntryResponse {
         this.customerContactName = customerContactName;
         this.workType = workType;
         this.description = description;
+        this.plannedScope = plannedScope;
+        this.workPerformedSummary = workPerformedSummary;
         this.status = status;
         this.workDate = workDate;
         this.scheduledStartTime = scheduledStartTime;
@@ -93,6 +99,13 @@ public class WorkEntryResponse {
             WorkEntry workEntry,
             Report report
     ) {
+        String plannedScope =
+                workEntry.getPlannedScope() == null ? "" : workEntry.getPlannedScope();
+        String workPerformedSummary =
+                workEntry.getWorkPerformedSummary() == null
+                        ? ""
+                        : workEntry.getWorkPerformedSummary();
+
         return new WorkEntryResponse(
                 workEntry.getId(),
                 workEntry.getOrganization().getId(),
@@ -104,7 +117,9 @@ public class WorkEntryResponse {
                 workEntry.getCustomerEmail(),
                 workEntry.getCustomerContactName(),
                 workEntry.getWorkType(),
-                workEntry.getDescription(),
+                workPerformedSummary,
+                plannedScope,
+                workPerformedSummary,
                 workEntry.getStatus(),
                 workEntry.getWorkDate(),
                 workEntry.getScheduledStartTime(),
@@ -161,6 +176,14 @@ public class WorkEntryResponse {
 
     public String getDescription() {
         return description;
+    }
+
+    public String getPlannedScope() {
+        return plannedScope;
+    }
+
+    public String getWorkPerformedSummary() {
+        return workPerformedSummary;
     }
 
     public WorkEntryStatus getStatus() {

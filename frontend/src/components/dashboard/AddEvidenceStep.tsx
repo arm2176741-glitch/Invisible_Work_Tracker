@@ -11,7 +11,6 @@ import {
 
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import type {
   EvidenceCategory,
   OnboardingEvidenceItem,
@@ -62,6 +61,7 @@ const evidenceCategories: Array<{
 interface SelectedEvidenceFile {
   file: File
   previewUrl: string
+  caption: string
 }
 
 type SelectedEvidenceFiles = Record<EvidenceCategory, SelectedEvidenceFile[]>
@@ -71,6 +71,7 @@ const emptySelectedFiles: SelectedEvidenceFiles = {
   DURING: [],
   AFTER: [],
 }
+const acceptedEvidenceImageTypes = "image/jpeg,image/png,image/webp"
 
 function formatEvidenceTime(value: string) {
   return new Intl.DateTimeFormat("en", {
@@ -97,6 +98,10 @@ function buildDefaultCaption(categoryTitle: string, photoNumber: number) {
   return `${categoryTitle} photo ${photoNumber}`
 }
 
+function getCategoryTitle(category: EvidenceCategory) {
+  return evidenceCategories.find((item) => item.category === category)?.title ?? category
+}
+
 function formatJobDate(value?: string | null) {
   if (!value) {
     return null
@@ -119,11 +124,6 @@ export function AddEvidenceStep({
   const [evidence, setEvidence] = useState<OnboardingEvidenceItem[]>(
     workEntry.evidence ?? [],
   )
-  const [captions, setCaptions] = useState<Record<EvidenceCategory, string>>({
-    BEFORE: "",
-    DURING: "",
-    AFTER: "",
-  })
   const [selectedFiles, setSelectedFiles] =
     useState<SelectedEvidenceFiles>(emptySelectedFiles)
   const [fileInputKeys, setFileInputKeys] = useState<Record<EvidenceCategory, number>>({
@@ -150,7 +150,7 @@ export function AddEvidenceStep({
   const hasBefore = evidence.some((item) => item.category === "BEFORE")
   const hasAfter = evidence.some((item) => item.category === "AFTER")
   const hasDuring = evidence.some((item) => item.category === "DURING")
-  const hasWorkDocumentation = Boolean(workEntry.description?.trim())
+  const hasWorkDocumentation = Boolean(workEntry.workPerformedSummary?.trim())
   const evidenceReady = hasBefore && hasAfter
   const jobMeta = [
     workEntry.workType,
@@ -166,25 +166,45 @@ export function AddEvidenceStep({
 
   function handleFileSelection(category: EvidenceCategory, files: FileList | null) {
     const selectedImages = Array.from(files ?? []).filter((file) =>
-      file.type.startsWith("image/"),
+      acceptedEvidenceImageTypes.split(",").includes(file.type),
     )
 
     setSelectedFiles((currentFiles) => {
       currentFiles[category].forEach((item) => URL.revokeObjectURL(item.previewUrl))
+      const existingCategoryCount = evidence.filter(
+        (evidenceItem) => evidenceItem.category === category,
+      ).length
+      const categoryTitle = getCategoryTitle(category)
 
       return {
         ...currentFiles,
-        [category]: selectedImages.map((file) => ({
+        [category]: selectedImages.map((file, index) => ({
           file,
           previewUrl: URL.createObjectURL(file),
+          caption: buildDefaultCaption(categoryTitle, existingCategoryCount + index + 1),
         })),
       }
     })
   }
 
+  function updateSelectedCaption(
+    category: EvidenceCategory,
+    previewUrl: string,
+    caption: string,
+  ) {
+    setSelectedFiles((currentFiles) => ({
+      ...currentFiles,
+      [category]: currentFiles[category].map((selectedFile) =>
+        selectedFile.previewUrl === previewUrl
+          ? { ...selectedFile, caption }
+          : selectedFile,
+      ),
+    }))
+  }
+
   function handleDrop(
     category: EvidenceCategory,
-    event: DragEvent<HTMLLabelElement>,
+    event: DragEvent<HTMLDivElement>,
   ) {
     event.preventDefault()
     handleFileSelection(category, event.dataTransfer.files)
@@ -200,17 +220,12 @@ export function AddEvidenceStep({
     const existingCategoryCount = evidence.filter(
       (evidenceItem) => evidenceItem.category === item.category,
     ).length
-    const caption = captions[item.category].trim()
 
     const filesToUpload = files.map((selectedFile, index) => ({
       file: selectedFile.file,
       previewUrl: selectedFile.previewUrl,
-      caption:
-        caption.length > 0
-          ? files.length > 1
-            ? `${caption} ${index + 1}`
-            : caption
-          : buildDefaultCaption(item.title, existingCategoryCount + index + 1),
+      caption: selectedFile.caption.trim()
+        || buildDefaultCaption(item.title, existingCategoryCount + index + 1),
     }))
 
     setUploadingCategory(item.category)
@@ -239,10 +254,6 @@ export function AddEvidenceStep({
     setSelectedFiles((currentFiles) => ({
       ...currentFiles,
       [item.category]: [],
-    }))
-    setCaptions((currentCaptions) => ({
-      ...currentCaptions,
-      [item.category]: "",
     }))
     setFileInputKeys((currentKeys) => ({
       ...currentKeys,
@@ -324,20 +335,39 @@ export function AddEvidenceStep({
                       </span>
                     </div>
 
-                    <Label
+                    <div
                       className="evidence-dropzone"
-                      htmlFor={`photo-${item.category}`}
                       onDragOver={(event) => event.preventDefault()}
                       onDrop={(event) => handleDrop(item.category, event)}
                     >
                       <CloudUpload aria-hidden="true" size={18} />
-                      <span>Drop photos or browse</span>
-                    </Label>
+                      <span>Drop JPEG, PNG, or WebP photos</span>
+                      <div className="evidence-file-actions">
+                        <label htmlFor={`photo-camera-${item.category}`}>
+                          <Camera aria-hidden="true" size={13} />
+                          Take photo
+                        </label>
+                        <label htmlFor={`photo-library-${item.category}`}>
+                          Choose files
+                        </label>
+                      </div>
+                    </div>
                     <Input
-                      accept="image/*"
+                      accept={acceptedEvidenceImageTypes}
+                      capture="environment"
                       className="evidence-file-input"
-                      id={`photo-${item.category}`}
+                      id={`photo-camera-${item.category}`}
                       key={fileInputKeys[item.category]}
+                      type="file"
+                      onChange={(event) =>
+                        handleFileSelection(item.category, event.target.files)
+                      }
+                    />
+                    <Input
+                      accept={acceptedEvidenceImageTypes}
+                      className="evidence-file-input"
+                      id={`photo-library-${item.category}`}
+                      key={`library-${fileInputKeys[item.category]}`}
                       multiple
                       type="file"
                       onChange={(event) =>
@@ -345,22 +375,9 @@ export function AddEvidenceStep({
                       }
                     />
 
-                    <Input
-                      aria-label={`Caption for ${item.title}`}
-                      className="evidence-caption-input"
-                      placeholder="Add caption (appears in report)"
-                      value={captions[item.category]}
-                      onChange={(event) =>
-                        setCaptions((currentCaptions) => ({
-                          ...currentCaptions,
-                          [item.category]: event.target.value,
-                        }))
-                      }
-                    />
-
                     {selectedForCategory.length > 0 ? (
                       <div className="selected-evidence-preview-grid">
-                        {selectedForCategory.map((selectedFile) => (
+                        {selectedForCategory.map((selectedFile, index) => (
                           <div
                             className="selected-evidence-preview"
                             key={selectedFile.previewUrl}
@@ -371,6 +388,20 @@ export function AddEvidenceStep({
                               loading="lazy"
                             />
                             <span>{selectedFile.file.name}</span>
+                            <Input
+                              aria-label={`Caption for ${item.title} photo ${index + 1}`}
+                              className="evidence-caption-input"
+                              maxLength={255}
+                              placeholder="Caption for this photo"
+                              value={selectedFile.caption}
+                              onChange={(event) =>
+                                updateSelectedCaption(
+                                  item.category,
+                                  selectedFile.previewUrl,
+                                  event.target.value,
+                                )
+                              }
+                            />
                           </div>
                         ))}
                       </div>

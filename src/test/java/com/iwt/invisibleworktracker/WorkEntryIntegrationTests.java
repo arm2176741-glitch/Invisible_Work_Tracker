@@ -106,7 +106,8 @@ class WorkEntryIntegrationTests {
                 .andExpect(jsonPath("$.jobAddress").value("123 Main St"))
                 .andExpect(jsonPath("$.customerName").value("Smith Residence"))
                 .andExpect(jsonPath("$.workType").value("Leak repair"))
-                .andExpect(jsonPath("$.description").value("Replaced damaged shingles near rear valley."))
+                .andExpect(jsonPath("$.plannedScope").value("Replaced damaged shingles near rear valley."))
+                .andExpect(jsonPath("$.workPerformedSummary").value(""))
                 .andExpect(jsonPath("$.status").value("DRAFT"))
                 .andExpect(jsonPath("$.workDate").value("2026-06-27"))
                 .andExpect(jsonPath("$.scheduledStartTime").value("08:30:00"))
@@ -129,7 +130,8 @@ class WorkEntryIntegrationTests {
         assertThat(workEntry.getJobAddress()).isEqualTo("123 Main St");
         assertThat(workEntry.getCustomerName()).isEqualTo("Smith Residence");
         assertThat(workEntry.getWorkType()).isEqualTo("Leak repair");
-        assertThat(workEntry.getDescription()).isEqualTo("Replaced damaged shingles near rear valley.");
+        assertThat(workEntry.getPlannedScope()).isEqualTo("Replaced damaged shingles near rear valley.");
+        assertThat(workEntry.getWorkPerformedSummary()).isEmpty();
         assertThat(workEntry.getStatus()).isEqualTo(WorkEntryStatus.DRAFT);
         assertThat(workEntry.getWorkDate().toString()).isEqualTo("2026-06-27");
         assertThat(workEntry.getScheduledStartTime().toString()).isEqualTo("08:30");
@@ -424,7 +426,7 @@ class WorkEntryIntegrationTests {
     }
 
     @Test
-    void updateWorkEntrySummaryUpdatesAccessibleEntryDescription() throws Exception {
+    void updateWorkEntrySummaryUpdatesAccessibleEntryWorkPerformedSummary() throws Exception {
         String token = registerLoginAndGetToken(
                 "work-summary@example.com",
                 "Password123!",
@@ -455,13 +457,19 @@ class WorkEntryIntegrationTests {
                         .content(summaryJson("  Replaced damaged shingles and sealed exposed fasteners.  ")))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(workEntry.getId()))
+                .andExpect(jsonPath("$.plannedScope")
+                        .value("Initial placeholder summary."))
+                .andExpect(jsonPath("$.workPerformedSummary")
+                        .value("Replaced damaged shingles and sealed exposed fasteners."))
                 .andExpect(jsonPath("$.description")
                         .value("Replaced damaged shingles and sealed exposed fasteners."));
 
         WorkEntry updatedWorkEntry = workEntryRepository.findById(workEntry.getId())
                 .orElseThrow();
 
-        assertThat(updatedWorkEntry.getDescription())
+        assertThat(updatedWorkEntry.getPlannedScope())
+                .isEqualTo("Initial placeholder summary.");
+        assertThat(updatedWorkEntry.getWorkPerformedSummary())
                 .isEqualTo("Replaced damaged shingles and sealed exposed fasteners.");
     }
 
@@ -507,7 +515,8 @@ class WorkEntryIntegrationTests {
         WorkEntry unchangedWorkEntry = workEntryRepository.findById(ownerWorkEntry.getId())
                 .orElseThrow();
 
-        assertThat(unchangedWorkEntry.getDescription()).isEqualTo("Private summary repair.");
+        assertThat(unchangedWorkEntry.getPlannedScope()).isEqualTo("Private summary repair.");
+        assertThat(unchangedWorkEntry.getWorkPerformedSummary()).isEmpty();
     }
 
     private Organization createOrganizationAndGetSaved(
@@ -588,7 +597,7 @@ class WorkEntryIntegrationTests {
                   "jobAddress": "%s",
                   "customerName": "  Smith Residence  ",
                   "workType": "%s",
-                  "description": "%s",
+                  "plannedScope": "%s",
                   "workDate": "%s",
                   "scheduledStartTime": "08:30",
                   "arrivalWindow": "  8:00-10:00 AM  ",
@@ -618,7 +627,7 @@ class WorkEntryIntegrationTests {
     private String summaryJson(String description) {
         return """
                 {
-                  "description": "%s"
+                  "workPerformedSummary": "%s"
                 }
                 """.formatted(description);
     }

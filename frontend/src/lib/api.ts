@@ -54,6 +54,8 @@ export interface WorkEntryResponse {
   customerContactName?: string | null
   workType: string
   description: string
+  plannedScope: string
+  workPerformedSummary: string
   status: WorkEntryStatus
   workDate?: string | null
   scheduledStartTime?: string | null
@@ -224,7 +226,7 @@ export function createWorkEntry(
     customerEmail?: string
     customerContactName?: string
     workType: string
-    description: string
+    plannedScope?: string
     workDate?: string
     scheduledStartTime?: string
     arrivalWindow?: string
@@ -253,11 +255,11 @@ export function updateWorkEntryStatus(
 export function updateWorkEntrySummary(
   token: string,
   workEntryId: number,
-  description: string,
+  workPerformedSummary: string,
 ) {
   return jsonRequest<WorkEntryResponse>(
     `/work-entries/${workEntryId}/summary`,
-    { description },
+    { workPerformedSummary },
     token,
     "PATCH",
   )

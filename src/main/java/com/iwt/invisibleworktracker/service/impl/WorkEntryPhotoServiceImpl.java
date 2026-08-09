@@ -1,10 +1,15 @@
 package com.iwt.invisibleworktracker.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.iwt.invisibleworktracker.dto.report.ReportSnapshotV1;
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryPhotoResponse;
+import com.iwt.invisibleworktracker.entity.report.Report;
 import com.iwt.invisibleworktracker.entity.workentry.PhotoCategory;
 import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntry;
 import com.iwt.invisibleworktracker.entity.workentry.WorkEntryPhoto;
+import com.iwt.invisibleworktracker.repository.ReportRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryPhotoRepository;
 import com.iwt.invisibleworktracker.repository.WorkEntryRepository;
 import com.iwt.invisibleworktracker.service.OrganizationService;
@@ -40,18 +45,22 @@ public class WorkEntryPhotoServiceImpl implements WorkEntryPhotoService {
 
     private final WorkEntryRepository workEntryRepository;
     private final WorkEntryPhotoRepository photoRepository;
+    private final ReportRepository reportRepository;
     private final OrganizationService organizationService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final Path uploadRoot;
 
     public WorkEntryPhotoServiceImpl(
             WorkEntryRepository workEntryRepository,
             WorkEntryPhotoRepository photoRepository,
+            ReportRepository reportRepository,
             OrganizationService organizationService,
             @Value("${fieldproof.uploads.work-entry-photos-dir:uploads/work-entry-photos}")
             String uploadDirectory
     ) {
         this.workEntryRepository = workEntryRepository;
         this.photoRepository = photoRepository;
+        this.reportRepository = reportRepository;
         this.organizationService = organizationService;
         this.uploadRoot = Paths.get(uploadDirectory)
                 .toAbsolutePath()
@@ -149,6 +158,21 @@ public class WorkEntryPhotoServiceImpl implements WorkEntryPhotoService {
                         HttpStatus.NOT_FOUND,
                         "Photo not found"
                 ));
+        Report includingReport = reportRepository
+                .findAllByWorkEntry(workEntry)
+                .stream()
+                .filter(report -> reportSnapshotContainsPhoto(report, photoId))
+                .findFirst()
+                .orElse(null);
+
+        if (includingReport != null) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "This photo is included in report "
+                            + includingReport.getReportNumber()
+                            + " and cannot be deleted."
+            );
+        }
 
         Path storedFile = uploadRoot
                 .resolve(photo.getStoragePath())
@@ -301,6 +325,29 @@ public class WorkEntryPhotoServiceImpl implements WorkEntryPhotoService {
 
     private int unsignedByte(byte value) {
         return value & 0xFF;
+    }
+
+    private boolean reportSnapshotContainsPhoto(
+            Report report,
+            Long photoId
+    ) {
+        String snapshotJson = report.getSnapshotJson();
+
+        if (snapshotJson == null || photoId == null) {
+            return false;
+        }
+
+        try {
+            ReportSnapshotV1 snapshot =
+                    objectMapper.readValue(snapshotJson, ReportSnapshotV1.class);
+
+            return snapshot.photos() != null
+                    && snapshot.photos()
+                    .stream()
+                    .anyMatch(photo -> photoId.equals(photo.id()));
+        } catch (JsonProcessingException ex) {
+            return false;
+        }
     }
 
     private String extensionForContentType(String contentType) {

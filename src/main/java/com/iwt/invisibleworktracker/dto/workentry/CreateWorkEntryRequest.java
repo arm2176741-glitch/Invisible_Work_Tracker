@@ -37,6 +37,10 @@ public class CreateWorkEntryRequest {
     @Size(max = 100, message = "Work type cannot exceed 100 characters")
     private String workType;
 
+    @Size(max = 2000, message = "Planned scope cannot exceed 2000 characters")
+    private String plannedScope;
+
+    @Deprecated
     @Size(max = 2000, message = "Description cannot exceed 2000 characters")
     private String description;
 
@@ -132,6 +136,14 @@ public class CreateWorkEntryRequest {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getPlannedScope() {
+        return plannedScope;
+    }
+
+    public void setPlannedScope(String plannedScope) {
+        this.plannedScope = plannedScope;
     }
 
     public LocalDate getWorkDate() {

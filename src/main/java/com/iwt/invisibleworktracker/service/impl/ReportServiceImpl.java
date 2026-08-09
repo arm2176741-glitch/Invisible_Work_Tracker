@@ -1,7 +1,13 @@
 package com.iwt.invisibleworktracker.service.impl;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.iwt.invisibleworktracker.dto.report.ReportEvidenceSnapshot;
+import com.iwt.invisibleworktracker.dto.report.ReportOrganizationSnapshot;
 import com.iwt.invisibleworktracker.dto.report.ReportPhotoContent;
 import com.iwt.invisibleworktracker.dto.report.ReportShareLinkResponse;
+import com.iwt.invisibleworktracker.dto.report.ReportSnapshotV1;
+import com.iwt.invisibleworktracker.dto.report.ReportWorkEntrySnapshot;
 import com.iwt.invisibleworktracker.entity.organization.MembershipStatus;
 import com.iwt.invisibleworktracker.entity.organization.Organization;
 import com.iwt.invisibleworktracker.entity.organization.OrganizationMembership;
@@ -51,6 +57,7 @@ public class ReportServiceImpl implements ReportService {
     private final OrganizationMembershipRepository membershipRepository;
     private final OrganizationService organizationService;
     private final SecureRandom secureRandom = new SecureRandom();
+    private final ObjectMapper objectMapper = new ObjectMapper();
     private final Path uploadRoot;
     private final String shareBaseUrl;
 
@@ -63,7 +70,7 @@ public class ReportServiceImpl implements ReportService {
             OrganizationService organizationService,
             @Value("${fieldproof.uploads.work-entry-photos-dir:uploads/work-entry-photos}")
             String uploadDirectory,
-            @Value("${fieldproof.share-base-url:http://127.0.0.1:5174}")
+            @Value("${fieldproof.share-base-url:http://localhost:5173}")
             String shareBaseUrl
     ) {
         this.reportRepository = reportRepository;
@@ -398,29 +405,17 @@ public class ReportServiceImpl implements ReportService {
             return false;
         }
 
-        String photosToken = "\"photos\":[";
-        int photosStart = snapshotJson.indexOf(photosToken);
+        try {
+            ReportSnapshotV1 snapshot =
+                    objectMapper.readValue(snapshotJson, ReportSnapshotV1.class);
 
-        if (photosStart < 0) {
+            return snapshot.photos() != null
+                    && snapshot.photos()
+                    .stream()
+                    .anyMatch(photo -> photoId.equals(photo.id()));
+        } catch (JsonProcessingException ex) {
             return false;
         }
-
-        int photosValueStart = photosStart + photosToken.length();
-        int photosEnd = snapshotJson.indexOf("]", photosValueStart);
-
-        if (photosEnd < 0) {
-            return false;
-        }
-
-        String photosJson = snapshotJson.substring(
-                photosValueStart,
-                photosEnd
-        );
-
-        String idToken = "\"id\":" + photoId;
-
-        return photosJson.contains(idToken + ",")
-                || photosJson.contains(idToken + "}");
     }
 
     private void ensurePathStaysInside(
@@ -451,7 +446,7 @@ public class ReportServiceImpl implements ReportService {
             );
         }
 
-        if (!hasMeaningfulWorkSummary(workEntry.getDescription())) {
+        if (!hasMeaningfulWorkSummary(workEntry.getWorkPerformedSummary())) {
             throw new IllegalArgumentException(
                     "Add a work performed summary before generating a report"
             );
@@ -498,152 +493,56 @@ public class ReportServiceImpl implements ReportService {
                 photoRepository.findByWorkEntryOrderByCreatedAtAscIdAsc(workEntry);
         Organization organization = workEntry.getOrganization();
 
-        StringBuilder json = new StringBuilder();
-        json.append("{");
-        appendJsonStringField(json, "reportNumber", reportNumber);
-        json.append(",");
-        appendJsonStringField(json, "generatedAt", generatedAt.toString());
-        json.append(",");
-        json.append("\"organization\":{");
-        appendJsonNumberField(json, "id", organization.getId());
-        json.append(",");
-        appendJsonStringField(json, "name", organization.getName());
-        json.append("},");
-        json.append("\"workEntry\":{");
-        appendJsonNumberField(json, "id", workEntry.getId());
-        json.append(",");
-        appendJsonStringField(json, "jobName", workEntry.getJobName());
-        json.append(",");
-        appendJsonStringField(json, "jobAddress", workEntry.getJobAddress());
-        json.append(",");
-        appendJsonStringField(json, "customerName", workEntry.getCustomerName());
-        json.append(",");
-        appendJsonStringField(json, "customerPhone", workEntry.getCustomerPhone());
-        json.append(",");
-        appendJsonStringField(json, "customerEmail", workEntry.getCustomerEmail());
-        json.append(",");
-        appendJsonStringField(json, "customerContactName", workEntry.getCustomerContactName());
-        json.append(",");
-        appendJsonStringField(json, "workType", workEntry.getWorkType());
-        json.append(",");
-        appendJsonStringField(json, "description", workEntry.getDescription());
-        json.append(",");
-        appendJsonStringField(
-                json,
-                "workDate",
-                workEntry.getWorkDate() == null ? "" : workEntry.getWorkDate().toString()
+        ReportSnapshotV1 snapshot = new ReportSnapshotV1(
+                1,
+                reportNumber,
+                generatedAt.toString(),
+                new ReportOrganizationSnapshot(
+                        organization.getId(),
+                        organization.getName()
+                ),
+                new ReportWorkEntrySnapshot(
+                        workEntry.getId(),
+                        workEntry.getJobName(),
+                        workEntry.getJobAddress(),
+                        workEntry.getCustomerName(),
+                        workEntry.getCustomerPhone(),
+                        workEntry.getCustomerEmail(),
+                        workEntry.getCustomerContactName(),
+                        workEntry.getWorkType(),
+                        workEntry.getPlannedScope(),
+                        workEntry.getWorkPerformedSummary(),
+                        workEntry.getWorkPerformedSummary(),
+                        workEntry.getWorkDate() == null
+                                ? null
+                                : workEntry.getWorkDate().toString(),
+                        workEntry.getScheduledStartTime() == null
+                                ? null
+                                : workEntry.getScheduledStartTime().toString(),
+                        workEntry.getArrivalWindow(),
+                        workEntry.getEstimatedDuration(),
+                        workEntry.getStatus().name()
+                ),
+                photos.stream()
+                        .map(photo -> new ReportEvidenceSnapshot(
+                                photo.getId(),
+                                photo.getCategory().name(),
+                                photo.getOriginalFilename(),
+                                photo.getCaption(),
+                                photo.getContentType(),
+                                photo.getFileSizeBytes(),
+                                photo.getCreatedAt().toString()
+                        ))
+                        .toList()
         );
-        json.append(",");
-        appendJsonStringField(
-                json,
-                "scheduledStartTime",
-                workEntry.getScheduledStartTime() == null
-                        ? ""
-                        : workEntry.getScheduledStartTime().toString()
-        );
-        json.append(",");
-        appendJsonStringField(json, "arrivalWindow", workEntry.getArrivalWindow());
-        json.append(",");
-        appendJsonStringField(json, "estimatedDuration", workEntry.getEstimatedDuration());
-        json.append(",");
-        appendJsonStringField(json, "status", workEntry.getStatus().name());
-        json.append("},");
-        json.append("\"photos\":[");
 
-        for (int index = 0; index < photos.size(); index++) {
-            if (index > 0) {
-                json.append(",");
-            }
-
-            appendPhotoSnapshot(json, photos.get(index));
+        try {
+            return objectMapper.writeValueAsString(snapshot);
+        } catch (JsonProcessingException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Report snapshot could not be created"
+            );
         }
-
-        json.append("]");
-        json.append("}");
-
-        return json.toString();
-    }
-
-    private void appendPhotoSnapshot(
-            StringBuilder json,
-            WorkEntryPhoto photo
-    ) {
-        json.append("{");
-        appendJsonNumberField(json, "id", photo.getId());
-        json.append(",");
-        appendJsonStringField(json, "category", photo.getCategory().name());
-        json.append(",");
-        appendJsonStringField(json, "originalFilename", photo.getOriginalFilename());
-        json.append(",");
-        appendJsonStringField(json, "caption", photo.getCaption());
-        json.append(",");
-        appendJsonStringField(json, "contentType", photo.getContentType());
-        json.append(",");
-        appendJsonNumberField(json, "fileSizeBytes", photo.getFileSizeBytes());
-        json.append(",");
-        appendJsonStringField(json, "createdAt", photo.getCreatedAt().toString());
-        json.append("}");
-    }
-
-    private void appendJsonStringField(
-            StringBuilder json,
-            String fieldName,
-            String value
-    ) {
-        appendJsonFieldName(json, fieldName);
-
-        if (value == null) {
-            json.append("null");
-            return;
-        }
-
-        json.append("\"")
-                .append(escapeJson(value))
-                .append("\"");
-    }
-
-    private void appendJsonNumberField(
-            StringBuilder json,
-            String fieldName,
-            Number value
-    ) {
-        appendJsonFieldName(json, fieldName);
-
-        if (value == null) {
-            json.append("null");
-            return;
-        }
-
-        json.append(value);
-    }
-
-    private void appendJsonFieldName(
-            StringBuilder json,
-            String fieldName
-    ) {
-        json.append("\"")
-                .append(escapeJson(fieldName))
-                .append("\":");
-    }
-
-    private String escapeJson(String value) {
-        StringBuilder escaped = new StringBuilder();
-
-        for (int index = 0; index < value.length(); index++) {
-            char character = value.charAt(index);
-
-            switch (character) {
-                case '"' -> escaped.append("\\\"");
-                case '\\' -> escaped.append("\\\\");
-                case '\b' -> escaped.append("\\b");
-                case '\f' -> escaped.append("\\f");
-                case '\n' -> escaped.append("\\n");
-                case '\r' -> escaped.append("\\r");
-                case '\t' -> escaped.append("\\t");
-                default -> escaped.append(character);
-            }
-        }
-
-        return escaped.toString();
     }
 }
