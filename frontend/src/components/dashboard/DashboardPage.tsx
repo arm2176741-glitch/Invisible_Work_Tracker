@@ -7,19 +7,15 @@ import {
   type SetStateAction,
 } from "react"
 import {
-  AlertTriangle,
   BriefcaseBusiness,
-  CheckCircle2,
   ClipboardList,
   ChevronDown,
   FileText,
   Home,
   Image,
   Plus,
-  Send,
   ShieldCheck,
   UserCircle,
-  Wrench,
 } from "lucide-react"
 import type { LucideIcon } from "lucide-react"
 
@@ -30,11 +26,11 @@ import {
   type CreateWorkEntryCompletion,
   type CreateWorkEntryInput,
 } from "@/components/dashboard/CreateWorkEntryStep"
+import { FieldWorkStrip } from "@/components/dashboard/FieldWorkStrip"
 import { GenerateReportStep } from "@/components/dashboard/GenerateReportStep"
 import {
   AttentionNeeded,
   RecentActivity,
-  UpcomingSchedule,
 } from "@/components/dashboard/OperationalSummary"
 import { WorkEntryList } from "@/components/dashboard/WorkEntryList"
 import { WorkspaceCard } from "@/components/dashboard/WorkspaceCard"
@@ -62,7 +58,6 @@ import type {
   AttentionItem,
   DashboardMode,
   DashboardSummary,
-  UpcomingItem,
   WorkEntry,
   Workspace,
 } from "@/types/domain"
@@ -117,17 +112,6 @@ type OnboardingGuideContent = {
   items: OnboardingGuideItem[]
 }
 
-type JobStatusTone = "neutral" | "warning" | "ready" | "send"
-
-type JobStatusItem = {
-  label: string
-  value: number
-  helper: string
-  href: string
-  tone: JobStatusTone
-  icon: LucideIcon
-}
-
 function getOnboardingTaskSideTitle(step: VisibleOnboardingStep) {
   if (step === "CREATE_WORKSPACE") {
     return "What this unlocks"
@@ -178,43 +162,6 @@ function formatNeedsPhotosSummary(count: number) {
 
 function formatReadyToSendSummary(count: number) {
   return `${count} ${count === 1 ? "report is" : "reports are"} ready to send`
-}
-
-function buildJobStatusItems(summary: DashboardSummary): JobStatusItem[] {
-  return [
-    {
-      label: "Active jobs",
-      value: summary.activeJobs,
-      helper: "In progress",
-      href: "/jobs?status=active",
-      tone: "neutral",
-      icon: Wrench,
-    },
-    {
-      label: "Needs photos",
-      value: summary.needsEvidence,
-      helper: "Action needed",
-      href: "/jobs?status=needs-photos",
-      tone: "warning",
-      icon: AlertTriangle,
-    },
-    {
-      label: "Ready for report",
-      value: summary.readyForReport,
-      helper: "Documentation",
-      href: "/jobs?status=ready-for-report",
-      tone: "ready",
-      icon: CheckCircle2,
-    },
-    {
-      label: "Ready to send",
-      value: summary.proofReady,
-      helper: "Review & share",
-      href: "/reports?status=ready-to-send",
-      tone: "send",
-      icon: Send,
-    },
-  ]
 }
 
 function mapUploadedPhotoResponse(
@@ -288,24 +235,6 @@ function formatShortDate(value?: string | null) {
     day: "numeric",
     year: "numeric",
   }).format(new Date(value))
-}
-
-function formatScheduleTime(value?: string | null) {
-  if (!value) {
-    return null
-  }
-
-  const [hours, minutes] = value.split(":")
-  const hourNumber = Number(hours)
-
-  if (Number.isNaN(hourNumber)) {
-    return value
-  }
-
-  const period = hourNumber >= 12 ? "PM" : "AM"
-  const twelveHour = hourNumber % 12 || 12
-
-  return `${twelveHour}:${minutes ?? "00"} ${period}`
 }
 
 function getMissingEvidenceLabel(entry: OnboardingFirstWorkEntry) {
@@ -425,27 +354,6 @@ function buildAttentionItems(
   }
 
   return items.slice(0, 3)
-}
-
-function buildUpcomingItems(entries: OnboardingFirstWorkEntry[]): UpcomingItem[] {
-  return entries
-    .filter((entry) => Boolean(entry.workDate))
-    .sort((firstEntry, secondEntry) => {
-      const firstDate = `${firstEntry.workDate ?? ""}T${firstEntry.scheduledStartTime ?? "23:59"}`
-      const secondDate = `${secondEntry.workDate ?? ""}T${secondEntry.scheduledStartTime ?? "23:59"}`
-
-      return firstDate.localeCompare(secondDate)
-    })
-    .slice(0, 3)
-    .map((entry) => ({
-      id: entry.id,
-      title: entry.jobTitle ?? "Untitled job",
-      detail: entry.propertyAddress ?? "No property address added",
-      timeLabel:
-        formatScheduleTime(entry.scheduledStartTime)
-        ?? entry.arrivalWindow
-        ?? formatShortDate(entry.workDate),
-    }))
 }
 
 function buildRecentActivities(
@@ -1388,7 +1296,6 @@ function MobileOperationalHome({
     })
     .slice(0, 3)
   const recentEntries = entries.slice(0, 4)
-  const jobStatusItems = buildJobStatusItems(summary)
 
   function scrollToRecentJobs() {
     document
@@ -1445,64 +1352,50 @@ function MobileOperationalHome({
         </section>
       ) : null}
 
-      <section className="mobile-home-section">
-        <div className="mobile-section-heading">
-          <p className="eyebrow">Job status</p>
-        </div>
-        <div className="mobile-status-grid">
-          {jobStatusItems.map((item) => (
-            <a
-              className={`mobile-status-item mobile-status-item-${item.tone}`}
-              href={item.href}
-              key={item.label}
-            >
-              <span>{item.label}</span>
-              <strong>{item.value}</strong>
-              <small>{item.helper}</small>
-            </a>
-          ))}
-        </div>
-      </section>
+      <FieldWorkStrip
+        compact
+        entries={entries}
+        summary={summary}
+        onCreateJob={onCreateJob}
+        onOpenJob={(entryId) => {
+          const selectedEntry = entries.find((entry) => entry.id === entryId)
 
-      <section className="mobile-home-section" id="mobile-recent-jobs">
-        <div className="mobile-section-heading">
-          <p className="eyebrow">Recent jobs</p>
-        </div>
+          if (selectedEntry) {
+            onJobAction(selectedEntry)
+          }
+        }}
+      />
 
-        <div className="mobile-job-card-list">
-          {recentEntries.length === 0 ? (
-            <article className="mobile-empty-card">
-              <h2>No jobs yet</h2>
-              <p>Create your first job, add photos, and generate a proof report.</p>
-              <Button type="button" onClick={onCreateJob}>
-                <Plus aria-hidden="true" size={16} />
-                Create job
-              </Button>
-            </article>
-          ) : null}
+      {recentEntries.length > 0 ? (
+        <section className="mobile-home-section" id="mobile-recent-jobs">
+          <div className="mobile-section-heading">
+            <p className="eyebrow">Recent jobs</p>
+          </div>
 
-          {recentEntries.map((entry) => (
-            <article className="mobile-job-card" key={entry.id}>
-              <div className="mobile-job-card-main">
-                <h2>{entry.jobTitle ?? "Untitled job"}</h2>
-                <p>{entry.propertyAddress ?? "No property address added"}</p>
-                <span>
-                  {getMobileJobStatus(entry)} - {getPhotoCount(entry)} -{" "}
-                  {formatShortDate(entry.workDate)}
-                </span>
-              </div>
-              <Button
-                className="mobile-job-action"
-                type="button"
-                variant="secondary"
-                onClick={() => onJobAction(entry)}
-              >
-                {getMobileJobActionLabel(entry)}
-              </Button>
-            </article>
-          ))}
-        </div>
-      </section>
+          <div className="mobile-job-card-list">
+            {recentEntries.map((entry) => (
+              <article className="mobile-job-card" key={entry.id}>
+                <div className="mobile-job-card-main">
+                  <h2>{entry.jobTitle ?? "Untitled job"}</h2>
+                  <p>{entry.propertyAddress ?? "No property address added"}</p>
+                  <span>
+                    {getMobileJobStatus(entry)} - {getPhotoCount(entry)} -{" "}
+                    {formatShortDate(entry.workDate)}
+                  </span>
+                </div>
+                <Button
+                  className="mobile-job-action"
+                  type="button"
+                  variant="secondary"
+                  onClick={() => onJobAction(entry)}
+                >
+                  {getMobileJobActionLabel(entry)}
+                </Button>
+              </article>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <nav className="mobile-bottom-nav" aria-label="Mobile navigation">
         <button className="active" type="button">
@@ -1554,10 +1447,8 @@ function OperationalDashboard({
   const operationalEntries = buildOperationalEntries(dashboardEntries)
   const summary = buildDashboardSummary(dashboardEntries)
   const attentionItems = buildAttentionItems(dashboardEntries)
-  const upcomingItems = buildUpcomingItems(dashboardEntries)
   const recentActivities = buildRecentActivities(dashboardEntries)
   const currentWorkspace = buildWorkspaceSummary(dashboard, summary)
-  const jobStatusItems = buildJobStatusItems(summary)
   const latestReportEntry = operationalEntries.find((entry) => typeof entry.reportId === "number")
 
   function commitLoopWorkEntry(nextWorkEntry: OnboardingFirstWorkEntry) {
@@ -1897,33 +1788,12 @@ function OperationalDashboard({
 
       <div className="dashboard-grid operational-dashboard-grid">
         <div className="primary-column operational-primary-column">
-          <section className="job-status-panel" aria-label="Job status">
-            <div className="job-status-header">
-              <p className="eyebrow">Job status</p>
-            </div>
-            <div className="job-status-grid">
-              {jobStatusItems.map((item) => {
-                const Icon = item.icon
-
-                return (
-                  <a
-                    className={`job-status-item job-status-item-${item.tone}`}
-                    href={item.href}
-                    key={item.label}
-                  >
-                    <span className="job-status-icon" aria-hidden="true">
-                      <Icon size={17} />
-                    </span>
-                    <span className="job-status-copy">
-                      <strong>{item.value}</strong>
-                      <span className="job-status-label">{item.label}</span>
-                      <span className="job-status-helper">{item.helper}</span>
-                    </span>
-                  </a>
-                )
-              })}
-            </div>
-          </section>
+          <FieldWorkStrip
+            entries={dashboardEntries}
+            summary={summary}
+            onCreateJob={() => setShowCreateJob(true)}
+            onOpenJob={handleContinueWorkEntry}
+          />
 
           <WorkEntryList
             entries={operationalEntries}
@@ -1935,7 +1805,6 @@ function OperationalDashboard({
         <aside className="right-rail operational-right-rail" aria-label="Dashboard widgets">
           <section className="card section-card operational-rail-panel">
             <AttentionNeeded items={attentionItems} />
-            <UpcomingSchedule items={upcomingItems} />
             <section className="rail-panel-section quick-actions-card">
               <p className="eyebrow">Quick actions</p>
               <div className="quick-action-list">
