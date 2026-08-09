@@ -126,6 +126,7 @@ The backend remains the permanent engine for:
 - work entries
 - photo metadata
 - reports
+- immutable report snapshots
 - permissions
 - future API sharing with mobile
 
@@ -294,12 +295,12 @@ Add Before / During / After evidence
 
 This is the main FieldProof value loop.
 
-### 3. Backend integration
+### 3. Backend/API hardening
 
-After the React flow is stable, replace local mock state with real API calls:
+The React flow now uses Spring Boot contracts for the first-account workflow where
+backend APIs exist:
 
 ```text
-GET /dashboard
 POST /organizations
 POST /work-entries
 POST /work-entries/{id}/photos
@@ -307,7 +308,13 @@ POST /work-entries/{id}/report
 GET /reports/{id}
 ```
 
-Do not treat these endpoint names as final until backend contracts are implemented or verified.
+Near-term backend work should focus on:
+
+- a single dashboard aggregate endpoint
+- durable job/report routes and filters
+- immutable report evidence assets
+- report versioning
+- production database migrations
 
 ### 4. Report PDF
 
