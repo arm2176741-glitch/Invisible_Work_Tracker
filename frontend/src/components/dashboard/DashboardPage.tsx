@@ -1,6 +1,7 @@
 import {
   useEffect,
   useId,
+  useRef,
   useState,
   type Dispatch,
   type FormEvent,
@@ -94,6 +95,8 @@ const onboardingStepShortLabels: Record<VisibleOnboardingStep, string> = {
   GENERATE_REPORT: "Report",
   REVIEW_REPORT: "Share",
 }
+
+const reportPreviewSlideLabels = ["Overview", "Evidence", "Completion"]
 
 const ONBOARDING_WELCOME_SEEN_KEY = "fieldproof.onboarding.welcomeSeen"
 const WORKSPACE_COACH_DISMISSED_KEY = "fieldproof.onboarding.workspaceCoachDismissed"
@@ -630,9 +633,11 @@ function OnboardingDashboard({
   } | null>(null)
   const workspaceNameId = useId()
   const workspaceErrorId = useId()
+  const reportPreviewCarouselRef = useRef<HTMLDivElement>(null)
   const [workspaceName, setWorkspaceName] = useState("")
   const [workspaceInlineError, setWorkspaceInlineError] = useState<string | null>(null)
   const [workspaceSubmitting, setWorkspaceSubmitting] = useState(false)
+  const [activeReportPreviewSlide, setActiveReportPreviewSlide] = useState(0)
   const onboarding = deriveOnboardingState(dashboard)
   const visibleCurrentStep =
     onboarding.currentStep === "COMPLETE" ? "REVIEW_REPORT" : onboarding.currentStep
@@ -690,6 +695,50 @@ function OnboardingDashboard({
   function dismissWorkspaceCoach() {
     writeLocalPreference(WORKSPACE_COACH_DISMISSED_KEY)
     setWorkspaceCoachVisible(false)
+  }
+
+  function handleReportPreviewScroll() {
+    const carousel = reportPreviewCarouselRef.current
+
+    if (!carousel) {
+      return
+    }
+
+    const slides = Array.from(carousel.children).filter(
+      (child): child is HTMLElement => child instanceof HTMLElement,
+    )
+    const nextActiveSlide = slides.reduce(
+      (closestSlide, slide, index) => {
+        const distance = Math.abs(slide.offsetLeft - carousel.scrollLeft)
+
+        if (distance < closestSlide.distance) {
+          return { index, distance }
+        }
+
+        return closestSlide
+      },
+      { index: 0, distance: Number.POSITIVE_INFINITY },
+    ).index
+
+    setActiveReportPreviewSlide((currentSlide) =>
+      currentSlide === nextActiveSlide ? currentSlide : nextActiveSlide,
+    )
+  }
+
+  function scrollReportPreviewToSlide(index: number) {
+    const carousel = reportPreviewCarouselRef.current
+    const slide = carousel?.children.item(index)
+
+    if (!(slide instanceof HTMLElement)) {
+      return
+    }
+
+    slide.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "start",
+    })
+    setActiveReportPreviewSlide(index)
   }
 
   function handleCurrentStepAction() {
@@ -1215,7 +1264,11 @@ function OnboardingDashboard({
 
             <aside className="onboarding-report-preview" aria-label="Report branding preview">
               <p className="onboarding-card-label">Report preview</p>
-              <div className="onboarding-report-preview-carousel">
+              <div
+                className="onboarding-report-preview-carousel"
+                ref={reportPreviewCarouselRef}
+                onScroll={handleReportPreviewScroll}
+              >
                 <article className="onboarding-report-preview-page">
                   <div className="onboarding-report-preview-header">
                     <span>{previewInitial}</span>
@@ -1276,10 +1329,17 @@ function OnboardingDashboard({
                   </div>
                 </article>
               </div>
-              <div className="onboarding-report-preview-dots" aria-hidden="true">
-                <span data-active="true" />
-                <span />
-                <span />
+              <div className="onboarding-report-preview-dots">
+                {reportPreviewSlideLabels.map((label, index) => (
+                  <button
+                    type="button"
+                    aria-label={`Show ${label.toLowerCase()} preview`}
+                    aria-current={index === activeReportPreviewSlide ? "true" : undefined}
+                    data-active={index === activeReportPreviewSlide}
+                    key={label}
+                    onClick={() => scrollReportPreviewToSlide(index)}
+                  />
+                ))}
               </div>
             </aside>
           </form>

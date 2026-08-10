@@ -4031,14 +4031,17 @@ a:focus-visible {
   gap: 6px;
 }
 
-.onboarding-report-preview-dots span {
+.onboarding-report-preview-dots button {
   width: 6px;
   height: 6px;
+  padding: 0;
+  border: 0;
   border-radius: 999px;
   background: rgba(247, 248, 250, 0.22);
+  cursor: pointer;
 }
 
-.onboarding-report-preview-dots span[data-active="true"] {
+.onboarding-report-preview-dots button[data-active="true"] {
   width: 18px;
   background: var(--accent);
 }
@@ -4876,7 +4879,7 @@ a:focus-visible {
   .onboarding-content {
     width: 100%;
     max-width: 100%;
-    gap: 16px;
+    gap: 12px;
     overflow-x: hidden;
   }
 
@@ -4887,11 +4890,13 @@ a:focus-visible {
 
   .mobile-onboarding-step-strip {
     min-width: 0;
+    height: 44px;
     display: flex;
+    align-items: center;
     gap: 22px;
     overflow-x: auto;
     overscroll-behavior-x: contain;
-    padding: 0 0 10px;
+    padding: 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     scroll-snap-type: x proximity;
     scrollbar-width: none;
@@ -4904,10 +4909,14 @@ a:focus-visible {
   .mobile-onboarding-step {
     position: relative;
     flex: 0 0 auto;
-    padding-bottom: 10px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    padding-bottom: 8px;
     color: rgba(247, 248, 250, 0.48);
-    font-size: 0.82rem;
+    font-size: 0.92rem;
     font-weight: 850;
+    line-height: 1;
     scroll-snap-align: start;
     white-space: nowrap;
   }
@@ -4953,7 +4962,7 @@ a:focus-visible {
   }
 
   .onboarding-workspace-card .onboarding-task-copy {
-    gap: 12px;
+    gap: 10px;
   }
 
   .onboarding-workspace-card .onboarding-step-label {
@@ -4963,8 +4972,8 @@ a:focus-visible {
 
   .onboarding-workspace-card .onboarding-task-copy h2 {
     max-width: 100%;
-    font-size: clamp(1.55rem, 7.4vw, 2rem);
-    line-height: 1.08;
+    font-size: clamp(2rem, 9vw, 2.25rem);
+    line-height: 1.03;
     letter-spacing: 0;
   }
 
@@ -4994,7 +5003,7 @@ a:focus-visible {
   }
 
   .onboarding-workspace-card .create-entry-field input {
-    min-height: 54px;
+    min-height: 52px;
     border-radius: 10px;
     font-size: 1rem;
   }
@@ -5050,9 +5059,9 @@ a:focus-visible {
   .onboarding-report-preview {
     max-width: 100%;
     display: grid;
-    gap: 10px;
+    gap: 8px;
     overflow: hidden;
-    padding: 14px 0 0;
+    padding: 10px 0 0;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     border-left: 0;
   }
@@ -5067,30 +5076,59 @@ a:focus-visible {
   }
 
   .onboarding-report-preview-page {
-    flex-basis: min(78vw, 300px);
-    padding: 18px;
-    gap: 14px;
+    flex-basis: min(85vw, 300px);
+    padding: 14px;
+    gap: 10px;
     box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
   }
 
   .onboarding-report-preview-header {
-    grid-template-columns: 38px minmax(0, 1fr);
-    gap: 10px;
-    padding-bottom: 13px;
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 9px;
+    padding-bottom: 9px;
   }
 
   .onboarding-report-preview-header > span {
-    width: 38px;
-    height: 38px;
-    border-radius: 9px;
+    width: 34px;
+    height: 34px;
+    border-radius: 8px;
+  }
+
+  .onboarding-report-preview-header strong {
+    font-size: 0.9rem;
+  }
+
+  .onboarding-report-preview-header small {
+    font-size: 0.68rem;
+  }
+
+  .onboarding-preview-report-body {
+    gap: 7px;
   }
 
   .onboarding-preview-photo-row span {
-    min-height: 78px;
+    min-height: 56px;
   }
 
   .onboarding-preview-report-body h3 {
-    font-size: 1rem;
+    font-size: 0.94rem;
+  }
+
+  .onboarding-preview-evidence-list,
+  .onboarding-preview-check-list {
+    gap: 6px;
+  }
+
+  .onboarding-preview-evidence-list span,
+  .onboarding-preview-check-list span {
+    min-height: 30px;
+    padding: 6px 8px;
+  }
+
+  .onboarding-preview-report-body p,
+  .onboarding-report-preview-page p {
+    font-size: 0.76rem;
+    line-height: 1.35;
   }
 
   .onboarding-compact-card,
@@ -8207,23 +8245,23 @@ a:focus-visible {
     left: 0;
     right: 0;
     z-index: 70;
-    height: calc(56px + env(safe-area-inset-top));
+    height: calc(48px + env(safe-area-inset-top));
     display: flex;
     align-items: center;
-    gap: 12px;
-    padding: env(safe-area-inset-top) 14px 0;
+    gap: 10px;
+    padding: env(safe-area-inset-top) 12px 0;
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
     background: rgba(7, 12, 20, 0.93);
     color: rgba(248, 250, 252, 0.92);
-    box-shadow: 0 12px 34px rgba(0, 0, 0, 0.26);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.24);
     backdrop-filter: blur(16px);
   }
 
   .mobile-sidebar-toggle {
-    width: 42px;
-    min-width: 42px;
-    height: 42px;
-    min-height: 42px;
+    width: 38px;
+    min-width: 38px;
+    height: 38px;
+    min-height: 38px;
     display: grid;
     place-items: center;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -8237,12 +8275,12 @@ a:focus-visible {
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 9px;
+    gap: 8px;
   }
 
   .mobile-shell-brand span {
-    width: 28px;
-    height: 28px;
+    width: 25px;
+    height: 25px;
     display: grid;
     place-items: center;
     border-radius: 7px;
@@ -8255,7 +8293,7 @@ a:focus-visible {
   .mobile-shell-brand strong {
     overflow: hidden;
     color: #fff;
-    font-size: 1rem;
+    font-size: 0.96rem;
     font-weight: 850;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -8409,7 +8447,7 @@ a:focus-visible {
   }
 
   .main {
-    padding: calc(72px + env(safe-area-inset-top)) 16px 20px;
+    padding: calc(60px + env(safe-area-inset-top)) 16px 20px;
   }
 
   .app-backdrop:has(.mobile-operational-home) .mobile-shell-header {
