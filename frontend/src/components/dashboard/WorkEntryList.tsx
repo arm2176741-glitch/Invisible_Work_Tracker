@@ -8,6 +8,7 @@ interface WorkEntryListProps {
   entries: WorkEntry[]
   onOpenReport: (reportId: number) => void
   onContinueEntry: (entryId: number) => void
+  emptyMessage?: string
 }
 
 function getStatusLabel(entry: WorkEntry) {
@@ -30,6 +31,7 @@ export function WorkEntryList({
   entries,
   onOpenReport,
   onContinueEntry,
+  emptyMessage = "Create a job to start documenting work.",
 }: WorkEntryListProps) {
   return (
     <section className="card section-card work-entry-panel">
@@ -51,7 +53,7 @@ export function WorkEntryList({
 
       <div className="work-entry-list">
         {entries.length === 0 ? (
-          <p className="empty-list-message">Create a job to start documenting work.</p>
+          <p className="empty-list-message">{emptyMessage}</p>
         ) : null}
         {entries.map((entry) => {
           const reportId = entry.reportId

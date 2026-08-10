@@ -131,18 +131,21 @@ export const attentionItems: AttentionItem[] = [
     id: 1,
     title: "Fascia Repair",
     detail: "1 job needs After photos",
+    actionLabel: "Add photos",
     tone: "warning",
   },
   {
     id: 2,
     title: "Storm Damage Inspection",
     detail: "Inspection pending review",
+    actionLabel: "Generate",
     tone: "info",
   },
   {
     id: 3,
     title: "Mesa Retail Center",
     detail: "2 work entries need evidence",
+    actionLabel: "Add photos",
     tone: "warning",
   },
 ]

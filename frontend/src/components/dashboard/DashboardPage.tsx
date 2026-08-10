@@ -20,20 +20,19 @@ import {
 import type { LucideIcon } from "lucide-react"
 
 import { AddEvidenceStep } from "@/components/dashboard/AddEvidenceStep"
-import type { CreateWorkspaceInput } from "@/components/dashboard/CreateWorkspaceDialog"
+import {
+  CreateWorkspaceDialog,
+  type CreateWorkspaceInput,
+} from "@/components/dashboard/CreateWorkspaceDialog"
 import {
   CreateWorkEntryStep,
   type CreateWorkEntryCompletion,
   type CreateWorkEntryInput,
 } from "@/components/dashboard/CreateWorkEntryStep"
+import { DashboardRightRail } from "@/components/dashboard/DashboardRightRail"
 import { FieldWorkStrip } from "@/components/dashboard/FieldWorkStrip"
 import { GenerateReportStep } from "@/components/dashboard/GenerateReportStep"
-import {
-  AttentionNeeded,
-  RecentActivity,
-} from "@/components/dashboard/OperationalSummary"
 import { WorkEntryList } from "@/components/dashboard/WorkEntryList"
-import { WorkspaceCard } from "@/components/dashboard/WorkspaceCard"
 import { Button } from "@/components/ui/button"
 import {
   createOrganization,
@@ -210,6 +209,7 @@ export function DashboardPage({
       dashboard={onboardingDashboard}
       setDashboard={onOnboardingDashboardChange}
       authToken={authToken}
+      dashboardLoadError={dashboardLoadError}
       onOpenReport={onOpenReport}
       onOpenGeneratedReport={onOpenGeneratedReport}
       userName={userName}
@@ -319,6 +319,7 @@ function buildAttentionItems(
         id: entry.id,
         title: entry.jobTitle ?? "Untitled job",
         detail: getMissingEvidenceLabel(entry),
+        actionLabel: "Add photos",
         tone: "warning",
       })
       return
@@ -329,6 +330,7 @@ function buildAttentionItems(
         id: entry.id,
         title: entry.jobTitle ?? "Untitled job",
         detail: "Job documentation is ready for a proof report",
+        actionLabel: "Generate",
         tone: "info",
       })
       return
@@ -339,33 +341,20 @@ function buildAttentionItems(
         id: entry.id,
         title: entry.jobTitle ?? "Untitled job",
         detail: "Proof report is ready to send",
+        actionLabel: "Review & send",
         tone: "info",
       })
     }
   })
 
-  if (items.length === 0) {
-    return [{
-      id: 0,
-      title: "No jobs currently require attention.",
-      detail: "New issues will appear here as jobs change.",
-      tone: "info",
-    }]
-  }
-
-  return items.slice(0, 3)
+  return items
 }
 
 function buildRecentActivities(
   entries: OnboardingFirstWorkEntry[],
 ): ActivityItem[] {
   if (entries.length === 0) {
-    return [{
-      id: 0,
-      title: "No activity yet",
-      detail: "Create a job to start building the workspace history.",
-      tone: "neutral",
-    }]
+    return []
   }
 
   return entries.slice(0, 4).map((entry) => {
@@ -401,6 +390,18 @@ function getMobileHomeSummary(summary: DashboardSummary, entryCount: number) {
   }
 
   return "No jobs need attention right now."
+}
+
+function getMobileOperationalSummary(
+  summary: DashboardSummary,
+  entryCount: number,
+  hasWorkspace: boolean,
+) {
+  if (!hasWorkspace) {
+    return "Create a workspace to start FieldProof."
+  }
+
+  return getMobileHomeSummary(summary, entryCount)
 }
 
 function getMobileJobStatus(entry: OnboardingFirstWorkEntry) {
@@ -1276,6 +1277,8 @@ function MobileOperationalHome({
   workspaceName,
   userName,
   onCreateJob,
+  hasWorkspace,
+  onCreateWorkspace,
   onJobAction,
   onOpenLatestReport,
 }: {
@@ -1284,6 +1287,8 @@ function MobileOperationalHome({
   workspaceName: string
   userName: string
   onCreateJob: () => void
+  hasWorkspace: boolean
+  onCreateWorkspace: () => void
   onJobAction: (entry: OnboardingFirstWorkEntry) => void
   onOpenLatestReport?: () => void
 }) {
@@ -1318,10 +1323,14 @@ function MobileOperationalHome({
 
       <section className="mobile-home-hero">
         <p>Good morning, {getFirstName(userName)}</p>
-        <h1>{getMobileHomeSummary(summary, entries.length)}</h1>
-        <Button className="mobile-create-job-button" type="button" onClick={onCreateJob}>
+        <h1>{getMobileOperationalSummary(summary, entries.length, hasWorkspace)}</h1>
+        <Button
+          className="mobile-create-job-button"
+          type="button"
+          onClick={hasWorkspace ? onCreateJob : onCreateWorkspace}
+        >
           <Plus aria-hidden="true" size={17} />
-          Create new job
+          {hasWorkspace ? "Create new job" : "Create workspace"}
         </Button>
       </section>
 
@@ -1357,6 +1366,8 @@ function MobileOperationalHome({
         entries={entries}
         summary={summary}
         onCreateJob={onCreateJob}
+        hasWorkspace={hasWorkspace}
+        onCreateWorkspace={onCreateWorkspace}
         onOpenJob={(entryId) => {
           const selectedEntry = entries.find((entry) => entry.id === entryId)
 
@@ -1427,6 +1438,7 @@ function OperationalDashboard({
   dashboard,
   setDashboard,
   authToken,
+  dashboardLoadError,
   userName,
   onOpenReport,
   onOpenGeneratedReport,
@@ -1434,10 +1446,12 @@ function OperationalDashboard({
   dashboard: OnboardingDashboardSnapshot
   setDashboard: Dispatch<SetStateAction<OnboardingDashboardSnapshot>>
   authToken: string
+  dashboardLoadError: string | null
   userName: string
   onOpenReport: (reportId: number) => void
   onOpenGeneratedReport: (reportId: number) => void
 }) {
+  const [showCreateWorkspace, setShowCreateWorkspace] = useState(false)
   const [showCreateJob, setShowCreateJob] = useState(false)
   const [showAddEvidenceStep, setShowAddEvidenceStep] = useState(false)
   const [showGenerateReportStep, setShowGenerateReportStep] = useState(false)
@@ -1449,7 +1463,26 @@ function OperationalDashboard({
   const attentionItems = buildAttentionItems(dashboardEntries)
   const recentActivities = buildRecentActivities(dashboardEntries)
   const currentWorkspace = buildWorkspaceSummary(dashboard, summary)
+  const hasWorkspace = Boolean(dashboard.workspace)
   const latestReportEntry = operationalEntries.find((entry) => typeof entry.reportId === "number")
+  const firstNeedsPhotosEntry = dashboardEntries.find((entry) => !hasRequiredEvidence(entry))
+  const firstReadyForReportEntry = dashboardEntries.find((entry) =>
+    hasRequiredEvidence(entry) && !entry.report,
+  )
+  const showDashboardErrorState =
+    Boolean(dashboardLoadError && !hasWorkspace && dashboardEntries.length === 0)
+
+  async function handleOperationalCreateWorkspace(input: CreateWorkspaceInput) {
+    const organization = await createOrganization(authToken, input.name)
+
+    setDashboard((currentDashboard) => ({
+      ...currentDashboard,
+      workspace: {
+        id: organization.id,
+        name: organization.name,
+      },
+    }))
+  }
 
   function commitLoopWorkEntry(nextWorkEntry: OnboardingFirstWorkEntry) {
     setActiveLoopWorkEntry(nextWorkEntry)
@@ -1693,6 +1726,27 @@ function OperationalDashboard({
     handleMobileJobAction(selectedEntry)
   }
 
+  function handlePrimaryCreateAction() {
+    if (!hasWorkspace) {
+      setShowCreateWorkspace(true)
+      return
+    }
+
+    setShowCreateJob(true)
+  }
+
+  function handleOpenFirstNeedsPhotos() {
+    if (firstNeedsPhotosEntry) {
+      handleMobileJobAction(firstNeedsPhotosEntry)
+    }
+  }
+
+  function handleOpenFirstReadyForReport() {
+    if (firstReadyForReportEntry) {
+      handleMobileJobAction(firstReadyForReportEntry)
+    }
+  }
+
   if (showAddEvidenceStep && dashboard.workspace && activeLoopWorkEntry) {
     return (
       <AddEvidenceStep
@@ -1738,11 +1792,19 @@ function OperationalDashboard({
 
   return (
     <>
+      <CreateWorkspaceDialog
+        open={showCreateWorkspace}
+        onOpenChange={setShowCreateWorkspace}
+        onCreateWorkspace={handleOperationalCreateWorkspace}
+      />
+
       <MobileOperationalHome
         entries={dashboardEntries}
         summary={summary}
         workspaceName={currentWorkspace.name}
         userName={userName}
+        hasWorkspace={hasWorkspace}
+        onCreateWorkspace={() => setShowCreateWorkspace(true)}
         onCreateJob={() => setShowCreateJob(true)}
         onJobAction={handleMobileJobAction}
         onOpenLatestReport={
@@ -1756,7 +1818,11 @@ function OperationalDashboard({
         <div>
           <h1 className="page-title">Good morning, {getFirstName(userName)}</h1>
           <p className="page-copy operational-page-copy">
-            {dashboardEntries.length === 0 ? (
+            {showDashboardErrorState ? (
+              "Saved dashboard data could not be loaded."
+            ) : !hasWorkspace ? (
+              "Create a workspace to start your first proof record."
+            ) : dashboardEntries.length === 0 ? (
               "Start by creating your first job."
             ) : summary.proofReady > 0 ? (
               <a className="operational-page-action-link" href="/reports?status=ready-to-send">
@@ -1785,64 +1851,69 @@ function OperationalDashboard({
             {currentWorkspace.name}
             <ChevronDown aria-hidden="true" size={16} />
           </button>
-          <Button className="dashboard-primary-action" onClick={() => setShowCreateJob(true)}>
+          <Button className="dashboard-primary-action" onClick={handlePrimaryCreateAction}>
             <Plus aria-hidden="true" size={15} />
-            New job
+            {hasWorkspace ? "New job" : "Create workspace"}
           </Button>
         </div>
       </header>
 
       <div className="dashboard-grid operational-dashboard-grid">
         <div className="primary-column operational-primary-column">
-          <FieldWorkStrip
-            entries={dashboardEntries}
-            summary={summary}
-            onCreateJob={() => setShowCreateJob(true)}
-            onOpenJob={handleContinueWorkEntry}
-          />
+          {showDashboardErrorState ? (
+            <section className="field-work-strip field-work-strip-empty dashboard-load-error-panel">
+              <div className="field-work-empty-copy">
+                <p className="eyebrow">Connection</p>
+                <h2>Saved data could not be loaded</h2>
+                <p>{dashboardLoadError}</p>
+              </div>
+            </section>
+          ) : (
+            <>
+              <FieldWorkStrip
+                entries={dashboardEntries}
+                summary={summary}
+                hasWorkspace={hasWorkspace}
+                onCreateWorkspace={() => setShowCreateWorkspace(true)}
+                onCreateJob={() => setShowCreateJob(true)}
+                onOpenJob={handleContinueWorkEntry}
+              />
 
-          <WorkEntryList
-            entries={operationalEntries}
-            onOpenReport={onOpenReport}
-            onContinueEntry={handleContinueWorkEntry}
-          />
+              <WorkEntryList
+                entries={operationalEntries}
+                onOpenReport={onOpenReport}
+                onContinueEntry={handleContinueWorkEntry}
+                emptyMessage={
+                  hasWorkspace
+                    ? "Create a job to start documenting work."
+                    : "Create a workspace before adding jobs."
+                }
+              />
+            </>
+          )}
         </div>
 
         <aside className="right-rail operational-right-rail" aria-label="Dashboard widgets">
-          <section className="card section-card operational-rail-panel">
-            <AttentionNeeded items={attentionItems} />
-            <section className="rail-panel-section quick-actions-card">
-              <p className="eyebrow">Quick actions</p>
-              <div className="quick-action-list">
-                <button type="button" onClick={() => setShowCreateJob(true)}>
-                  <Plus aria-hidden="true" size={15} />
-                  <span>Create job</span>
-                </button>
-                <button type="button" disabled>
-                  <Image aria-hidden="true" size={15} />
-                  <span>Upload photos</span>
-                </button>
-                <button type="button" disabled={summary.readyForReport === 0}>
-                  <ShieldCheck aria-hidden="true" size={15} />
-                  <span>Generate report</span>
-                </button>
-                <button
-                  type="button"
-                  disabled={!latestReportEntry?.reportId}
-                  onClick={() => {
-                    if (latestReportEntry?.reportId) {
-                      onOpenReport(latestReportEntry.reportId)
-                    }
-                  }}
-                >
-                  <FileText aria-hidden="true" size={15} />
-                  <span>View reports</span>
-                </button>
-              </div>
-            </section>
-          </section>
-          <WorkspaceCard workspace={currentWorkspace} />
-          <RecentActivity items={recentActivities} />
+          <DashboardRightRail
+            workspace={hasWorkspace ? currentWorkspace : null}
+            jobCount={dashboardEntries.length}
+            summary={summary}
+            attentionItems={attentionItems}
+            recentActivity={recentActivities}
+            latestReportId={latestReportEntry?.reportId}
+            errorMessage={showDashboardErrorState ? dashboardLoadError : null}
+            onCreateWorkspace={() => setShowCreateWorkspace(true)}
+            onCreateJob={() => setShowCreateJob(true)}
+            onAttentionAction={handleContinueWorkEntry}
+            onUploadPhotos={handleOpenFirstNeedsPhotos}
+            onGenerateReport={handleOpenFirstReadyForReport}
+            onOpenLatestReport={() => {
+              if (latestReportEntry?.reportId) {
+                onOpenReport(latestReportEntry.reportId)
+              }
+            }}
+            onRetry={() => window.location.reload()}
+          />
         </aside>
       </div>
     </>

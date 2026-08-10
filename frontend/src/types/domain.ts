@@ -91,6 +91,7 @@ export interface AttentionItem {
   id: number
   title: string
   detail: string
+  actionLabel: string
   tone: "warning" | "info"
 }
 

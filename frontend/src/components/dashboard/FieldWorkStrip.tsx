@@ -18,6 +18,8 @@ interface FieldWorkStripProps {
   summary: DashboardSummary
   onCreateJob: () => void
   onOpenJob: (entryId: number) => void
+  hasWorkspace?: boolean
+  onCreateWorkspace?: () => void
   compact?: boolean
 }
 
@@ -189,6 +191,8 @@ export function FieldWorkStrip({
   summary,
   onCreateJob,
   onOpenJob,
+  hasWorkspace = true,
+  onCreateWorkspace,
   compact = false,
 }: FieldWorkStripProps) {
   const todayKey = getLocalDateKey()
@@ -205,17 +209,31 @@ export function FieldWorkStrip({
     )[0]
   const backlogChips = buildBacklogChips(summary)
   const hasJobs = entries.length > 0
+  const emptyAction = hasWorkspace ? onCreateJob : (onCreateWorkspace ?? onCreateJob)
 
   if (!hasJobs) {
     return (
       <section className="field-work-strip field-work-strip-empty" aria-label="Field schedule">
         <div className="field-work-empty-copy">
-          <p className="eyebrow">Get started</p>
-          <h2>Create your first proof record</h2>
-          <p>
-            Add the property and customer, document Before / During / After photos,
-            then generate a customer-ready report.
-          </p>
+          {hasWorkspace ? (
+            <>
+              <p className="eyebrow">Get started</p>
+              <h2>Create your first proof record</h2>
+              <p>
+                Add the property and customer, document Before / During / After photos,
+                then generate a customer-ready report.
+              </p>
+            </>
+          ) : (
+            <>
+              <p className="eyebrow">Your field work</p>
+              <h2>No workspace yet</h2>
+              <p>
+                Create a workspace first so FieldProof has a place to store jobs,
+                photos, crew activity, and reports.
+              </p>
+            </>
+          )}
         </div>
 
         <div className="field-work-empty-actions">
@@ -223,10 +241,10 @@ export function FieldWorkStrip({
             className="field-work-empty-primary-action"
             type="button"
             variant="secondary"
-            onClick={onCreateJob}
+            onClick={emptyAction}
           >
             <Plus aria-hidden="true" size={16} />
-            Create first job
+            {hasWorkspace ? "Create first job" : "Create workspace"}
           </Button>
         </div>
       </section>
