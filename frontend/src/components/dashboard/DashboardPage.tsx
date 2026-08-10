@@ -648,7 +648,7 @@ function OnboardingDashboard({
   const completionPercent = getCompletionPercent(onboarding)
   const onboardingGuide = buildOnboardingGuide(dashboard, visibleCurrentStep)
   const taskSideTitle = getOnboardingTaskSideTitle(visibleCurrentStep)
-  const previewCompanyName = workspaceName.trim() || "Desert Roofing"
+  const previewCompanyName = workspaceName.trim() || "Your Company"
   const previewInitial = (previewCompanyName[0] ?? "F").toUpperCase()
 
   useEffect(() => {
@@ -1263,13 +1263,23 @@ function OnboardingDashboard({
             </div>
 
             <aside className="onboarding-report-preview" aria-label="Report branding preview">
-              <p className="onboarding-card-label">Report preview</p>
+              <div className="onboarding-report-preview-heading">
+                <p className="onboarding-card-label">Report preview</p>
+                <span>
+                  {activeReportPreviewSlide + 1} / {reportPreviewSlideLabels.length}
+                </span>
+              </div>
               <div
                 className="onboarding-report-preview-carousel"
                 ref={reportPreviewCarouselRef}
                 onScroll={handleReportPreviewScroll}
               >
-                <article className="onboarding-report-preview-page">
+                <button
+                  className="onboarding-report-preview-page"
+                  type="button"
+                  aria-label="Open sample report overview"
+                  onClick={handleExploreDemoWorkspace}
+                >
                   <div className="onboarding-report-preview-header">
                     <span>{previewInitial}</span>
                     <div>
@@ -1281,6 +1291,7 @@ function OnboardingDashboard({
                     <p className="onboarding-preview-kicker">Job overview</p>
                     <h3>Roof Repair</h3>
                     <small>1001 N 26th St</small>
+                    <small>Aug 10, 2026</small>
                     <div className="onboarding-preview-photo-row" aria-hidden="true">
                       <span>
                         <em>Before</em>
@@ -1289,45 +1300,77 @@ function OnboardingDashboard({
                         <em>After</em>
                       </span>
                     </div>
+                    <div className="onboarding-preview-report-meta">
+                      <span>14 photos</span>
+                      <span>Completed</span>
+                    </div>
                     <footer>FP-2026-000018</footer>
                   </div>
-                </article>
-                <article className="onboarding-report-preview-page">
+                </button>
+                <button
+                  className="onboarding-report-preview-page"
+                  type="button"
+                  aria-label="Open sample report evidence"
+                  onClick={handleExploreDemoWorkspace}
+                >
                   <div className="onboarding-preview-report-body">
                     <p className="onboarding-preview-kicker">Evidence</p>
                     <h3>Before / During / After</h3>
-                    <div className="onboarding-preview-evidence-list">
+                    <div className="onboarding-preview-stage-thumbs" aria-hidden="true">
+                      <span>
+                        <em>Before</em>
+                      </span>
+                      <span>
+                        <em>During</em>
+                      </span>
+                      <span>
+                        <em>After</em>
+                      </span>
+                    </div>
+                    <div className="onboarding-preview-stage-list">
                       <span>
                         <strong>Before</strong>
-                        <small>3 photos</small>
+                        <small>3</small>
+                        <em>Pre-work condition</em>
                       </span>
                       <span>
                         <strong>During</strong>
-                        <small>8 photos</small>
+                        <small>8</small>
+                        <em>Repair progress</em>
                       </span>
                       <span>
                         <strong>After</strong>
-                        <small>3 photos</small>
+                        <small>3</small>
+                        <em>Completed condition</em>
                       </span>
                     </div>
-                    <p>
-                      Pre-work condition, repair progress, and final condition stay
-                      tied to one job record.
-                    </p>
+                    <footer>14 documented photos</footer>
                   </div>
-                </article>
-                <article className="onboarding-report-preview-page">
+                </button>
+                <button
+                  className="onboarding-report-preview-page"
+                  type="button"
+                  aria-label="Open sample report completion record"
+                  onClick={handleExploreDemoWorkspace}
+                >
                   <div className="onboarding-preview-report-body">
                     <p className="onboarding-preview-kicker">Completion</p>
                     <h3>Ready to share</h3>
                     <div className="onboarding-preview-check-list">
                       <span>Work completed</span>
                       <span>Final photos captured</span>
-                      <span>Report version locked</span>
+                      <span>No unresolved issues</span>
                     </div>
-                    <p>FieldProof turns the saved proof record into a customer-ready report.</p>
+                    <div className="onboarding-preview-divider" />
+                    <div className="onboarding-preview-record">
+                      <p className="onboarding-preview-kicker">Report record</p>
+                      <strong>FP-2026-000018</strong>
+                      <span>Version 1 · Locked</span>
+                      <small>Aug 10, 2026 · 3:42 PM</small>
+                    </div>
+                    <footer>Verified proof record</footer>
                   </div>
-                </article>
+                </button>
               </div>
               <div className="onboarding-report-preview-dots">
                 {reportPreviewSlideLabels.map((label, index) => (
