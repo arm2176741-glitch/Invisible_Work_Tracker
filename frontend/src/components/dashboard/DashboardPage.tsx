@@ -643,6 +643,8 @@ function OnboardingDashboard({
   const completionPercent = getCompletionPercent(onboarding)
   const onboardingGuide = buildOnboardingGuide(dashboard, visibleCurrentStep)
   const taskSideTitle = getOnboardingTaskSideTitle(visibleCurrentStep)
+  const previewCompanyName = workspaceName.trim() || "Desert Roofing"
+  const previewInitial = (previewCompanyName[0] ?? "F").toUpperCase()
 
   useEffect(() => {
     if (dashboard.workspace) {
@@ -1079,6 +1081,23 @@ function OnboardingDashboard({
           </div>
         </header>
 
+        <nav className="mobile-onboarding-step-strip" aria-label="First report workflow">
+          {ONBOARDING_STEP_ORDER.map((step) => {
+            const stepState = getOnboardingStepVisualState(onboarding, step)
+
+            return (
+              <span
+                className="mobile-onboarding-step"
+                data-state={stepState}
+                aria-current={stepState === "current" ? "step" : undefined}
+                key={step}
+              >
+                {onboardingStepShortLabels[step]}
+              </span>
+            )
+          })}
+        </nav>
+
         <section className="card onboarding-progress-card">
           <div className="onboarding-progress-header">
             <p>First report workflow</p>
@@ -1137,10 +1156,7 @@ function OnboardingDashboard({
                 Step {currentStepNumber} of {onboarding.totalSteps}
               </p>
               <h2>Set up your workspace</h2>
-              <p>
-                Create the company workspace where your jobs, photos, crew activity,
-                and proof reports will live.
-              </p>
+              <p>Your company name appears on jobs and customer proof reports.</p>
 
               <div className="onboarding-workspace-form">
                 <div className="create-entry-field">
@@ -1199,23 +1215,71 @@ function OnboardingDashboard({
 
             <aside className="onboarding-report-preview" aria-label="Report branding preview">
               <p className="onboarding-card-label">Report preview</p>
-              <div className="onboarding-report-preview-page">
-                <div className="onboarding-report-preview-header">
-                  <span>{(workspaceName.trim()[0] ?? "F").toUpperCase()}</span>
-                  <div>
-                    <strong>{workspaceName.trim() || "Your company name"}</strong>
-                    <small>Workspace setup</small>
+              <div className="onboarding-report-preview-carousel">
+                <article className="onboarding-report-preview-page">
+                  <div className="onboarding-report-preview-header">
+                    <span>{previewInitial}</span>
+                    <div>
+                      <strong>{previewCompanyName}</strong>
+                      <small>Proof of Work Report</small>
+                    </div>
                   </div>
-                </div>
-                <div className="onboarding-report-preview-lines" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </div>
-                <p>
-                  Your company name appears on FieldProof jobs and customer-facing
-                  proof reports. Full profile and branding fields come later.
-                </p>
+                  <div className="onboarding-preview-report-body">
+                    <p className="onboarding-preview-kicker">Job overview</p>
+                    <h3>Roof Repair</h3>
+                    <small>1001 N 26th St</small>
+                    <div className="onboarding-preview-photo-row" aria-hidden="true">
+                      <span>
+                        <em>Before</em>
+                      </span>
+                      <span>
+                        <em>After</em>
+                      </span>
+                    </div>
+                    <footer>FP-2026-000018</footer>
+                  </div>
+                </article>
+                <article className="onboarding-report-preview-page">
+                  <div className="onboarding-preview-report-body">
+                    <p className="onboarding-preview-kicker">Evidence</p>
+                    <h3>Before / During / After</h3>
+                    <div className="onboarding-preview-evidence-list">
+                      <span>
+                        <strong>Before</strong>
+                        <small>3 photos</small>
+                      </span>
+                      <span>
+                        <strong>During</strong>
+                        <small>8 photos</small>
+                      </span>
+                      <span>
+                        <strong>After</strong>
+                        <small>3 photos</small>
+                      </span>
+                    </div>
+                    <p>
+                      Pre-work condition, repair progress, and final condition stay
+                      tied to one job record.
+                    </p>
+                  </div>
+                </article>
+                <article className="onboarding-report-preview-page">
+                  <div className="onboarding-preview-report-body">
+                    <p className="onboarding-preview-kicker">Completion</p>
+                    <h3>Ready to share</h3>
+                    <div className="onboarding-preview-check-list">
+                      <span>Work completed</span>
+                      <span>Final photos captured</span>
+                      <span>Report version locked</span>
+                    </div>
+                    <p>FieldProof turns the saved proof record into a customer-ready report.</p>
+                  </div>
+                </article>
+              </div>
+              <div className="onboarding-report-preview-dots" aria-hidden="true">
+                <span data-active="true" />
+                <span />
+                <span />
               </div>
             </aside>
           </form>

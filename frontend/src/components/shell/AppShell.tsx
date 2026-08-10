@@ -28,14 +28,20 @@ export function AppShell({
 
   return (
     <div className="app-backdrop">
-      <button
-        className="mobile-sidebar-toggle"
-        type="button"
-        aria-label="Open navigation"
-        onClick={() => setSidebarOpen(true)}
-      >
-        <Menu aria-hidden="true" size={20} />
-      </button>
+      <header className="mobile-shell-header">
+        <button
+          className="mobile-sidebar-toggle"
+          type="button"
+          aria-label="Open navigation"
+          onClick={() => setSidebarOpen(true)}
+        >
+          <Menu aria-hidden="true" size={20} />
+        </button>
+        <div className="mobile-shell-brand" aria-label="FieldProof">
+          <span aria-hidden="true">FP</span>
+          <strong>FieldProof</strong>
+        </div>
+      </header>
       <div className="app-shell">
         <AppSidebar
           activeView={activeView}
