@@ -550,7 +550,7 @@ function App() {
         }
 
         setDashboardLoadError(
-          "Could not load saved dashboard data. Make sure the Spring Boot backend and MySQL are running.",
+          "Could not load saved dashboard data. Make sure the Spring Boot API is running and reachable from the frontend.",
         )
       }
     }
