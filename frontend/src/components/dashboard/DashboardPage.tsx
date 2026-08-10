@@ -397,7 +397,7 @@ function getMobileHomeSummary(summary: DashboardSummary, entryCount: number) {
   }
 
   if (entryCount === 0) {
-    return "Create a job to start documenting work."
+    return "Create your first proof record."
   }
 
   return "No jobs need attention right now."
@@ -1756,20 +1756,26 @@ function OperationalDashboard({
         <div>
           <h1 className="page-title">Good morning, {getFirstName(userName)}</h1>
           <p className="page-copy operational-page-copy">
-            {summary.proofReady > 0 ? (
+            {dashboardEntries.length === 0 ? (
+              "Start by creating your first job."
+            ) : summary.proofReady > 0 ? (
               <a className="operational-page-action-link" href="/reports?status=ready-to-send">
                 {formatReadyToSendSummary(summary.proofReady)}.
               </a>
-            ) : (
+            ) : summary.needsEvidence > 0 ? (
               <>
                 <a className="operational-page-action-link" href="/jobs?status=active">
                   {pluralizeCount(summary.activeJobs, "active job")}
                 </a>
-                <span className="operational-page-copy-separator">·</span>
+                <span className="operational-page-copy-separator">-</span>
                 <a className="operational-page-action-link" href="/jobs?status=needs-photos">
                   {formatNeedsPhotosSummary(summary.needsEvidence)}
                 </a>
               </>
+            ) : (
+              <a className="operational-page-action-link" href="/jobs?status=active">
+                {pluralizeCount(summary.activeJobs, "active job")}
+              </a>
             )}
           </p>
         </div>

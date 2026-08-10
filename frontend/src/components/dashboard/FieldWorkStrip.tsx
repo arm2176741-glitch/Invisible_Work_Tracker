@@ -210,17 +210,18 @@ export function FieldWorkStrip({
     return (
       <section className="field-work-strip field-work-strip-empty" aria-label="Field schedule">
         <div className="field-work-empty-copy">
-          <p className="eyebrow">Your field schedule</p>
-          <h2>Your first job will appear here once it's scheduled.</h2>
+          <p className="eyebrow">Get started</p>
+          <h2>Create your first proof record</h2>
           <p>
-            Create a job to add the customer, property, schedule, and planned work.
+            Add the property and customer, document Before / During / After photos,
+            then generate a customer-ready report.
           </p>
         </div>
 
         <div className="field-work-empty-actions">
           <Button type="button" onClick={onCreateJob}>
             <Plus aria-hidden="true" size={16} />
-            Create your first job
+            Create first job
           </Button>
         </div>
       </section>
@@ -301,7 +302,7 @@ export function FieldWorkStrip({
               >
                 <span>Your next job is {getNextJobDateLabel(nextScheduledEntry, todayKey)}.</span>
                 <strong>
-                  {nextScheduledEntry.jobTitle ?? "Untitled job"} ·{" "}
+                  {nextScheduledEntry.jobTitle ?? "Untitled job"} -{" "}
                   {nextScheduledEntry.propertyAddress ?? "No property address added"}
                 </strong>
               </button>
