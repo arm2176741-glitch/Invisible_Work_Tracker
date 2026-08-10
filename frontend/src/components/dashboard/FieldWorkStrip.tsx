@@ -219,7 +219,12 @@ export function FieldWorkStrip({
         </div>
 
         <div className="field-work-empty-actions">
-          <Button type="button" onClick={onCreateJob}>
+          <Button
+            className="field-work-empty-primary-action"
+            type="button"
+            variant="secondary"
+            onClick={onCreateJob}
+          >
             <Plus aria-hidden="true" size={16} />
             Create first job
           </Button>
