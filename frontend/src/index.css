@@ -5220,8 +5220,8 @@ a:focus-visible {
   .onboarding-workspace-card .onboarding-hero-actions {
     align-items: stretch;
     flex-direction: column;
-    gap: 8px;
-    margin-top: 8px;
+    gap: 10px;
+    margin-top: clamp(72px, 18svh, 132px);
   }
 
   .onboarding-workspace-card .onboarding-primary-action-wrap {
@@ -5233,19 +5233,28 @@ a:focus-visible {
     width: 100%;
     min-height: 54px;
     border-radius: 10px;
+    border-color: rgba(245, 196, 0, 0.58);
+    background: rgba(245, 196, 0, 0.035);
+    box-shadow: inset 0 0 0 1px rgba(245, 196, 0, 0.06);
+    color: #e0b73c;
     justify-content: center;
     padding: 0 16px;
     font-size: 0.9rem;
+  }
+
+  .onboarding-workspace-card .onboarding-hero-actions .fp-button:hover {
+    border-color: rgba(245, 196, 0, 0.78);
+    background: rgba(245, 196, 0, 0.08);
   }
 
   .onboarding-workspace-card .hero-secondary-action {
     width: auto;
     min-height: 34px;
     flex: 0 0 auto;
-    align-self: flex-start;
-    justify-content: flex-start;
-    color: rgba(247, 248, 250, 0.56);
-    font-size: 0.86rem;
+    align-self: center;
+    justify-content: center;
+    color: rgba(247, 248, 250, 0.34);
+    font-size: 0.78rem;
   }
 
   .onboarding-welcome-backdrop {
@@ -5289,10 +5298,12 @@ a:focus-visible {
   }
 
   .onboarding-report-preview-page {
-    flex-basis: min(85vw, 300px);
-    min-height: 300px;
-    padding: 15px;
-    gap: 10px;
+    flex-basis: min(86vw, 318px);
+    min-height: 340px;
+    max-height: 380px;
+    padding: 18px;
+    gap: 12px;
+    border-radius: 8px;
     box-shadow: 0 14px 34px rgba(0, 0, 0, 0.22);
   }
 
@@ -5339,7 +5350,7 @@ a:focus-visible {
   }
 
   .onboarding-preview-photo-row span {
-    min-height: 56px;
+    min-height: 60px;
   }
 
   .onboarding-preview-stage-thumbs {
@@ -5347,7 +5358,7 @@ a:focus-visible {
   }
 
   .onboarding-preview-stage-thumbs span {
-    min-height: 54px;
+    min-height: 62px;
   }
 
   .onboarding-preview-report-body h3 {
