@@ -9183,6 +9183,170 @@ a:focus-visible {
   }
 }
 
+@media (max-width: 740px) {
+  .main:has(.create-entry-page) {
+    padding: calc(48px + env(safe-area-inset-top)) 10px
+      calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .create-entry-page {
+    width: 100%;
+    gap: 0;
+  }
+
+  .create-entry-card {
+    padding: 12px;
+    overflow: visible;
+    border-color: rgba(61, 143, 214, 0.26);
+    border-style: solid;
+    border-radius: 9px;
+    background: rgba(6, 10, 16, 0.72);
+  }
+
+  .create-entry-header {
+    max-width: 100%;
+  }
+
+  .create-entry-header .eyebrow {
+    margin-bottom: 4px;
+    color: rgba(177, 187, 202, 0.5);
+    font-size: 0.58rem;
+    letter-spacing: 0;
+  }
+
+  .create-entry-header h1 {
+    max-width: none;
+    font-size: clamp(1.36rem, 6vw, 1.62rem);
+    line-height: 1.08;
+  }
+
+  .create-entry-header p:not(.eyebrow) {
+    max-width: 36ch;
+    margin-top: 6px;
+    font-size: 0.76rem;
+    line-height: 1.34;
+  }
+
+  .create-entry-section {
+    margin-top: 11px;
+    padding-top: 10px;
+  }
+
+  .create-entry-section-title {
+    gap: 7px;
+    margin-bottom: 7px;
+  }
+
+  .create-entry-section-title > svg,
+  .create-entry-section-title span > svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .create-entry-section-title h2 {
+    font-size: 0.62rem;
+    letter-spacing: 0.06em;
+  }
+
+  .create-entry-form-grid {
+    gap: 8px;
+  }
+
+  .create-entry-field {
+    gap: 5px;
+  }
+
+  .create-entry-field label {
+    font-size: 0.7rem;
+  }
+
+  .create-entry-field input,
+  .create-entry-field select {
+    min-height: 39px;
+    padding: 0 10px;
+    border-radius: 7px;
+    font-size: 0.85rem;
+  }
+
+  .create-entry-field textarea {
+    min-height: 68px;
+    padding: 9px 10px;
+    border-radius: 7px;
+    font-size: 0.85rem;
+  }
+
+  .create-entry-field input:focus,
+  .create-entry-field select:focus,
+  .create-entry-field textarea:focus {
+    box-shadow: 0 0 0 2px rgba(84, 151, 210, 0.16);
+  }
+
+  .field-helper-text,
+  .field-footer-row {
+    font-size: 0.62rem;
+    line-height: 1.28;
+  }
+
+  .schedule-later-control {
+    min-height: 30px;
+    margin-top: 7px;
+    font-size: 0.68rem;
+  }
+
+  .create-entry-actions {
+    display: grid;
+    gap: 7px;
+    margin: 12px 0 0;
+    padding: 10px 0 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+    background: transparent;
+  }
+
+  .create-entry-actions .fp-button {
+    min-height: 39px;
+    border-radius: 8px;
+    font-size: 0.72rem;
+  }
+
+  .create-entry-actions .create-entry-cancel-button.fp-button {
+    order: 3;
+  }
+}
+
+@media (max-width: 740px) and (max-height: 760px) {
+  .main:has(.create-entry-page) {
+    padding-top: calc(44px + env(safe-area-inset-top));
+  }
+
+  .create-entry-card {
+    padding: 10px;
+  }
+
+  .create-entry-header h1 {
+    font-size: clamp(1.24rem, 5.6vw, 1.48rem);
+  }
+
+  .create-entry-header p:not(.eyebrow) {
+    font-size: 0.72rem;
+  }
+
+  .create-entry-section {
+    margin-top: 9px;
+    padding-top: 8px;
+  }
+
+  .create-entry-field input,
+  .create-entry-field select {
+    min-height: 37px;
+    font-size: 0.82rem;
+  }
+
+  .create-entry-field textarea {
+    min-height: 62px;
+    font-size: 0.82rem;
+  }
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
