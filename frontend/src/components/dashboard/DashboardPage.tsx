@@ -120,7 +120,7 @@ function getOnboardingTaskSideTitle(step: VisibleOnboardingStep) {
   }
 
   if (step === "CREATE_WORK_ENTRY") {
-    return "Job record includes"
+    return "What happens next"
   }
 
   if (step === "ADD_EVIDENCE") {
@@ -482,25 +482,23 @@ function buildOnboardingGuide(
 
   if (currentStep === "CREATE_WORK_ENTRY") {
     return {
-      title: "Create the first job record",
-      detail:
-        "The job becomes the source of truth for the property, planned scope, photos, and report snapshot.",
-      outcome:
-        "After the job is created, FieldProof opens the photo step instead of dropping you back into an empty dashboard.",
+      title: "Create the first job",
+      detail: "Add the property and start documenting.",
+      outcome: "Takes about 1 minute. You can edit everything later.",
       items: [
         {
-          label: "Customer and property",
-          detail: "Tell the report who the job belongs to and where the work happens.",
+          label: "Property",
+          detail: "Where the work happens.",
           complete: Boolean(firstEntry?.customerName && firstEntry.propertyAddress),
         },
         {
-          label: "Job type and schedule",
-          detail: "Capture the trade category and schedule details when known.",
+          label: "Scope",
+          detail: "What needs to be documented.",
           complete: Boolean(firstEntry?.workType),
         },
         {
-          label: "Job page",
-          detail: "Photos and report readiness unlock after creation.",
+          label: "Photos",
+          detail: "Capture Before and After evidence.",
           complete: Boolean(firstEntry),
         },
       ],
@@ -674,6 +672,18 @@ function OnboardingDashboard({
     setWelcomeEvaluated(true)
   }, [dashboard.workspace, dashboardLoadError, welcomeEvaluated])
 
+  useEffect(() => {
+    if (!workspaceSuccess) {
+      return
+    }
+
+    const dismissTimer = window.setTimeout(() => {
+      setWorkspaceSuccess(null)
+    }, 4200)
+
+    return () => window.clearTimeout(dismissTimer)
+  }, [workspaceSuccess])
+
   function handleStartFirstReport() {
     writeLocalPreference(ONBOARDING_WELCOME_SEEN_KEY)
     setWelcomeDialogOpen(false)
@@ -803,7 +813,7 @@ function OnboardingDashboard({
     setWorkspaceCoachVisible(false)
     setWorkspaceSuccess({
       title: "Workspace created",
-      detail: `${organization.name} is ready. Next, create your first job.`,
+      detail: `${organization.name} is ready.`,
     })
   }
 
@@ -1416,7 +1426,11 @@ function OnboardingDashboard({
             </aside>
           </form>
         ) : (
-          <section className="card onboarding-task-card" aria-live="polite">
+          <section
+            className="card onboarding-task-card"
+            data-step={visibleCurrentStep}
+            aria-live="polite"
+          >
             <div className="onboarding-task-copy">
               <p className="onboarding-step-label">
                 Step {currentStepNumber} of {onboarding.totalSteps}
@@ -1451,6 +1465,9 @@ function OnboardingDashboard({
                   </div>
                 ))}
               </div>
+              {visibleCurrentStep === "CREATE_WORK_ENTRY" ? (
+                <p className="onboarding-guide-note">{onboardingGuide.outcome}</p>
+              ) : null}
             </aside>
           </section>
         )}

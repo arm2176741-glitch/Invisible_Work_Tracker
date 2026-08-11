@@ -106,9 +106,8 @@ export const ONBOARDING_STEP_CONTENT: Record<VisibleOnboardingStep, OnboardingSt
   CREATE_WORK_ENTRY: {
     eyebrow: "Current step",
     title: "Create your first job",
-    description:
-      "Record the property, work type, date, crew assignment, and planned scope.",
-    actionLabel: "Create job",
+    description: "Add the property and scope. You can fill in the rest later.",
+    actionLabel: "Start first job",
     image: "/images/onboarding/step-2-create-entry.png",
   },
   ADD_EVIDENCE: {
