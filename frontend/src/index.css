@@ -5146,7 +5146,7 @@ a:focus-visible {
     left: 0;
     height: 3px;
     border-radius: 999px;
-    background: var(--accent);
+    background: rgba(247, 248, 250, 0.94);
   }
 
   .onboarding-task-card,
