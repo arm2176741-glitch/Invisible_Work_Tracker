@@ -6415,6 +6415,10 @@ a:focus-visible {
   font-weight: 720;
 }
 
+.evidence-stage-tabs {
+  display: none;
+}
+
 .evidence-category-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -9415,14 +9419,92 @@ a:focus-visible {
     height: 7px;
   }
 
+  .evidence-stage-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    margin-bottom: 10px;
+    padding: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.035);
+  }
+
+  .evidence-stage-tab {
+    min-width: 0;
+    min-height: 39px;
+    display: grid;
+    align-content: center;
+    gap: 3px;
+    padding: 6px 5px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    background: transparent;
+    color: rgba(247, 248, 250, 0.5);
+    cursor: pointer;
+    font: inherit;
+    line-height: 1.1;
+    text-align: center;
+  }
+
+  .evidence-stage-tab span,
+  .evidence-stage-tab small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .evidence-stage-tab span {
+    font-size: 0.68rem;
+    font-weight: 860;
+  }
+
+  .evidence-stage-tab small {
+    color: rgba(247, 248, 250, 0.38);
+    font-size: 0.52rem;
+    font-weight: 760;
+  }
+
+  .evidence-stage-tab[data-state="missing"] small {
+    color: rgba(241, 119, 119, 0.86);
+  }
+
+  .evidence-stage-tab[data-state="complete"] small {
+    color: rgba(112, 211, 142, 0.9);
+  }
+
+  .evidence-stage-tab[data-active="true"] {
+    border-color: rgba(245, 196, 0, 0.22);
+    background: rgba(245, 196, 0, 0.11);
+    color: rgba(255, 247, 224, 0.96);
+  }
+
+  .evidence-stage-tab[data-active="true"] small {
+    color: rgba(255, 235, 184, 0.72);
+  }
+
   .evidence-category-grid {
+    display: flex;
     gap: 10px;
+    margin: 0 -10px;
+    padding: 0 10px 2px;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: 10px;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+
+  .evidence-category-grid::-webkit-scrollbar {
+    display: none;
   }
 
   .evidence-category-card {
+    flex: 0 0 min(88vw, 350px);
     gap: 9px;
     padding: 12px;
     border-radius: 10px;
+    scroll-snap-align: start;
   }
 
   .evidence-category-top {

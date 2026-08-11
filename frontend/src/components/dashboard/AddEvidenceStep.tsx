@@ -133,6 +133,9 @@ export function AddEvidenceStep({
   })
   const [uploadingCategory, setUploadingCategory] = useState<EvidenceCategory | null>(null)
   const [uploadError, setUploadError] = useState<string | null>(null)
+  const [activeEvidenceCategory, setActiveEvidenceCategory] =
+    useState<EvidenceCategory>("BEFORE")
+  const evidenceCarouselRef = useRef<HTMLDivElement>(null)
   const selectedFilesRef = useRef(selectedFiles)
 
   useEffect(() => {
@@ -163,6 +166,71 @@ export function AddEvidenceStep({
     { label: "After", complete: hasAfter },
     { label: "During (optional)", complete: hasDuring },
   ]
+
+  function getCategoryEvidence(category: EvidenceCategory) {
+    return evidence.filter((evidenceItem) => evidenceItem.category === category)
+  }
+
+  function getCategoryState(
+    item: (typeof evidenceCategories)[number],
+    categoryEvidenceCount = getCategoryEvidence(item.category).length,
+  ) {
+    if (categoryEvidenceCount > 0) {
+      return "complete"
+    }
+
+    return item.required ? "missing" : "optional"
+  }
+
+  function scrollToEvidenceCategory(category: EvidenceCategory) {
+    setActiveEvidenceCategory(category)
+
+    const carousel = evidenceCarouselRef.current
+    const card = carousel?.querySelector<HTMLElement>(
+      `[data-evidence-category="${category}"]`,
+    )
+
+    card?.scrollIntoView({
+      behavior: "smooth",
+      block: "nearest",
+      inline: "center",
+    })
+  }
+
+  function handleEvidenceCarouselScroll() {
+    const carousel = evidenceCarouselRef.current
+
+    if (!carousel) {
+      return
+    }
+
+    const cards = Array.from(
+      carousel.querySelectorAll<HTMLElement>("[data-evidence-category]"),
+    )
+    const carouselCenter = carousel.scrollLeft + carousel.clientWidth / 2
+    let nearestCategory = activeEvidenceCategory
+    let nearestDistance = Number.POSITIVE_INFINITY
+
+    cards.forEach((card) => {
+      const category = card.dataset.evidenceCategory as EvidenceCategory | undefined
+
+      if (!category) {
+        return
+      }
+
+      const cardCenter = card.offsetLeft + card.offsetWidth / 2
+      const distance = Math.abs(cardCenter - carouselCenter)
+
+      if (distance < nearestDistance) {
+        nearestCategory = category
+        nearestDistance = distance
+      }
+    })
+
+    setActiveEvidenceCategory((currentCategory) =>
+      currentCategory === nearestCategory ? currentCategory : nearestCategory,
+    )
+  }
 
   function handleFileSelection(category: EvidenceCategory, files: FileList | null) {
     const selectedImages = Array.from(files ?? []).filter((file) =>
@@ -301,25 +369,61 @@ export function AddEvidenceStep({
               <span>Saved automatically to report</span>
             </div>
 
-            <div className="evidence-category-grid">
+            <div
+              className="evidence-stage-tabs"
+              role="tablist"
+              aria-label="Evidence stages"
+            >
               {evidenceCategories.map((item) => {
-                const categoryEvidence = evidence.filter(
-                  (evidenceItem) => evidenceItem.category === item.category,
+                const categoryEvidenceCount = getCategoryEvidence(item.category).length
+                const state = getCategoryState(item, categoryEvidenceCount)
+                const isActive = activeEvidenceCategory === item.category
+                const shortTitle = item.title.replace(" Work", "")
+
+                return (
+                  <button
+                    className="evidence-stage-tab"
+                    data-active={isActive}
+                    data-state={state}
+                    key={item.category}
+                    role="tab"
+                    type="button"
+                    aria-controls={`evidence-stage-${item.category}`}
+                    aria-selected={isActive}
+                    onClick={() => scrollToEvidenceCategory(item.category)}
+                  >
+                    <span>{shortTitle}</span>
+                    <small>
+                      {categoryEvidenceCount > 0
+                        ? `${categoryEvidenceCount} added`
+                        : item.required
+                          ? "Missing"
+                          : "Optional"}
+                    </small>
+                  </button>
                 )
+              })}
+            </div>
+
+            <div
+              className="evidence-category-grid"
+              ref={evidenceCarouselRef}
+              onScroll={handleEvidenceCarouselScroll}
+            >
+              {evidenceCategories.map((item) => {
+                const categoryEvidence = getCategoryEvidence(item.category)
                 const selectedForCategory = selectedFiles[item.category]
-                const state =
-                  categoryEvidence.length > 0
-                    ? "complete"
-                    : item.required
-                      ? "missing"
-                      : "optional"
+                const state = getCategoryState(item, categoryEvidence.length)
 
                 return (
                   <article
                     className="evidence-category-card"
                     data-complete={categoryEvidence.length > 0}
+                    data-evidence-category={item.category}
                     data-required={item.required}
+                    id={`evidence-stage-${item.category}`}
                     key={item.category}
+                    role="tabpanel"
                   >
                     <div className="evidence-category-top">
                       <div>
