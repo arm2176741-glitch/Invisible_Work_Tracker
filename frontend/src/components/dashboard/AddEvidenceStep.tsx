@@ -72,6 +72,11 @@ const emptySelectedFiles: SelectedEvidenceFiles = {
   AFTER: [],
 }
 const acceptedEvidenceImageTypes = "image/jpeg,image/png,image/webp"
+const evidenceStageTabDetails: Record<EvidenceCategory, string> = {
+  BEFORE: "Original condition.",
+  DURING: "Progress and materials.",
+  AFTER: "Completed condition.",
+}
 
 function formatEvidenceTime(value: string) {
   return new Intl.DateTimeFormat("en", {
@@ -379,6 +384,11 @@ export function AddEvidenceStep({
                 const state = getCategoryState(item, categoryEvidenceCount)
                 const isActive = activeEvidenceCategory === item.category
                 const shortTitle = item.title.replace(" Work", "")
+                const stageStatus = categoryEvidenceCount > 0
+                  ? `${categoryEvidenceCount} added`
+                  : item.required
+                    ? "missing"
+                    : "optional"
 
                 return (
                   <button
@@ -389,21 +399,20 @@ export function AddEvidenceStep({
                     role="tab"
                     type="button"
                     aria-controls={`evidence-stage-${item.category}`}
+                    aria-label={`${shortTitle} evidence stage, ${stageStatus}`}
                     aria-selected={isActive}
                     onClick={() => scrollToEvidenceCategory(item.category)}
                   >
-                    <span>{shortTitle}</span>
-                    <small>
-                      {categoryEvidenceCount > 0
-                        ? `${categoryEvidenceCount} added`
-                        : item.required
-                          ? "Missing"
-                          : "Optional"}
-                    </small>
+                    <span className="evidence-stage-dot" aria-hidden="true" />
+                    <strong>{shortTitle}</strong>
+                    <small>{evidenceStageTabDetails[item.category]}</small>
                   </button>
                 )
               })}
             </div>
+            <p className="evidence-stage-note">
+              Add Before and After photos to continue. During is optional.
+            </p>
 
             <div
               className="evidence-category-grid"

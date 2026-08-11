@@ -6423,7 +6423,8 @@ a:focus-visible {
   font-weight: 720;
 }
 
-.evidence-stage-tabs {
+.evidence-stage-tabs,
+.evidence-stage-note {
   display: none;
 }
 
@@ -9430,65 +9431,95 @@ a:focus-visible {
   .evidence-stage-tabs {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 4px;
-    margin-bottom: 10px;
-    padding: 3px;
-    border: 1px solid rgba(255, 255, 255, 0.075);
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.035);
+    gap: 0;
+    margin-bottom: 8px;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 11px;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.012)),
+      rgba(12, 15, 20, 0.72);
   }
 
   .evidence-stage-tab {
     min-width: 0;
-    min-height: 39px;
+    min-height: 84px;
     display: grid;
-    align-content: center;
-    gap: 3px;
-    padding: 6px 5px;
-    border: 1px solid transparent;
-    border-radius: 7px;
+    align-content: start;
+    justify-items: start;
+    gap: 6px;
+    padding: 12px 10px;
+    border: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 0;
     background: transparent;
-    color: rgba(247, 248, 250, 0.5);
+    color: rgba(247, 248, 250, 0.78);
     cursor: pointer;
     font: inherit;
-    line-height: 1.1;
-    text-align: center;
+    line-height: 1.12;
+    text-align: left;
   }
 
-  .evidence-stage-tab span,
+  .evidence-stage-tab:first-child {
+    border-left: 0;
+  }
+
+  .evidence-stage-tab strong,
   .evidence-stage-tab small {
     overflow: hidden;
     text-overflow: ellipsis;
+  }
+
+  .evidence-stage-dot {
+    width: 8px;
+    height: 8px;
+    display: block;
+    border-radius: 999px;
+    background: rgba(245, 196, 0, 0.76);
+  }
+
+  .evidence-stage-tab[data-state="complete"] .evidence-stage-dot {
+    background: rgba(92, 196, 123, 0.88);
+  }
+
+  .evidence-stage-tab[data-state="optional"] .evidence-stage-dot {
+    background: rgba(245, 196, 0, 0.48);
+  }
+
+  .evidence-stage-tab strong {
+    display: block;
+    color: rgba(247, 248, 250, 0.92);
+    font-size: 0.84rem;
+    font-weight: 860;
     white-space: nowrap;
   }
 
-  .evidence-stage-tab span {
-    font-size: 0.68rem;
-    font-weight: 860;
-  }
-
   .evidence-stage-tab small {
-    color: rgba(247, 248, 250, 0.38);
-    font-size: 0.52rem;
+    display: block;
+    max-width: 100%;
+    color: rgba(247, 248, 250, 0.44);
+    font-size: 0.64rem;
     font-weight: 760;
-  }
-
-  .evidence-stage-tab[data-state="missing"] small {
-    color: rgba(241, 119, 119, 0.86);
-  }
-
-  .evidence-stage-tab[data-state="complete"] small {
-    color: rgba(112, 211, 142, 0.9);
+    line-height: 1.26;
   }
 
   .evidence-stage-tab[data-active="true"] {
-    border-color: rgba(245, 196, 0, 0.22);
-    background: rgba(245, 196, 0, 0.11);
+    background: rgba(245, 196, 0, 0.07);
     color: rgba(255, 247, 224, 0.96);
+    box-shadow: inset 0 -2px 0 rgba(245, 196, 0, 0.64);
   }
 
   .evidence-stage-tab[data-active="true"] small {
-    color: rgba(255, 235, 184, 0.72);
+    color: rgba(255, 235, 184, 0.58);
+  }
+
+  .evidence-stage-note {
+    display: block;
+    margin: 0 0 10px;
+    color: rgba(247, 248, 250, 0.42);
+    font-size: 0.68rem;
+    line-height: 1.34;
   }
 
   .evidence-category-grid {
@@ -9679,6 +9710,24 @@ a:focus-visible {
   .evidence-category-card {
     gap: 8px;
     padding: 10px;
+  }
+
+  .evidence-stage-tab {
+    min-height: 76px;
+    padding: 10px 8px;
+  }
+
+  .evidence-stage-tab strong {
+    font-size: 0.78rem;
+  }
+
+  .evidence-stage-tab small {
+    font-size: 0.58rem;
+  }
+
+  .evidence-stage-note {
+    margin-bottom: 8px;
+    font-size: 0.62rem;
   }
 
   .evidence-dropzone {
