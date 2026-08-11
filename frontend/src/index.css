@@ -3868,10 +3868,10 @@ a:focus-visible {
   flex: 0 0 min(100%, 360px);
   display: grid;
   align-content: start;
-  gap: 16px;
+  gap: 14px;
   padding: 22px;
   border: 1px solid rgba(25, 25, 25, 0.12);
-  border-radius: 8px;
+  border-radius: 7px;
   background: #f7f5ef;
   color: #191919;
   box-shadow: 0 18px 42px rgba(0, 0, 0, 0.24);
@@ -3883,10 +3883,10 @@ a:focus-visible {
 
 .onboarding-report-preview-header {
   display: grid;
-  grid-template-columns: 46px minmax(0, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
   align-items: center;
-  padding-bottom: 16px;
+  padding-bottom: 15px;
   border-bottom: 1px solid rgba(25, 25, 25, 0.13);
 }
 
@@ -3918,7 +3918,8 @@ a:focus-visible {
 
 .onboarding-report-preview-header strong {
   color: #171717;
-  font-size: 1rem;
+  font-size: 1.04rem;
+  line-height: 1.12;
 }
 
 .onboarding-report-preview-header small {
@@ -3928,6 +3929,11 @@ a:focus-visible {
 }
 
 .onboarding-preview-report-body {
+  display: grid;
+  gap: 10px;
+}
+
+.onboarding-preview-section {
   display: grid;
   gap: 10px;
 }
@@ -3959,6 +3965,39 @@ a:focus-visible {
   font-weight: 900;
   line-height: 1;
   text-transform: uppercase;
+}
+
+.onboarding-preview-detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 18px;
+  margin: 0;
+}
+
+.onboarding-preview-detail-grid div,
+.onboarding-preview-record dl div {
+  min-width: 0;
+  display: grid;
+  gap: 3px;
+}
+
+.onboarding-preview-detail-grid dt,
+.onboarding-preview-record dt {
+  color: rgba(25, 25, 25, 0.42);
+  font-size: 0.58rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.onboarding-preview-detail-grid dd,
+.onboarding-preview-record dd {
+  overflow: hidden;
+  margin: 0;
+  color: rgba(25, 25, 25, 0.78);
+  font-size: 0.72rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .onboarding-preview-photo-row {
@@ -4069,9 +4108,8 @@ a:focus-visible {
   display: grid;
   align-content: center;
   padding: 8px 10px;
-  border: 1px solid rgba(25, 25, 25, 0.09);
-  border-radius: 7px;
-  background: rgba(255, 255, 255, 0.48);
+  border-top: 1px solid rgba(25, 25, 25, 0.1);
+  background: transparent;
 }
 
 .onboarding-preview-stage-list span {
@@ -4128,6 +4166,13 @@ a:focus-visible {
   gap: 4px;
 }
 
+.onboarding-preview-record dl {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 2px 0 0;
+}
+
 .onboarding-preview-record strong {
   color: #171717;
   font-size: 0.92rem;
@@ -4139,6 +4184,47 @@ a:focus-visible {
   color: rgba(25, 25, 25, 0.58);
   font-size: 0.74rem;
   font-weight: 780;
+}
+
+.onboarding-preview-record > span {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #41ad68;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.onboarding-preview-record > span::before {
+  content: "";
+  width: 10px;
+  height: 10px;
+  border: 2px solid #41ad68;
+  border-radius: 999px;
+}
+
+.onboarding-preview-total,
+.onboarding-preview-generated {
+  margin: 0;
+  color: rgba(25, 25, 25, 0.6);
+  font-size: 0.74rem;
+  font-weight: 850;
+}
+
+.onboarding-preview-generated {
+  align-self: end;
+  display: grid;
+  justify-items: center;
+  gap: 3px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(25, 25, 25, 0.09);
+  color: rgba(25, 25, 25, 0.28);
+  font-size: 0.58rem;
+}
+
+.onboarding-preview-generated span {
+  font-size: 0.56rem;
 }
 
 .onboarding-report-preview-dots {
@@ -5211,9 +5297,9 @@ a:focus-visible {
   }
 
   .onboarding-report-preview-header {
-    grid-template-columns: 34px minmax(0, 1fr);
-    gap: 9px;
-    padding-bottom: 9px;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+    padding-bottom: 10px;
   }
 
   .onboarding-report-preview-header > span {
@@ -5232,6 +5318,24 @@ a:focus-visible {
 
   .onboarding-preview-report-body {
     gap: 7px;
+  }
+
+  .onboarding-preview-section {
+    gap: 8px;
+  }
+
+  .onboarding-preview-detail-grid {
+    gap: 9px 12px;
+  }
+
+  .onboarding-preview-detail-grid dt,
+  .onboarding-preview-record dt {
+    font-size: 0.54rem;
+  }
+
+  .onboarding-preview-detail-grid dd,
+  .onboarding-preview-record dd {
+    font-size: 0.66rem;
   }
 
   .onboarding-preview-photo-row span {
@@ -5277,6 +5381,15 @@ a:focus-visible {
   .onboarding-preview-record span,
   .onboarding-preview-record small {
     font-size: 0.66rem;
+  }
+
+  .onboarding-preview-total {
+    font-size: 0.7rem;
+  }
+
+  .onboarding-preview-generated {
+    padding-top: 9px;
+    font-size: 0.54rem;
   }
 
   .onboarding-preview-report-body p,
