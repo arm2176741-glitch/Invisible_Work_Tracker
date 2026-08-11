@@ -341,7 +341,7 @@ export function AddEvidenceStep({
                       onDrop={(event) => handleDrop(item.category, event)}
                     >
                       <CloudUpload aria-hidden="true" size={18} />
-                      <span>Drop JPEG, PNG, or WebP photos</span>
+                      <span>JPEG, PNG, or WebP photos</span>
                       <div className="evidence-file-actions">
                         <label htmlFor={`photo-camera-${item.category}`}>
                           <Camera aria-hidden="true" size={13} />

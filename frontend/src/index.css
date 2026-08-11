@@ -9347,6 +9347,265 @@ a:focus-visible {
   }
 }
 
+@media (max-width: 740px) {
+  .main:has(.add-evidence-page) {
+    padding: calc(54px + env(safe-area-inset-top)) 10px
+      calc(86px + env(safe-area-inset-bottom));
+  }
+
+  .add-evidence-page {
+    width: 100%;
+    gap: 12px;
+  }
+
+  .add-evidence-flow-header {
+    gap: 8px;
+    padding: 0 2px 2px;
+  }
+
+  .add-evidence-header-copy .back-link-button {
+    min-height: 22px;
+    margin-bottom: 8px;
+    font-size: 0.64rem;
+  }
+
+  .add-evidence-header-copy .eyebrow {
+    margin-bottom: 4px;
+    font-size: 0.58rem;
+    letter-spacing: 0.04em;
+  }
+
+  .add-evidence-header-copy h1 {
+    max-width: 15ch;
+    font-size: clamp(1.32rem, 6vw, 1.58rem);
+    line-height: 1.08;
+  }
+
+  .add-evidence-header-copy > p:not(.eyebrow) {
+    max-width: 34ch;
+    margin-top: 6px;
+    font-size: 0.76rem;
+    line-height: 1.34;
+  }
+
+  .add-evidence-header-meta {
+    display: none;
+  }
+
+  .evidence-documentation-panel {
+    padding: 0;
+  }
+
+  .evidence-documentation-header {
+    gap: 7px;
+    margin-bottom: 10px;
+  }
+
+  .evidence-documentation-header p {
+    gap: 6px;
+    font-size: 0.6rem;
+  }
+
+  .evidence-documentation-header span {
+    display: none;
+  }
+
+  .evidence-header-dot {
+    width: 7px;
+    height: 7px;
+  }
+
+  .evidence-category-grid {
+    gap: 10px;
+  }
+
+  .evidence-category-card {
+    gap: 9px;
+    padding: 12px;
+    border-radius: 10px;
+  }
+
+  .evidence-category-top {
+    gap: 8px;
+  }
+
+  .evidence-category-card h2 {
+    font-size: 0.86rem;
+    line-height: 1.16;
+  }
+
+  .evidence-category-card p:not(.eyebrow) {
+    margin-top: 4px;
+    font-size: 0.66rem;
+    line-height: 1.34;
+  }
+
+  .evidence-state-pill {
+    min-height: 18px;
+    padding: 0 6px;
+    border-radius: 5px;
+    font-size: 0.5rem;
+    white-space: nowrap;
+  }
+
+  .evidence-dropzone {
+    min-height: 72px;
+    gap: 6px;
+    padding: 11px;
+    border-radius: 8px;
+    font-size: 0.62rem;
+  }
+
+  .evidence-dropzone svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  .evidence-file-actions {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .evidence-file-actions label {
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 8px;
+    border-radius: 7px;
+    font-size: 0.72rem;
+    white-space: nowrap;
+  }
+
+  .evidence-add-button {
+    min-height: 24px;
+    gap: 6px;
+    font-size: 0.66rem;
+  }
+
+  .evidence-list {
+    gap: 6px;
+    padding-top: 9px;
+  }
+
+  .evidence-empty {
+    font-size: 0.62rem;
+  }
+
+  .selected-evidence-preview-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px;
+  }
+
+  .selected-evidence-preview {
+    border-radius: 9px;
+  }
+
+  .selected-evidence-preview span {
+    padding: 6px 7px 0;
+    font-size: 0.64rem;
+  }
+
+  .selected-evidence-preview .evidence-caption-input {
+    width: calc(100% - 14px);
+    min-height: 34px;
+    margin: 7px;
+    font-size: 0.74rem;
+  }
+
+  .evidence-list-item {
+    grid-template-columns: 34px minmax(0, 1fr);
+    gap: 8px;
+    padding: 7px 8px;
+    border-radius: 9px;
+  }
+
+  .evidence-list-item img {
+    width: 34px;
+    border-radius: 7px;
+  }
+
+  .evidence-list-item strong {
+    font-size: 0.74rem;
+  }
+
+  .evidence-list-item span {
+    font-size: 0.64rem;
+  }
+
+  .evidence-footer-bar {
+    gap: 12px;
+    padding: 14px 0 calc(18px + env(safe-area-inset-bottom));
+  }
+
+  .evidence-footer-status-list {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 7px 10px;
+  }
+
+  .evidence-footer-status-list span {
+    min-width: 0;
+    gap: 5px;
+    font-size: 0.62rem;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .evidence-footer-bar p {
+    margin-top: 8px;
+    font-size: 0.6rem;
+  }
+
+  .evidence-footer-actions {
+    gap: 8px;
+  }
+
+  .evidence-footer-actions .fp-button {
+    min-height: 42px;
+    border-radius: 8px;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 740px) and (max-height: 760px) {
+  .main:has(.add-evidence-page) {
+    padding-top: calc(50px + env(safe-area-inset-top));
+  }
+
+  .add-evidence-page {
+    gap: 10px;
+  }
+
+  .add-evidence-header-copy h1 {
+    font-size: clamp(1.22rem, 5.5vw, 1.44rem);
+  }
+
+  .add-evidence-header-copy > p:not(.eyebrow) {
+    font-size: 0.7rem;
+  }
+
+  .evidence-category-card {
+    gap: 8px;
+    padding: 10px;
+  }
+
+  .evidence-dropzone {
+    min-height: 66px;
+    padding: 9px;
+  }
+
+  .evidence-file-actions label {
+    min-height: 31px;
+    font-size: 0.68rem;
+  }
+
+  .evidence-footer-bar {
+    padding-top: 12px;
+  }
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
