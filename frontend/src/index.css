@@ -9432,37 +9432,57 @@ a:focus-visible {
     min-width: 0;
     display: flex;
     align-items: center;
-    gap: 4px;
-    margin-bottom: 7px;
+    gap: 5px;
+    margin-bottom: 8px;
     overflow: hidden;
-    padding: 4px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 999px;
+    padding: 5px;
+    border: 1px solid rgba(255, 255, 255, 0.085);
+    border-radius: 13px;
     background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.012)),
-      rgba(8, 12, 18, 0.74);
+      linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.014)),
+      rgba(7, 11, 17, 0.86);
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.045),
+      0 12px 28px rgba(0, 0, 0, 0.18);
   }
 
   .evidence-stage-tab {
+    position: relative;
     flex: 1 1 0;
     min-width: 0;
-    min-height: 36px;
+    min-height: 44px;
     display: inline-flex;
     align-items: center;
-    justify-content: center;
-    gap: 5px;
-    padding: 0 6px;
-    border: 0;
-    border-radius: 999px;
+    justify-content: space-between;
+    gap: 6px;
+    padding: 0 8px;
+    border: 1px solid transparent;
+    border-radius: 10px;
     background: transparent;
-    color: rgba(247, 248, 250, 0.58);
+    color: rgba(247, 248, 250, 0.56);
     cursor: pointer;
     font: inherit;
-    line-height: 1;
-    text-align: center;
+    line-height: 1.08;
+    text-align: left;
+    transition:
+      border-color 160ms ease,
+      background 160ms ease,
+      color 160ms ease;
+  }
+
+  .evidence-stage-tab::after {
+    content: "";
+    position: absolute;
+    right: 10px;
+    bottom: 5px;
+    left: 10px;
+    height: 2px;
+    border-radius: 999px;
+    background: transparent;
   }
 
   .evidence-stage-tab strong,
+  .evidence-stage-tab em,
   .evidence-stage-tab small {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -9474,7 +9494,7 @@ a:focus-visible {
     display: block;
     flex: 0 0 auto;
     border-radius: 999px;
-    background: rgba(245, 196, 0, 0.68);
+    background: rgba(245, 196, 0, 0.58);
   }
 
   .evidence-stage-tab[data-state="complete"] .evidence-stage-dot {
@@ -9485,6 +9505,13 @@ a:focus-visible {
     background: rgba(245, 196, 0, 0.48);
   }
 
+  .evidence-stage-copy {
+    min-width: 0;
+    display: grid;
+    gap: 2px;
+    justify-items: start;
+  }
+
   .evidence-stage-tab strong {
     display: block;
     color: currentColor;
@@ -9493,33 +9520,58 @@ a:focus-visible {
     white-space: nowrap;
   }
 
+  .evidence-stage-tab em {
+    display: block;
+    max-width: 100%;
+    color: rgba(247, 248, 250, 0.34);
+    font-size: 0.48rem;
+    font-style: normal;
+    font-weight: 820;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
   .evidence-stage-tab small {
-    min-width: 21px;
+    min-width: 18px;
     min-height: 18px;
     display: inline-grid;
     place-items: center;
-    padding: 0 5px;
+    flex: 0 0 auto;
+    padding: 0 4px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.07);
-    color: rgba(247, 248, 250, 0.46);
+    background: rgba(255, 255, 255, 0.055);
+    color: rgba(247, 248, 250, 0.42);
     font-size: 0.5rem;
     font-weight: 850;
     line-height: 1;
   }
 
   .evidence-stage-tab[data-active="true"] {
-    background: #f5c400;
-    color: #071019;
-    box-shadow: 0 8px 20px rgba(245, 196, 0, 0.16);
+    border-color: rgba(245, 196, 0, 0.22);
+    background:
+      linear-gradient(180deg, rgba(245, 196, 0, 0.14), rgba(245, 196, 0, 0.055)),
+      rgba(255, 255, 255, 0.035);
+    color: rgba(255, 238, 190, 0.96);
+    box-shadow: inset 0 1px 0 rgba(255, 236, 175, 0.08);
+  }
+
+  .evidence-stage-tab[data-active="true"]::after {
+    background: rgba(245, 196, 0, 0.88);
   }
 
   .evidence-stage-tab[data-active="true"] .evidence-stage-dot {
-    background: rgba(7, 16, 25, 0.72);
+    background: #f5c400;
+    box-shadow: 0 0 0 3px rgba(245, 196, 0, 0.1);
+  }
+
+  .evidence-stage-tab[data-active="true"] em {
+    color: rgba(255, 235, 184, 0.46);
   }
 
   .evidence-stage-tab[data-active="true"] small {
-    background: rgba(7, 16, 25, 0.12);
-    color: rgba(7, 16, 25, 0.68);
+    background: rgba(245, 196, 0, 0.16);
+    color: rgba(255, 235, 184, 0.82);
   }
 
   .evidence-stage-note {
@@ -9721,18 +9773,22 @@ a:focus-visible {
   }
 
   .evidence-stage-tab {
-    min-height: 34px;
-    padding: 0 5px;
+    min-height: 40px;
+    padding: 0 7px;
   }
 
   .evidence-stage-tab strong {
-    font-size: 0.68rem;
+    font-size: 0.66rem;
+  }
+
+  .evidence-stage-tab em {
+    font-size: 0.44rem;
   }
 
   .evidence-stage-tab small {
-    min-width: 19px;
+    min-width: 17px;
     min-height: 16px;
-    font-size: 0.48rem;
+    font-size: 0.46rem;
   }
 
   .evidence-stage-note {

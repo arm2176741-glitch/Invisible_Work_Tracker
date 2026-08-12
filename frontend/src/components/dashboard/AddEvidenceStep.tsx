@@ -386,9 +386,8 @@ export function AddEvidenceStep({
                     : "optional"
                 const visualStatus = categoryEvidenceCount > 0
                   ? String(categoryEvidenceCount)
-                  : item.required
-                    ? "Req"
-                    : "Opt"
+                  : "0"
+                const requirementLabel = item.required ? "Required" : "Optional"
 
                 return (
                   <button
@@ -404,8 +403,11 @@ export function AddEvidenceStep({
                     onClick={() => scrollToEvidenceCategory(item.category)}
                   >
                     <span className="evidence-stage-dot" aria-hidden="true" />
-                    <strong>{shortTitle}</strong>
-                    <small>{visualStatus}</small>
+                    <span className="evidence-stage-copy">
+                      <strong>{shortTitle}</strong>
+                      <em>{requirementLabel}</em>
+                    </span>
+                    <small aria-label={`${visualStatus} photos`}>{visualStatus}</small>
                   </button>
                 )
               })}
