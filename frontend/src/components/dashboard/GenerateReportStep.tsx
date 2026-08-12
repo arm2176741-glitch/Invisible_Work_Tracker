@@ -244,26 +244,32 @@ export function GenerateReportStep({
           .map((item) => item.label)
           .join(", ")}`
       : "All required items complete"
-  const reportFlowItems = [
+  const readinessReviewItems = [
     {
-      label: "Summary",
-      description: hasWorkSummary ? "Work performed added." : "Add work performed.",
-      state: hasWorkSummary ? "complete" : "missing",
+      label: "Job details",
+      detail: workEntry.jobTitle || shortAddress,
+      complete: Boolean(workEntry.jobTitle || workEntry.propertyAddress),
     },
     {
       label: "Evidence",
-      description:
-        beforeCount > 0 && afterCount > 0
-          ? `${beforeCount} before / ${afterCount} after`
-          : "Before and After required.",
-      state: beforeCount > 0 && afterCount > 0 ? "complete" : "missing",
+      detail: `${formatPhotoCount(totalEvidence)} - Before ${beforeCount}, During ${duringCount}, After ${afterCount}`,
+      complete: beforeCount > 0 && afterCount > 0,
     },
     {
-      label: "Snapshot",
-      description: readyToGenerate ? "Ready to generate." : "Complete required items.",
-      state: readyToGenerate ? "complete" : "pending",
+      label: "Job snapshot",
+      detail: "Ready to create",
+      complete: true,
+    },
+    {
+      label: "Work summary",
+      detail: hasWorkSummary ? "Ready for report" : "Needed before generating",
+      complete: hasWorkSummary,
     },
   ]
+  const readinessReviewCompletedCount = readinessReviewItems.filter(
+    (item) => item.complete,
+  ).length
+  const evidencePreviewItems = evidence.slice(0, 4)
   const reportIncludeItems = [
     {
       label: "Company branding",
@@ -338,9 +344,20 @@ export function GenerateReportStep({
     return true
   }
 
-  async function handleSaveWorkEntry() {
+  function focusWorkSummary() {
+    const field = document.getElementById("work-summary") as HTMLTextAreaElement | null
+
+    field?.scrollIntoView({ behavior: "smooth", block: "center" })
+    window.setTimeout(() => field?.focus({ preventScroll: true }), 260)
+  }
+
+  async function saveSummaryForReport() {
     if (!validateSummary()) {
-      return
+      return false
+    }
+
+    if (!hasUnsavedSummary) {
+      return true
     }
 
     setIsSaving(true)
@@ -351,15 +368,19 @@ export function GenerateReportStep({
       await onSaveWorkEntry(normalizedSummary)
       setLastSavedSummary(normalizedSummary)
       setSaveMessage("Job summary saved.")
+      return true
     } catch (saveError) {
       setError(getGenerateReportErrorMessage(saveError))
+      return false
     } finally {
       setIsSaving(false)
     }
   }
 
-  function handlePreviewReport() {
-    if (!validateSummary()) {
+  async function handlePreviewReport() {
+    const saved = await saveSummaryForReport()
+
+    if (!saved) {
       return
     }
 
@@ -368,7 +389,7 @@ export function GenerateReportStep({
   }
 
   function handleRequestGenerateReport() {
-    if (!validateSummary()) {
+    if (!readyToGenerate || !validateSummary()) {
       return
     }
 
@@ -427,11 +448,14 @@ export function GenerateReportStep({
 
           <section className="generate-report-source">
             <div className="generate-source-line">
-              <span className="generate-source-chip">Source</span>
-              <strong>{reportSourceTitle}</strong>
-              <span>{customerName || "Customer not added"}</span>
-              <span>{formatDate(workEntry.workDate)}</span>
-              <span>{formatPhotoCount(totalEvidence)}</span>
+              <span className="generate-source-chip">Job record</span>
+              <div className="generate-source-copy">
+                <strong>{reportSourceTitle}</strong>
+                <span>
+                  {shortAddress} - {formatDate(workEntry.workDate)} - {formatPhotoCount(totalEvidence)}
+                  {customerName ? ` - ${customerName}` : ""}
+                </span>
+              </div>
             </div>
 
             <span className="generate-source-immutable">
@@ -440,25 +464,56 @@ export function GenerateReportStep({
             </span>
           </section>
 
-          <section className="generate-report-flow-strip" aria-label="Report generation flow">
-            <h2>What happens next</h2>
-            <div className="generate-report-flow-cells">
-              {reportFlowItems.map((item) => (
-                <div data-state={item.state} key={item.label}>
-                  <span aria-hidden="true" />
-                  <strong>{item.label}</strong>
-                  <p>{item.description}</p>
+          <section className="generate-readiness-review" data-ready={readyToGenerate}>
+            <div className="generate-readiness-review-header">
+              <div>
+                <p className="eyebrow">Report readiness</p>
+                <h2>
+                  {readyToGenerate ? "Ready to generate" : "Work summary needed"}
+                </h2>
+              </div>
+              <strong>
+                {readinessReviewCompletedCount}/{readinessReviewItems.length}
+              </strong>
+            </div>
+
+            <p>
+              {readyToGenerate
+                ? `${formatPhotoCount(totalEvidence)} and your work summary will be organized into the customer report.`
+                : "Add what your crew completed before creating the customer report."}
+            </p>
+
+            <div className="generate-readiness-review-list">
+              {readinessReviewItems.map((item) => (
+                <div data-complete={item.complete} key={item.label}>
+                  {item.complete ? (
+                    <CheckCircle2 aria-hidden="true" size={15} />
+                  ) : (
+                    <AlertTriangle aria-hidden="true" size={15} />
+                  )}
+                  <span>{item.label}</span>
+                  <strong>{item.detail}</strong>
                 </div>
               ))}
             </div>
-            <p>Review the summary and photos, then generate the report record.</p>
+
+            {!hasWorkSummary ? (
+              <Button
+                className="generate-readiness-summary-button"
+                type="button"
+                variant="secondary"
+                onClick={focusWorkSummary}
+              >
+                Add work summary
+              </Button>
+            ) : null}
           </section>
 
           <div className="generate-report-main-stack">
             <section className="generate-report-summary-editor">
               <div>
-                <p className="eyebrow">Work completed</p>
-                <Label htmlFor="work-summary">Work performed summary *</Label>
+                <p className="eyebrow">Work performed</p>
+                <Label htmlFor="work-summary">What did your crew complete? *</Label>
                 <p className="generate-field-help">
                   Briefly describe what was inspected, repaired, replaced, or installed.
                 </p>
@@ -467,7 +522,7 @@ export function GenerateReportStep({
                 id="work-summary"
                 value={summary}
                 maxLength={2000}
-                placeholder="Removed damaged shingles, replaced deteriorated decking near the vent, installed new underlayment and shingles, and completed final cleanup."
+                placeholder="Write a short summary for this job."
                 onChange={(event) => {
                   setSummary(event.target.value)
                   setSaveMessage(null)
@@ -478,13 +533,25 @@ export function GenerateReportStep({
                 }}
                 disabled={isGenerating || isSaving}
               />
+              <p className="generate-summary-example">
+                Example: Replaced damaged shingles, repaired 3 sheets of decking,
+                installed underlayment, and completed cleanup.
+              </p>
               <div className="summary-prompt-row" aria-label="Helpful summary prompts">
                 <span>Materials used</span>
                 <span>Issues discovered</span>
                 <span>Additional work</span>
               </div>
               <div className="field-footer-row">
-                <p>This summary appears in the customer-ready report.</p>
+                <p>
+                  {isSaving
+                    ? "Saving..."
+                    : saveMessage
+                      ? "Saved"
+                      : hasUnsavedSummary
+                        ? "Unsaved changes"
+                        : "This summary appears in the customer-ready report."}
+                </p>
                 <span>{summary.length}/2000</span>
               </div>
               {saveMessage ? (
@@ -508,6 +575,48 @@ export function GenerateReportStep({
                     </Button>
                   ) : null}
                 </div>
+              </div>
+
+              <div className="generate-evidence-mobile-summary">
+                <div>
+                  <strong>{formatPhotoCount(totalEvidence)}</strong>
+                  <span>
+                    Before {beforeCount} - During {duringCount} - After {afterCount}
+                  </span>
+                </div>
+
+                <div className="generate-evidence-thumb-row">
+                  {evidencePreviewItems.length > 0 ? (
+                    evidencePreviewItems.map((item) => (
+                      <button
+                        className="generate-evidence-thumb"
+                        key={item.id}
+                        type="button"
+                        onClick={() => setSelectedEvidence(item)}
+                        aria-label={`Preview ${getCategoryLabel(item.category)} evidence`}
+                      >
+                        {item.previewUrl ? (
+                          <img src={item.previewUrl} alt="" />
+                        ) : (
+                          <Camera aria-hidden="true" size={16} />
+                        )}
+                        <span>{item.category.toLowerCase()}</span>
+                      </button>
+                    ))
+                  ) : (
+                    <p>No photos attached yet.</p>
+                  )}
+                </div>
+
+                {onReviewEvidence ? (
+                  <button
+                    className="generate-evidence-review-link"
+                    type="button"
+                    onClick={onReviewEvidence}
+                  >
+                    Review evidence -&gt;
+                  </button>
+                ) : null}
               </div>
 
               <div className="generate-evidence-phases">
@@ -577,28 +686,48 @@ export function GenerateReportStep({
                 </p>
               ) : null}
 
-              <div className="generate-report-actions">
-                <Button type="button" variant="ghost" onClick={onBackToDashboard}>
+              <section className="generate-mobile-report-include">
+                <p className="eyebrow">Customer report</p>
+                <h3>Will include</h3>
+                <div>
+                  <span>Job information</span>
+                  <span>Work performed</span>
+                  <span>Photo evidence</span>
+                  <span>Dates and verification</span>
+                </div>
+              </section>
+
+              <div className="generate-report-actions" data-ready={readyToGenerate}>
+                {!readyToGenerate ? (
+                  <p className="generate-mobile-action-warning">
+                    <AlertTriangle aria-hidden="true" size={14} />
+                    Work summary required
+                  </p>
+                ) : null}
+                <Button
+                  className="generate-report-cancel-button"
+                  type="button"
+                  variant="ghost"
+                  onClick={onBackToDashboard}
+                >
                   Cancel
                 </Button>
                 <Button
-                  type="button"
-                  variant="ghost"
-                  disabled={isSaving || isGenerating || !hasUnsavedSummary}
-                  onClick={handleSaveWorkEntry}
-                >
-                  {isSaving ? "Saving job summary..." : "Save job summary"}
-                </Button>
-                <Button
+                  className="generate-report-preview-button"
                   type="button"
                   variant="secondary"
-                  disabled={isGenerating}
-                  onClick={handlePreviewReport}
+                  disabled={isGenerating || isSaving || !hasWorkSummary}
+                  onClick={() => void handlePreviewReport()}
                 >
                   <Eye aria-hidden="true" size={17} />
                   Preview report
                 </Button>
-                <Button type="button" disabled={isGenerating} onClick={handleRequestGenerateReport}>
+                <Button
+                  className="generate-report-generate-button"
+                  type="button"
+                  disabled={isGenerating || isSaving || !readyToGenerate}
+                  onClick={handleRequestGenerateReport}
+                >
                   {isGenerating ? "Generating report..." : "Generate report"}
                   <ArrowRight aria-hidden="true" size={17} />
                 </Button>
