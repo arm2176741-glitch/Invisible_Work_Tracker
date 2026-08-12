@@ -3347,6 +3347,18 @@ a:focus-visible {
   scroll-snap-align: start;
 }
 
+.mobile-recent-job-card h2 {
+  font-size: 1.08rem;
+  font-weight: 820;
+  letter-spacing: 0;
+}
+
+.mobile-recent-job-card p {
+  margin-top: 4px;
+  color: rgba(247, 248, 250, 0.58);
+  font-size: 0.8rem;
+}
+
 .mobile-recent-job-card:focus-visible {
   outline: 2px solid rgba(245, 196, 0, 0.72);
   outline-offset: 3px;
@@ -3473,6 +3485,9 @@ a:focus-visible {
 
 .mobile-recent-job-meta {
   margin-top: 9px !important;
+  color: rgba(247, 248, 250, 0.4) !important;
+  font-size: 0.72rem !important;
+  font-weight: 660;
 }
 
 .mobile-recent-job-cta {
@@ -3543,7 +3558,7 @@ a:focus-visible {
 }
 
 .field-work-strip-compact .field-work-next-job {
-  gap: 4px;
+  gap: 5px;
   margin-top: 13px;
 }
 
@@ -3554,14 +3569,46 @@ a:focus-visible {
   text-transform: uppercase;
 }
 
+.field-work-next-job-schedule {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 7px;
+  margin: 0 !important;
+  color: rgba(247, 248, 250, 0.9) !important;
+  font-size: 0.9rem !important;
+  font-weight: 820;
+  line-height: 1.2 !important;
+  text-transform: uppercase;
+}
+
+.field-work-next-job-separator {
+  margin: 0 !important;
+  color: rgba(226, 192, 119, 0.64) !important;
+}
+
 .field-work-next-job-title {
+  margin-top: 5px;
   color: #fff !important;
-  font-size: 0.95rem !important;
-  font-weight: 740;
+  font-size: 1.08rem !important;
+  font-weight: 820;
+  line-height: 1.18 !important;
 }
 
 .field-work-next-job-address {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 1px !important;
   color: rgba(247, 248, 250, 0.6) !important;
+  font-size: 0.86rem !important;
+  font-weight: 620;
+  line-height: 1.3 !important;
+}
+
+.field-work-next-job-address svg {
+  flex: 0 0 auto;
+  color: rgba(226, 192, 119, 0.72);
 }
 
 .mobile-operational-home .field-work-no-today-actions,

@@ -166,8 +166,14 @@ function getEntryActionLabel(entry: OnboardingFirstWorkEntry) {
 }
 
 function getNextJobDateLabel(entry: OnboardingFirstWorkEntry, todayKey: string) {
+  const schedule = getNextJobScheduleParts(entry, todayKey)
+
+  return schedule.timeLabel ? `${schedule.dateLabel} at ${schedule.timeLabel}` : schedule.dateLabel
+}
+
+function getNextJobScheduleParts(entry: OnboardingFirstWorkEntry, todayKey: string) {
   if (!entry.workDate) {
-    return "No date"
+    return { dateLabel: "Unscheduled", timeLabel: null }
   }
 
   const today = parseDateKey(todayKey)
@@ -183,7 +189,7 @@ function getNextJobDateLabel(entry: OnboardingFirstWorkEntry, todayKey: string) 
     ?? entry.arrivalWindow
     ?? null
 
-  return timeLabel ? `${dateLabel} at ${timeLabel}` : dateLabel
+  return { dateLabel, timeLabel }
 }
 
 export function FieldWorkStrip({
@@ -207,6 +213,9 @@ export function FieldWorkStrip({
     .sort((firstEntry, secondEntry) =>
       getScheduleSortValue(firstEntry).localeCompare(getScheduleSortValue(secondEntry)),
     )[0]
+  const nextScheduledEntryTime = nextScheduledEntry
+    ? getNextJobScheduleParts(nextScheduledEntry, todayKey)
+    : null
   const backlogChips = compact ? [] : buildBacklogChips(summary)
   const hasJobs = entries.length > 0
   const emptyAction = hasWorkspace ? onCreateJob : (onCreateWorkspace ?? onCreateJob)
@@ -333,12 +342,23 @@ export function FieldWorkStrip({
                 {compact ? (
                   <>
                     <span className="field-work-up-next-label">Up next</span>
-                    <strong>{getNextJobDateLabel(nextScheduledEntry, todayKey)}</strong>
-                    <span className="field-work-next-job-title">
-                      {nextScheduledEntry.jobTitle ?? "Untitled job"}
+                    <span className="field-work-next-job-schedule">
+                      <span>{nextScheduledEntryTime?.dateLabel}</span>
+                      {nextScheduledEntryTime?.timeLabel ? (
+                        <>
+                          <span className="field-work-next-job-separator" aria-hidden="true">
+                            &middot;
+                          </span>
+                          <span>{nextScheduledEntryTime.timeLabel}</span>
+                        </>
+                      ) : null}
                     </span>
+                    <strong className="field-work-next-job-title">
+                      {nextScheduledEntry.jobTitle ?? "Untitled job"}
+                    </strong>
                     <span className="field-work-next-job-address">
                       {nextScheduledEntry.propertyAddress ?? "No property address added"}
+                      <ChevronRight aria-hidden="true" size={14} />
                     </span>
                   </>
                 ) : (
