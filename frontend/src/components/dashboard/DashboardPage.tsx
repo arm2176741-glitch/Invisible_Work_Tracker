@@ -1731,20 +1731,28 @@ function MobileOperationalHome({
                   <div className="mobile-job-card-main">
                     <h2>{entry.jobTitle ?? "Untitled job"}</h2>
                     <p>{entry.propertyAddress ?? "No property address added"}</p>
-                    <span className={`mobile-job-status-pill mobile-job-status-${status.tone}`}>
-                      <span aria-hidden="true" />
-                      {status.label}
-                    </span>
-                    <div className="mobile-evidence-strip" aria-label="Evidence status">
-                      <span className={evidenceCounts.before > 0 ? "complete" : undefined}>
-                        Before {evidenceCounts.before || "-"}
+                    <div
+                      className={`mobile-status-photo-counts mobile-status-photo-counts-${status.tone}`}
+                      aria-label={`Evidence status: ${status.label}`}
+                    >
+                      <span className="mobile-status-photo-counts-state">
+                        <span aria-hidden="true" />
+                        {status.label}
                       </span>
-                      <span className={evidenceCounts.during > 0 ? "complete" : undefined}>
-                        During {evidenceCounts.during || "-"}
-                      </span>
-                      <span className={evidenceCounts.after > 0 ? "complete" : undefined}>
-                        After {evidenceCounts.after || "-"}
-                      </span>
+                      <div className="mobile-status-photo-counts-grid">
+                        <span>
+                          <strong>{evidenceCounts.before}</strong>
+                          <small>Before</small>
+                        </span>
+                        <span>
+                          <strong>{evidenceCounts.during}</strong>
+                          <small>During</small>
+                        </span>
+                        <span>
+                          <strong>{evidenceCounts.after}</strong>
+                          <small>After</small>
+                        </span>
+                      </div>
                     </div>
                     <span className="mobile-recent-job-meta">
                       {getPhotoCount(entry)} - {formatShortDate(entry.workDate)}

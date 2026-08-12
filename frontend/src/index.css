@@ -3384,75 +3384,91 @@ a:focus-visible {
   line-height: 1.35;
 }
 
-.mobile-job-status-pill {
-  width: max-content;
+.mobile-status-photo-counts {
+  display: grid;
+  gap: 12px;
+  margin-top: 13px;
+  padding: 14px 13px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 8px;
+  background: rgba(2, 4, 7, 0.48);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+}
+
+.mobile-status-photo-counts-state {
   display: inline-flex !important;
   align-items: center;
-  gap: 6px;
-  margin-top: 10px !important;
-  padding: 5px 7px;
-  border: 1px solid rgba(255, 255, 255, 0.085);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.035);
-  color: rgba(247, 248, 250, 0.72) !important;
-  font-size: 0.68rem !important;
+  gap: 7px;
+  margin: 0 !important;
+  color: rgba(247, 248, 250, 0.6) !important;
+  font-size: 0.65rem !important;
   font-weight: 820;
   line-height: 1 !important;
   text-transform: uppercase;
 }
 
-.mobile-job-status-pill > span {
-  width: 7px;
-  height: 7px;
+.mobile-status-photo-counts-state > span {
+  width: 6px;
+  height: 6px;
   display: block;
   margin: 0 !important;
   border-radius: 999px;
   background: rgba(247, 248, 250, 0.36);
+  box-shadow: 0 0 0 3px rgba(247, 248, 250, 0.035);
 }
 
-.mobile-job-status-complete > span {
+.mobile-status-photo-counts-complete .mobile-status-photo-counts-state > span {
   background: #8ccf9a;
+  box-shadow: 0 0 0 3px rgba(140, 207, 154, 0.08);
 }
 
-.mobile-job-status-send > span {
+.mobile-status-photo-counts-send .mobile-status-photo-counts-state > span {
   background: #f5c400;
+  box-shadow: 0 0 0 3px rgba(245, 196, 0, 0.09);
 }
 
-.mobile-job-status-ready > span {
+.mobile-status-photo-counts-ready .mobile-status-photo-counts-state > span {
   background: #9ab8ff;
+  box-shadow: 0 0 0 3px rgba(154, 184, 255, 0.08);
 }
 
-.mobile-job-status-active > span {
+.mobile-status-photo-counts-active .mobile-status-photo-counts-state > span {
   background: #f0a84d;
+  box-shadow: 0 0 0 3px rgba(240, 168, 77, 0.08);
 }
 
-.mobile-job-status-scheduled > span {
-  background: rgba(247, 248, 250, 0.36);
+.mobile-status-photo-counts-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid rgba(255, 255, 255, 0.055);
+  padding-top: 12px;
 }
 
-.mobile-evidence-strip {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
-  margin-top: 10px;
-}
-
-.mobile-evidence-strip span {
-  display: inline-flex !important;
+.mobile-status-photo-counts-grid > span {
+  display: grid !important;
+  place-items: center;
+  gap: 4px;
   margin: 0 !important;
-  padding: 5px 7px;
-  border: 1px solid rgba(255, 255, 255, 0.075);
-  border-radius: 999px;
-  color: rgba(247, 248, 250, 0.48) !important;
-  font-size: 0.68rem !important;
-  font-weight: 720;
-  line-height: 1 !important;
+  min-width: 0;
 }
 
-.mobile-evidence-strip span.complete {
-  border-color: rgba(140, 207, 154, 0.18);
-  color: rgba(197, 236, 206, 0.86) !important;
-  background: rgba(99, 177, 118, 0.07);
+.mobile-status-photo-counts-grid > span + span {
+  border-left: 1px solid rgba(255, 255, 255, 0.055);
+}
+
+.mobile-status-photo-counts-grid strong {
+  color: rgba(247, 248, 250, 0.94);
+  font-size: 1.05rem;
+  font-weight: 820;
+  line-height: 1;
+}
+
+.mobile-status-photo-counts-grid small {
+  color: rgba(247, 248, 250, 0.43);
+  font-size: 0.58rem;
+  font-weight: 780;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .mobile-recent-job-meta {
