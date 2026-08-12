@@ -364,7 +364,7 @@ export function AddEvidenceStep({
             <div className="evidence-documentation-header">
               <p>
                 <span className="evidence-header-dot" />
-                Field evidence documentation
+                Field evidence
               </p>
               <span>Saved automatically to report</span>
             </div>
@@ -384,10 +384,6 @@ export function AddEvidenceStep({
                   : item.required
                     ? "missing"
                     : "optional"
-                const visualStatus = categoryEvidenceCount > 0
-                  ? String(categoryEvidenceCount)
-                  : "0"
-                const requirementLabel = item.required ? "Required" : "Optional"
 
                 return (
                   <button
@@ -402,12 +398,8 @@ export function AddEvidenceStep({
                     aria-selected={isActive}
                     onClick={() => scrollToEvidenceCategory(item.category)}
                   >
+                    <strong>{shortTitle}</strong>
                     <span className="evidence-stage-dot" aria-hidden="true" />
-                    <span className="evidence-stage-copy">
-                      <strong>{shortTitle}</strong>
-                      <em>{requirementLabel}</em>
-                    </span>
-                    <small aria-label={`${visualStatus} photos`}>{visualStatus}</small>
                   </button>
                 )
               })}
