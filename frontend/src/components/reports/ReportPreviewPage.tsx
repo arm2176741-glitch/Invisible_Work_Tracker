@@ -13,11 +13,12 @@ import {
   revokeReportShareLink,
   type ReportShareLinkResponse,
 } from "@/lib/api"
-import type { ReportSnapshot, ReportStatus } from "@/types/domain"
+import type { ReportSnapshot, ReportStatus, WorkEntryPhoto } from "@/types/domain"
 
 import { Button } from "@/components/ui/button"
 
 const FIRST_REPORT_COMPLETION_SEEN_KEY_PREFIX = "fieldproof.firstReportCompletionDialogSeen"
+const REPORT_PAGE_COUNT = 3
 
 interface ReportPreviewPageProps {
   report: ReportSnapshot
@@ -233,6 +234,85 @@ export function ReportPreviewPage({
     }
   }
 
+  const evidenceGroups = groupReportPhotos(report.photos)
+  const beforeDuringPhotos = [
+    ...evidenceGroups.BEFORE,
+    ...evidenceGroups.DURING,
+  ]
+  const afterPhotos = evidenceGroups.AFTER
+  const totalPhotoCount = report.photos.length
+  const documentedStageCount = Object.values(evidenceGroups).filter((photos) => photos.length > 0).length
+  const scheduleLabel = formatScheduleDateTime(
+    report.workDate,
+    report.scheduledStartTime,
+    report.arrivalWindow,
+  )
+
+  function renderReportHeader(pageNumber: number) {
+    return (
+      <header className="proof-report-header">
+        <div className="proof-report-brand">
+          <span className="proof-report-logo" aria-hidden="true">FP</span>
+          <div>
+            <strong>FieldProof</strong>
+            <p>Contractor documentation platform</p>
+          </div>
+        </div>
+
+        <div className="proof-report-title-block">
+          <h1>Proof of Work Report</h1>
+          <p>
+            <span>{report.reportNumber}</span>
+            <span>Page {pageNumber} of {REPORT_PAGE_COUNT}</span>
+          </p>
+        </div>
+      </header>
+    )
+  }
+
+  function renderReportFooter(pageNumber: number) {
+    return (
+      <footer className="proof-report-footer">
+        <span>FieldProof - Report {report.reportNumber} - Page {pageNumber}</span>
+        <span>Generated {formatDateTime(report.generatedAt)}</span>
+      </footer>
+    )
+  }
+
+  function renderEvidenceCards(photos: WorkEntryPhoto[], emptyMessage: string) {
+    if (photos.length === 0) {
+      return <p className="proof-report-empty">{emptyMessage}</p>
+    }
+
+    return (
+      <div className="proof-report-evidence-grid">
+        {photos.map((photo) => (
+          <article className="proof-report-photo-card" key={photo.id}>
+            <div className="proof-report-photo-frame">
+              {photoObjectUrls[photo.id] ? (
+                <img
+                  src={photoObjectUrls[photo.id]}
+                  alt={photo.caption}
+                  loading="lazy"
+                />
+              ) : (
+                <span>{formatPhotoCategory(photo.category)}</span>
+              )}
+            </div>
+            <div className="proof-report-photo-body">
+              <div className="proof-report-photo-meta">
+                <strong>{formatPhotoCategory(photo.category)} Work</strong>
+                <span>{formatDateTime(photo.uploadedAt)}</span>
+              </div>
+              <p>{photo.caption || `${formatPhotoCategory(photo.category)} evidence`}</p>
+              <small>Documented by {report.workspaceName}</small>
+            </div>
+          </article>
+        ))}
+      </div>
+    )
+  }
+
   return (
     <section className="report-route">
       <div className="report-toolbar">
@@ -294,108 +374,138 @@ export function ReportPreviewPage({
       </div>
 
       <div className="report-pages">
-        <article className="report-document report-page">
-          <header className="report-header">
-            <div className="brand-row">
-              <div className="brand-mark">FP</div>
-              <div>
-                <strong>FieldProof</strong>
-                <p>Proof-of-work report</p>
+        <article className="report-document report-page proof-report-page">
+          {renderReportHeader(1)}
+
+          <section className="proof-report-overview">
+            <h2>Job Overview</h2>
+            <div className="proof-report-overview-grid">
+              <div className="proof-report-overview-row">
+                <span>Job / Description</span>
+                <strong>{report.jobName}</strong>
               </div>
-            </div>
-            <div>
-              <p className="report-label">Report</p>
-              <strong>{report.reportNumber}</strong>
-            </div>
-          </header>
-
-          <section className="report-title">
-            <p className="report-label">Generated report</p>
-            <h2>{report.jobName}</h2>
-            <p>{report.jobAddress}</p>
-          </section>
-
-          <section className="report-summary">
-            <div>
-              <span>Company</span>
-              <strong>{report.workspaceName}</strong>
-            </div>
-            <div>
-              <span>Customer</span>
-              <strong>{report.customerName}</strong>
-            </div>
-            <div>
-              <span>Work date</span>
-              <strong>{formatDate(report.workDate)}</strong>
-            </div>
-            <div>
-              <span>Status</span>
-              <strong>{formatStatus(report.workStatus)}</strong>
-            </div>
-          </section>
-
-          <section className="report-section">
-            <p className="report-label">Work summary</p>
-            <p>{report.workPerformed}</p>
-          </section>
-        </article>
-
-        <article className="report-document report-page">
-          <section className="report-section report-section-first">
-            <p className="report-label">Evidence snapshot</p>
-            <h3>Before, during, and after photos</h3>
-            <div className="evidence-grid">
-              {report.photos.map((photo) => (
-                <article className="report-evidence-card" key={photo.id}>
-                  <div className="evidence-image">
-                    {photoObjectUrls[photo.id] ? (
-                      <img
-                        src={photoObjectUrls[photo.id]}
-                        alt={photo.caption}
-                        loading="lazy"
-                      />
-                    ) : (
-                      photo.category
-                    )}
-                  </div>
-                  <div className="report-evidence-card-content">
-                    <span>{photo.category} work</span>
-                    <strong>{photo.caption}</strong>
-                    <p>Uploaded {formatDate(photo.uploadedAt)}</p>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-        </article>
-
-        <article className="report-document report-page">
-          <section className="report-section report-section-first">
-            <p className="report-label">Record details</p>
-            <h3>Permanent proof record</h3>
-            <div className="report-record-grid">
-              <div>
-                <span>Report number</span>
-                <strong>{report.reportNumber}</strong>
+              <div className="proof-report-overview-row">
+                <span>Status</span>
+                <strong>
+                  <span className="proof-report-status">{formatStatus(report.workStatus)}</span>
+                </strong>
               </div>
-              <div>
-                <span>Generated</span>
-                <strong>{formatDate(report.generatedAt)}</strong>
+              <div className="proof-report-overview-row">
+                <span>Property Address</span>
+                <strong>{report.jobAddress}</strong>
               </div>
-              <div>
-                <span>Prepared by</span>
+              <div className="proof-report-overview-row">
+                <span>Customer</span>
+                <strong>{report.customerName}</strong>
+              </div>
+              <div className="proof-report-overview-row">
+                <span>Work Type</span>
+                <strong>{report.workType}</strong>
+              </div>
+              <div className="proof-report-overview-row">
+                <span>Company</span>
                 <strong>{report.workspaceName}</strong>
               </div>
+              <div className="proof-report-overview-row">
+                <span>Scheduled</span>
+                <strong>{scheduleLabel}</strong>
+              </div>
+              <div className="proof-report-overview-row">
+                <span>Report Created</span>
+                <strong>{formatDateTime(report.generatedAt)}</strong>
+              </div>
+            </div>
+          </section>
+
+          <section className="proof-report-callout">
+            <p className="report-label">Executive Summary</p>
+            <p>
+              {report.workspaceName} documented this job using structured field notes
+              and Before, During, and After photo evidence.
+            </p>
+          </section>
+
+          <section className="proof-report-section">
+            <h2>Detailed Work Documentation</h2>
+            <div className="proof-report-documentation-list">
+              <article>
+                <span>1. Work Performed</span>
+                <p>{report.workPerformed}</p>
+              </article>
+              <article>
+                <span>2. Evidence Captured</span>
+                <p>
+                  {totalPhotoCount} photos were attached to this report across{" "}
+                  {documentedStageCount} documented stage{documentedStageCount === 1 ? "" : "s"}.
+                </p>
+              </article>
+              <article>
+                <span>3. Completion Record</span>
+                <p>
+                  Job status at generation was {formatStatus(report.workStatus)}.
+                  This report records the job documentation available when it was generated.
+                </p>
+              </article>
+            </div>
+          </section>
+
+          {renderReportFooter(1)}
+        </article>
+
+        <article className="report-document report-page proof-report-page">
+          {renderReportHeader(2)}
+
+          <section className="proof-report-section proof-report-section-first">
+            <h2>Photo Evidence - Before & During Work</h2>
+            {renderEvidenceCards(
+              beforeDuringPhotos,
+              "No Before or During photos were included in this report.",
+            )}
+          </section>
+
+          {renderReportFooter(2)}
+        </article>
+
+        <article className="report-document report-page proof-report-page">
+          {renderReportHeader(3)}
+
+          <section className="proof-report-section proof-report-section-first">
+            <h2>Photo Evidence - After Work</h2>
+            {renderEvidenceCards(afterPhotos, "No After photos were included in this report.")}
+          </section>
+
+          <section className="proof-report-section proof-report-metrics-section">
+            <h2>Documentation Metrics</h2>
+            <div className="proof-report-metrics-grid">
               <div>
-                <span>Delivery status</span>
+                <span>Total Images Recorded</span>
+                <strong>{totalPhotoCount} photos</strong>
+              </div>
+              <div>
+                <span>Evidence Stages</span>
+                <strong>{documentedStageCount} of 3</strong>
+              </div>
+              <div>
+                <span>Record State</span>
+                <strong>Snapshot Recorded</strong>
+              </div>
+              <div>
+                <span>Delivery Status</span>
                 <strong>{reportStatusLabel}</strong>
               </div>
             </div>
-            <p className="report-record-note">
-              This report is a saved snapshot generated from the documented work entry
-              and attached field evidence.
+          </section>
+
+          <section className="proof-report-record-notice">
+            <strong>Official Record Notice</strong>
+            <p>
+              This report presents the saved job details and evidence references
+              available when it was generated. Later edits to the active work entry
+              do not change the saved report details.
             </p>
           </section>
+
+          {renderReportFooter(3)}
         </article>
       </div>
 
@@ -519,9 +629,72 @@ function formatDate(value?: string | null) {
   }).format(new Date(value))
 }
 
+function formatDateTime(value?: string | null) {
+  if (!value) {
+    return "No date"
+  }
+
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value))
+}
+
+function formatScheduleTime(value?: string | null) {
+  if (!value) {
+    return null
+  }
+
+  const [hours, minutes = "00"] = value.split(":")
+  const hourNumber = Number(hours)
+
+  if (Number.isNaN(hourNumber)) {
+    return value
+  }
+
+  const period = hourNumber >= 12 ? "PM" : "AM"
+  const twelveHour = hourNumber % 12 || 12
+
+  return `${twelveHour}:${minutes} ${period}`
+}
+
+function formatScheduleDateTime(
+  workDate?: string | null,
+  scheduledStartTime?: string | null,
+  arrivalWindow?: string | null,
+) {
+  const dateLabel = formatDate(workDate)
+  const timeLabel = formatScheduleTime(scheduledStartTime)
+    ?? arrivalWindow
+    ?? null
+
+  return timeLabel ? `${dateLabel} - ${timeLabel}` : dateLabel
+}
+
 function formatStatus(status: string) {
   return status
     .toLowerCase()
     .replace(/_/g, " ")
     .replace(/\b\w/g, (letter) => letter.toUpperCase())
+}
+
+function formatPhotoCategory(category: WorkEntryPhoto["category"]) {
+  return formatStatus(category)
+}
+
+function groupReportPhotos(photos: WorkEntryPhoto[]) {
+  return photos.reduce<Record<WorkEntryPhoto["category"], WorkEntryPhoto[]>>(
+    (groups, photo) => {
+      groups[photo.category].push(photo)
+      return groups
+    },
+    {
+      BEFORE: [],
+      DURING: [],
+      AFTER: [],
+    },
+  )
 }
