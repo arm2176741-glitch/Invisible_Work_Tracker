@@ -72,11 +72,6 @@ const emptySelectedFiles: SelectedEvidenceFiles = {
   AFTER: [],
 }
 const acceptedEvidenceImageTypes = "image/jpeg,image/png,image/webp"
-const evidenceStageTabDetails: Record<EvidenceCategory, string> = {
-  BEFORE: "Original condition.",
-  DURING: "Progress and materials.",
-  AFTER: "Completed condition.",
-}
 
 function formatEvidenceTime(value: string) {
   return new Intl.DateTimeFormat("en", {
@@ -389,6 +384,11 @@ export function AddEvidenceStep({
                   : item.required
                     ? "missing"
                     : "optional"
+                const visualStatus = categoryEvidenceCount > 0
+                  ? String(categoryEvidenceCount)
+                  : item.required
+                    ? "Req"
+                    : "Opt"
 
                 return (
                   <button
@@ -405,13 +405,13 @@ export function AddEvidenceStep({
                   >
                     <span className="evidence-stage-dot" aria-hidden="true" />
                     <strong>{shortTitle}</strong>
-                    <small>{evidenceStageTabDetails[item.category]}</small>
+                    <small>{visualStatus}</small>
                   </button>
                 )
               })}
             </div>
             <p className="evidence-stage-note">
-              Add Before and After photos to continue. During is optional.
+              Choose a photo stage, then take or upload images.
             </p>
 
             <div
