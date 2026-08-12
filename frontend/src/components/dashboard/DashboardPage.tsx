@@ -128,7 +128,7 @@ function getOnboardingTaskSideTitle(step: VisibleOnboardingStep) {
   }
 
   if (step === "GENERATE_REPORT") {
-    return "Report snapshot"
+    return "What happens next"
   }
 
   return "Ready to share"
@@ -532,25 +532,25 @@ function buildOnboardingGuide(
 
   if (currentStep === "GENERATE_REPORT") {
     return {
-      title: "Lock the job into a proof report",
+      title: "Create the proof report",
       detail:
-        "Review the saved job summary and photos before FieldProof creates the immutable customer-ready snapshot.",
+        "Review the saved job summary and photos before FieldProof creates the customer-ready report snapshot.",
       outcome:
-        "After generation, the report opens for review with download, print, and share actions.",
+        "After generation, the report opens for review, sharing, and download.",
       items: [
         {
-          label: "Job documentation",
-          detail: "Work summary is ready to save into the report.",
+          label: "Summary",
+          detail: "Work performed.",
           complete: hasWorkSummary,
         },
         {
-          label: "Before and After photos",
-          detail: "Required photo stages are attached.",
+          label: "Evidence",
+          detail: "Before and After photos.",
           complete: hasBeforePhoto && hasAfterPhoto,
         },
         {
-          label: "Saved snapshot",
-          detail: "Generate the first proof report.",
+          label: "Snapshot",
+          detail: "Create report record.",
           complete: Boolean(firstEntry?.report),
         },
       ],
@@ -1464,7 +1464,8 @@ function OnboardingDashboard({
                 ))}
               </div>
               {visibleCurrentStep === "CREATE_WORK_ENTRY" ||
-              visibleCurrentStep === "ADD_EVIDENCE" ? (
+              visibleCurrentStep === "ADD_EVIDENCE" ||
+              visibleCurrentStep === "GENERATE_REPORT" ? (
                 <p className="onboarding-guide-note">{onboardingGuide.outcome}</p>
               ) : null}
             </aside>
