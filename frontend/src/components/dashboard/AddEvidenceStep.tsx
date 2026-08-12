@@ -136,6 +136,9 @@ export function AddEvidenceStep({
   const [activeEvidenceCategory, setActiveEvidenceCategory] =
     useState<EvidenceCategory>("BEFORE")
   const evidenceCarouselRef = useRef<HTMLDivElement>(null)
+  const evidenceCardRefs = useRef<
+    Partial<Record<EvidenceCategory, HTMLElement | null>>
+  >({})
   const selectedFilesRef = useRef(selectedFiles)
 
   useEffect(() => {
@@ -186,14 +189,24 @@ export function AddEvidenceStep({
     setActiveEvidenceCategory(category)
 
     const carousel = evidenceCarouselRef.current
-    const card = carousel?.querySelector<HTMLElement>(
-      `[data-evidence-category="${category}"]`,
-    )
+    const card = evidenceCardRefs.current[category]
 
-    card?.scrollIntoView({
+    if (!carousel || !card) {
+      return
+    }
+
+    const carouselRect = carousel.getBoundingClientRect()
+    const cardRect = card.getBoundingClientRect()
+    const targetLeft =
+      carousel.scrollLeft +
+      cardRect.left -
+      carouselRect.left -
+      (carousel.clientWidth - cardRect.width) / 2
+    const maxScrollLeft = Math.max(0, carousel.scrollWidth - carousel.clientWidth)
+
+    carousel.scrollTo({
+      left: Math.min(Math.max(targetLeft, 0), maxScrollLeft),
       behavior: "smooth",
-      block: "nearest",
-      inline: "center",
     })
   }
 
@@ -207,7 +220,8 @@ export function AddEvidenceStep({
     const cards = Array.from(
       carousel.querySelectorAll<HTMLElement>("[data-evidence-category]"),
     )
-    const carouselCenter = carousel.scrollLeft + carousel.clientWidth / 2
+    const carouselRect = carousel.getBoundingClientRect()
+    const carouselCenter = carouselRect.left + carouselRect.width / 2
     let nearestCategory = activeEvidenceCategory
     let nearestDistance = Number.POSITIVE_INFINITY
 
@@ -218,7 +232,8 @@ export function AddEvidenceStep({
         return
       }
 
-      const cardCenter = card.offsetLeft + card.offsetWidth / 2
+      const cardRect = card.getBoundingClientRect()
+      const cardCenter = cardRect.left + cardRect.width / 2
       const distance = Math.abs(cardCenter - carouselCenter)
 
       if (distance < nearestDistance) {
@@ -426,6 +441,9 @@ export function AddEvidenceStep({
                     data-required={item.required}
                     id={`evidence-stage-${item.category}`}
                     key={item.category}
+                    ref={(node) => {
+                      evidenceCardRefs.current[item.category] = node
+                    }}
                     role="tabpanel"
                   >
                     <div className="evidence-category-top">
