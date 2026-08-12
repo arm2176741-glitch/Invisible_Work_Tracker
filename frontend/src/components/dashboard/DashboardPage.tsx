@@ -507,25 +507,23 @@ function buildOnboardingGuide(
 
   if (currentStep === "ADD_EVIDENCE") {
     return {
-      title: `Add proof photos for ${jobLabel}`,
-      detail:
-        "Upload clear Before and After photos so the report can show the original condition and completed outcome.",
-      outcome:
-        "Once both required photo stages exist, FieldProof will move this job into report generation.",
+      title: `Add photos for ${jobLabel}`,
+      detail: "Capture the condition before and after the work.",
+      outcome: "Before + After unlock the report step. Captions can be edited later.",
       items: [
         {
-          label: "Before photo",
-          detail: "Shows the condition before work begins.",
+          label: "Before",
+          detail: "Original condition.",
           complete: hasBeforePhoto,
         },
         {
-          label: "After photo",
-          detail: "Shows the completed condition after work is finished.",
+          label: "After",
+          detail: "Completed condition.",
           complete: hasAfterPhoto,
         },
         {
-          label: "Useful captions",
-          detail: "Explain what each photo proves for the customer.",
+          label: "Captions",
+          detail: "What each photo proves.",
           complete: hasCaption,
         },
       ],
@@ -1465,7 +1463,8 @@ function OnboardingDashboard({
                   </div>
                 ))}
               </div>
-              {visibleCurrentStep === "CREATE_WORK_ENTRY" ? (
+              {visibleCurrentStep === "CREATE_WORK_ENTRY" ||
+              visibleCurrentStep === "ADD_EVIDENCE" ? (
                 <p className="onboarding-guide-note">{onboardingGuide.outcome}</p>
               ) : null}
             </aside>

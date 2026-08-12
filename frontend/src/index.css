@@ -9915,6 +9915,155 @@ a:focus-visible {
   }
 }
 
+@media (max-width: 740px) {
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] {
+    gap: 14px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-task-copy {
+    gap: 8px;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-step-label {
+    color: rgba(247, 248, 250, 0.5);
+    font-size: 0.62rem;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-task-copy h2 {
+    max-width: 15ch;
+    font-size: clamp(1.56rem, 6.9vw, 1.86rem);
+    line-height: 1.06;
+    letter-spacing: 0;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-task-copy > p {
+    max-width: 32ch;
+    color: rgba(247, 248, 250, 0.62);
+    font-size: 0.8rem;
+    line-height: 1.38;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-task-copy small {
+    display: none;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-hero-actions {
+    display: grid;
+    gap: 0;
+    margin-top: 14px;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-hero-actions > * {
+    flex: 0 0 auto;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-hero-actions .fp-button {
+    width: 100%;
+    min-height: 52px;
+    justify-content: center;
+    border-color: rgba(245, 196, 0, 0.88);
+    border-radius: 9px;
+    background: #f5c400;
+    color: #071019;
+    box-shadow: none;
+    font-size: 0.92rem;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-task-side {
+    gap: 8px;
+    padding: 12px 0 0;
+    border: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 0;
+    background: transparent;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-card-label {
+    margin: 0;
+    color: rgba(247, 248, 250, 0.4);
+    font-size: 0.62rem;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-guide-checklist {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.075);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.028);
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-guide-item {
+    min-height: 74px;
+    display: grid;
+    grid-template-columns: 1fr;
+    align-content: start;
+    gap: 6px;
+    padding: 10px 8px;
+    border-top: 0;
+    border-left: 1px solid rgba(255, 255, 255, 0.07);
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-guide-item:first-child {
+    border-left: 0;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-guide-item > span {
+    width: 8px;
+    height: 8px;
+    margin-top: 0;
+    border: 0;
+    background: rgba(245, 196, 0, 0.72);
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-guide-item[data-complete="true"] > span {
+    background: rgba(92, 196, 123, 0.9);
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-guide-item strong {
+    font-size: 0.68rem;
+    line-height: 1.15;
+    white-space: nowrap;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-guide-item p {
+    margin-top: 3px;
+    font-size: 0.58rem;
+    line-height: 1.28;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-guide-note {
+    font-size: 0.66rem;
+    line-height: 1.32;
+  }
+}
+
+@media (max-width: 740px) and (max-height: 760px) {
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] {
+    gap: 12px;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-task-copy h2 {
+    font-size: clamp(1.42rem, 6.3vw, 1.66rem);
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-hero-actions {
+    margin-top: 10px;
+  }
+
+  .onboarding-task-card[data-step="ADD_EVIDENCE"] .onboarding-guide-item {
+    min-height: 66px;
+    padding: 8px 7px;
+  }
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Geist Variable', sans-serif;
