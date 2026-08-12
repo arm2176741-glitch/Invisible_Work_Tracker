@@ -252,38 +252,43 @@ export function FieldWorkStrip({
   }
 
   return (
-    <section className="field-work-strip" aria-label="Today's field work">
+    <section
+      className={`field-work-strip${compact ? " field-work-strip-compact" : ""}`}
+      aria-label="Today's field work"
+    >
       <header className="field-work-header">
         <div className="field-work-heading">
           <p className="eyebrow">Today's field work</p>
           <span>{formatDateKey(todayKey, { weekday: "long", month: "short", day: "numeric" })}</span>
         </div>
 
-        <div className="field-work-meta">
-          <strong>{pluralize(todayEntries.length, "job")} today</strong>
-          {!compact ? (
-            backlogChips.length > 0 ? (
-              <div className="field-work-backlog" aria-label="Proof backlog">
-                {backlogChips.map((chip) => (
-                  <a
-                    className={`field-work-chip field-work-chip-${chip.tone}`}
-                    href={chip.href}
-                    key={chip.label}
-                  >
-                    <span>{chip.value}</span>
-                    {chip.label}
-                  </a>
-                ))}
-              </div>
-            ) : (
-              <span className="field-work-backlog-clear">No proof backlog</span>
-            )
-          ) : null}
-          <a className="field-work-schedule-link" href="/jobs?view=schedule">
-            View schedule
-            <ChevronRight aria-hidden="true" size={15} />
-          </a>
-        </div>
+        {!compact || todayEntries.length > 0 ? (
+          <div className="field-work-meta">
+            <strong>{pluralize(todayEntries.length, "job")} today</strong>
+            {!compact ? (
+              backlogChips.length > 0 ? (
+                <div className="field-work-backlog" aria-label="Proof backlog">
+                  {backlogChips.map((chip) => (
+                    <a
+                      className={`field-work-chip field-work-chip-${chip.tone}`}
+                      href={chip.href}
+                      key={chip.label}
+                    >
+                      <span>{chip.value}</span>
+                      {chip.label}
+                    </a>
+                  ))}
+                </div>
+              ) : (
+                <span className="field-work-backlog-clear">No proof backlog</span>
+              )
+            ) : null}
+            <a className="field-work-schedule-link" href="/jobs?view=schedule">
+              View schedule
+              <ChevronRight aria-hidden="true" size={15} />
+            </a>
+          </div>
+        ) : null}
       </header>
 
       {todayEntries.length > 0 ? (
@@ -325,11 +330,26 @@ export function FieldWorkStrip({
                 type="button"
                 onClick={() => onOpenJob(nextScheduledEntry.id)}
               >
-                <span>Your next job is {getNextJobDateLabel(nextScheduledEntry, todayKey)}.</span>
-                <strong>
-                  {nextScheduledEntry.jobTitle ?? "Untitled job"} -{" "}
-                  {nextScheduledEntry.propertyAddress ?? "No property address added"}
-                </strong>
+                {compact ? (
+                  <>
+                    <span className="field-work-up-next-label">Up next</span>
+                    <strong>{getNextJobDateLabel(nextScheduledEntry, todayKey)}</strong>
+                    <span className="field-work-next-job-title">
+                      {nextScheduledEntry.jobTitle ?? "Untitled job"}
+                    </span>
+                    <span className="field-work-next-job-address">
+                      {nextScheduledEntry.propertyAddress ?? "No property address added"}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span>Your next job is {getNextJobDateLabel(nextScheduledEntry, todayKey)}.</span>
+                    <strong>
+                      {nextScheduledEntry.jobTitle ?? "Untitled job"} -{" "}
+                      {nextScheduledEntry.propertyAddress ?? "No property address added"}
+                    </strong>
+                  </>
+                )}
               </button>
             ) : (
               <p>

@@ -3296,6 +3296,16 @@ a:focus-visible {
   margin: 0;
 }
 
+.mobile-section-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: rgba(226, 192, 119, 0.88);
+  font-size: 0.74rem;
+  font-weight: 760;
+  text-decoration: none;
+}
+
 .mobile-job-card-list {
   display: grid;
   gap: 10px;
@@ -3328,7 +3338,7 @@ a:focus-visible {
 
 .mobile-recent-job-card {
   flex: 0 0 min(82vw, 304px);
-  min-height: 160px;
+  min-height: 204px;
   align-content: space-between;
   color: inherit;
   cursor: pointer;
@@ -3372,6 +3382,81 @@ a:focus-visible {
   color: rgba(247, 248, 250, 0.46);
   font-size: 0.78rem;
   line-height: 1.35;
+}
+
+.mobile-job-status-pill {
+  width: max-content;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px !important;
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.085);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.035);
+  color: rgba(247, 248, 250, 0.72) !important;
+  font-size: 0.68rem !important;
+  font-weight: 820;
+  line-height: 1 !important;
+  text-transform: uppercase;
+}
+
+.mobile-job-status-pill > span {
+  width: 7px;
+  height: 7px;
+  display: block;
+  margin: 0 !important;
+  border-radius: 999px;
+  background: rgba(247, 248, 250, 0.36);
+}
+
+.mobile-job-status-complete > span {
+  background: #8ccf9a;
+}
+
+.mobile-job-status-send > span {
+  background: #f5c400;
+}
+
+.mobile-job-status-ready > span {
+  background: #9ab8ff;
+}
+
+.mobile-job-status-active > span {
+  background: #f0a84d;
+}
+
+.mobile-job-status-scheduled > span {
+  background: rgba(247, 248, 250, 0.36);
+}
+
+.mobile-evidence-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.mobile-evidence-strip span {
+  display: inline-flex !important;
+  margin: 0 !important;
+  padding: 5px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.075);
+  border-radius: 999px;
+  color: rgba(247, 248, 250, 0.48) !important;
+  font-size: 0.68rem !important;
+  font-weight: 720;
+  line-height: 1 !important;
+}
+
+.mobile-evidence-strip span.complete {
+  border-color: rgba(140, 207, 154, 0.18);
+  color: rgba(197, 236, 206, 0.86) !important;
+  background: rgba(99, 177, 118, 0.07);
+}
+
+.mobile-recent-job-meta {
+  margin-top: 9px !important;
 }
 
 .mobile-recent-job-cta {
@@ -3430,6 +3515,37 @@ a:focus-visible {
   align-items: start;
   gap: 18px;
   padding: 18px;
+}
+
+.mobile-operational-home .field-work-strip-compact .field-work-no-today {
+  gap: 14px;
+  padding-top: 2px;
+}
+
+.field-work-strip-compact .field-work-no-today h2 {
+  font-size: 1.03rem;
+}
+
+.field-work-strip-compact .field-work-next-job {
+  gap: 4px;
+  margin-top: 13px;
+}
+
+.field-work-up-next-label {
+  color: rgba(226, 192, 119, 0.78) !important;
+  font-size: 0.68rem !important;
+  font-weight: 820;
+  text-transform: uppercase;
+}
+
+.field-work-next-job-title {
+  color: #fff !important;
+  font-size: 0.95rem !important;
+  font-weight: 740;
+}
+
+.field-work-next-job-address {
+  color: rgba(247, 248, 250, 0.6) !important;
 }
 
 .mobile-operational-home .field-work-no-today-actions,
@@ -8981,6 +9097,11 @@ a:focus-visible {
 
   .page-header {
     display: grid;
+  }
+
+  .operational-page-header.page-header,
+  .operational-dashboard-grid.dashboard-grid {
+    display: none;
   }
 
   .dashboard-controls {

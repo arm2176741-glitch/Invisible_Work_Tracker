@@ -271,6 +271,36 @@ function getMissingEvidenceLabel(entry: OnboardingFirstWorkEntry) {
   return "Photos complete"
 }
 
+function getEvidenceCounts(entry: OnboardingFirstWorkEntry) {
+  const evidence = entry.evidence ?? []
+
+  return {
+    before: evidence.filter((item) => item.category === "BEFORE").length,
+    during: evidence.filter((item) => item.category === "DURING").length,
+    after: evidence.filter((item) => item.category === "AFTER").length,
+  }
+}
+
+function getMobileRecentJobStatus(entry: OnboardingFirstWorkEntry) {
+  if (entry.report?.status === "SHARED") {
+    return { label: "Completed", tone: "complete" }
+  }
+
+  if (entry.report) {
+    return { label: "Ready to send", tone: "send" }
+  }
+
+  if (hasRequiredEvidence(entry)) {
+    return { label: "Ready for report", tone: "ready" }
+  }
+
+  if ((entry.evidence?.length ?? 0) > 0) {
+    return { label: "In progress", tone: "active" }
+  }
+
+  return { label: "Scheduled", tone: "scheduled" }
+}
+
 function buildOperationalEntries(
   entries: OnboardingFirstWorkEntry[],
 ): WorkEntry[] {
@@ -411,7 +441,9 @@ function getMobileHeroAction(
     }
   }
 
-  const readyToSendEntries = entries.filter((entry) => entry.report?.status !== "SHARED" && entry.report)
+  const readyToSendEntries = entries.filter(
+    (entry) => entry.report?.status !== "SHARED" && entry.report,
+  )
 
   if (readyToSendEntries.length > 0) {
     const entry = readyToSendEntries[0]
@@ -1580,9 +1612,7 @@ function MobileOperationalHome({
   const attentionEntries = entries
     .filter((entry) => !hasRequiredEvidence(entry) && entry.id !== primaryAction.entry?.id)
     .slice(0, 3)
-  const recentEntries = entries
-    .filter((entry) => entry.id !== primaryAction.entry?.id)
-    .slice(0, 6)
+  const recentEntries = entries.slice(0, 6)
   const HeroActionIcon = primaryAction.actionIcon
 
   function scrollToRecentJobs() {
@@ -1679,31 +1709,54 @@ function MobileOperationalHome({
         <section className="mobile-home-section" id="mobile-recent-jobs">
           <div className="mobile-section-heading">
             <p className="eyebrow">Recent jobs</p>
+            <a className="mobile-section-link" href="/jobs">
+              View all
+              <ArrowRight aria-hidden="true" size={13} />
+            </a>
           </div>
 
           <div className="mobile-recent-job-carousel" role="list">
-            {recentEntries.map((entry) => (
-              <button
-                className="mobile-job-card mobile-recent-job-card"
-                key={entry.id}
-                type="button"
-                onClick={() => onJobAction(entry)}
-                role="listitem"
-              >
-                <div className="mobile-job-card-main">
-                  <h2>{entry.jobTitle ?? "Untitled job"}</h2>
-                  <p>{entry.propertyAddress ?? "No property address added"}</p>
-                  <span>
-                    {getMobileJobStatus(entry)} - {getPhotoCount(entry)} -{" "}
-                    {formatShortDate(entry.workDate)}
+            {recentEntries.map((entry) => {
+              const status = getMobileRecentJobStatus(entry)
+              const evidenceCounts = getEvidenceCounts(entry)
+
+              return (
+                <button
+                  className="mobile-job-card mobile-recent-job-card"
+                  key={entry.id}
+                  type="button"
+                  onClick={() => onJobAction(entry)}
+                  role="listitem"
+                >
+                  <div className="mobile-job-card-main">
+                    <h2>{entry.jobTitle ?? "Untitled job"}</h2>
+                    <p>{entry.propertyAddress ?? "No property address added"}</p>
+                    <span className={`mobile-job-status-pill mobile-job-status-${status.tone}`}>
+                      <span aria-hidden="true" />
+                      {status.label}
+                    </span>
+                    <div className="mobile-evidence-strip" aria-label="Evidence status">
+                      <span className={evidenceCounts.before > 0 ? "complete" : undefined}>
+                        Before {evidenceCounts.before || "-"}
+                      </span>
+                      <span className={evidenceCounts.during > 0 ? "complete" : undefined}>
+                        During {evidenceCounts.during || "-"}
+                      </span>
+                      <span className={evidenceCounts.after > 0 ? "complete" : undefined}>
+                        After {evidenceCounts.after || "-"}
+                      </span>
+                    </div>
+                    <span className="mobile-recent-job-meta">
+                      {getPhotoCount(entry)} - {formatShortDate(entry.workDate)}
+                    </span>
+                  </div>
+                  <span className="mobile-recent-job-cta">
+                    Open
+                    <ArrowRight aria-hidden="true" size={14} />
                   </span>
-                </div>
-                <span className="mobile-recent-job-cta">
-                  {getMobileJobActionLabel(entry)}
-                  <ArrowRight aria-hidden="true" size={14} />
-                </span>
-              </button>
-            ))}
+                </button>
+              )
+            })}
           </div>
         </section>
       ) : null}
