@@ -207,7 +207,7 @@ export function FieldWorkStrip({
     .sort((firstEntry, secondEntry) =>
       getScheduleSortValue(firstEntry).localeCompare(getScheduleSortValue(secondEntry)),
     )[0]
-  const backlogChips = buildBacklogChips(summary)
+  const backlogChips = compact ? [] : buildBacklogChips(summary)
   const hasJobs = entries.length > 0
   const emptyAction = hasWorkspace ? onCreateJob : (onCreateWorkspace ?? onCreateJob)
 
@@ -261,22 +261,24 @@ export function FieldWorkStrip({
 
         <div className="field-work-meta">
           <strong>{pluralize(todayEntries.length, "job")} today</strong>
-          {backlogChips.length > 0 ? (
-            <div className="field-work-backlog" aria-label="Proof backlog">
-              {backlogChips.map((chip) => (
-                <a
-                  className={`field-work-chip field-work-chip-${chip.tone}`}
-                  href={chip.href}
-                  key={chip.label}
-                >
-                  <span>{chip.value}</span>
-                  {chip.label}
-                </a>
-              ))}
-            </div>
-          ) : (
-            <span className="field-work-backlog-clear">No proof backlog</span>
-          )}
+          {!compact ? (
+            backlogChips.length > 0 ? (
+              <div className="field-work-backlog" aria-label="Proof backlog">
+                {backlogChips.map((chip) => (
+                  <a
+                    className={`field-work-chip field-work-chip-${chip.tone}`}
+                    href={chip.href}
+                    key={chip.label}
+                  >
+                    <span>{chip.value}</span>
+                    {chip.label}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <span className="field-work-backlog-clear">No proof backlog</span>
+            )
+          ) : null}
           <a className="field-work-schedule-link" href="/jobs?view=schedule">
             View schedule
             <ChevronRight aria-hidden="true" size={15} />
@@ -343,10 +345,12 @@ export function FieldWorkStrip({
               View schedule
               <ChevronRight aria-hidden="true" size={15} />
             </a>
-            <Button type="button" variant="secondary" onClick={onCreateJob}>
-              <Plus aria-hidden="true" size={16} />
-              New job
-            </Button>
+            {!compact ? (
+              <Button type="button" variant="secondary" onClick={onCreateJob}>
+                <Plus aria-hidden="true" size={16} />
+                New job
+              </Button>
+            ) : null}
           </div>
         </div>
       )}

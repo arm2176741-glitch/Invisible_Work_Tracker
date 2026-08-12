@@ -8,6 +8,7 @@ import {
   type SetStateAction,
 } from "react"
 import {
+  ArrowRight,
   BriefcaseBusiness,
   ClipboardList,
   ChevronDown,
@@ -112,6 +113,16 @@ type OnboardingGuideContent = {
   detail: string
   outcome: string
   items: OnboardingGuideItem[]
+}
+
+type MobileHeroAction = {
+  title: string
+  detail: string
+  tone: "attention" | "clear" | "ready" | "setup"
+  action: "create-job" | "create-workspace" | "none" | "open-entry"
+  actionLabel?: string
+  actionIcon?: LucideIcon
+  entry?: OnboardingFirstWorkEntry
 }
 
 function getOnboardingTaskSideTitle(step: VisibleOnboardingStep) {
@@ -379,32 +390,92 @@ function buildRecentActivities(
   })
 }
 
-function getMobileHomeSummary(summary: DashboardSummary, entryCount: number) {
-  if (summary.proofReady > 0) {
-    return pluralizeCount(summary.proofReady, "report", "reports") + " ready to send."
-  }
-
-  if (summary.needsEvidence > 0) {
-    return pluralizeCount(summary.needsEvidence, "job", "jobs") + " need photos."
-  }
-
-  if (entryCount === 0) {
-    return "Create your first proof record."
-  }
-
-  return "No jobs need attention right now."
+function getMobileEntryDetail(entry: OnboardingFirstWorkEntry) {
+  return `${entry.jobTitle ?? "Untitled job"} - ${
+    entry.propertyAddress ?? "No property address added"
+  }`
 }
 
-function getMobileOperationalSummary(
-  summary: DashboardSummary,
-  entryCount: number,
+function getMobileHeroAction(
+  entries: OnboardingFirstWorkEntry[],
   hasWorkspace: boolean,
-) {
+): MobileHeroAction {
   if (!hasWorkspace) {
-    return "Create a workspace to start FieldProof."
+    return {
+      title: "Create a workspace to start FieldProof.",
+      detail: "Set up where jobs, photos, and proof reports live.",
+      tone: "setup",
+      action: "create-workspace",
+      actionLabel: "Create workspace",
+      actionIcon: Plus,
+    }
   }
 
-  return getMobileHomeSummary(summary, entryCount)
+  const readyToSendEntries = entries.filter((entry) => entry.report?.status !== "SHARED" && entry.report)
+
+  if (readyToSendEntries.length > 0) {
+    const entry = readyToSendEntries[0]
+
+    return {
+      title: `${pluralizeCount(readyToSendEntries.length, "report", "reports")} ready to send.`,
+      detail: getMobileEntryDetail(entry),
+      tone: "ready",
+      action: "open-entry",
+      actionLabel: "Review and send",
+      actionIcon: ArrowRight,
+      entry,
+    }
+  }
+
+  const needsEvidenceEntries = entries.filter((entry) => !hasRequiredEvidence(entry))
+
+  if (needsEvidenceEntries.length > 0) {
+    const entry = needsEvidenceEntries[0]
+
+    return {
+      title: `${formatNeedsPhotosSummary(needsEvidenceEntries.length)}.`,
+      detail: getMobileEntryDetail(entry),
+      tone: "attention",
+      action: "open-entry",
+      actionLabel: "Add photos",
+      actionIcon: ArrowRight,
+      entry,
+    }
+  }
+
+  const readyForReportEntries = entries.filter((entry) => hasRequiredEvidence(entry) && !entry.report)
+
+  if (readyForReportEntries.length > 0) {
+    const entry = readyForReportEntries[0]
+
+    return {
+      title: `${pluralizeCount(readyForReportEntries.length, "job", "jobs")} ready for report.`,
+      detail: getMobileEntryDetail(entry),
+      tone: "ready",
+      action: "open-entry",
+      actionLabel: "Generate report",
+      actionIcon: ArrowRight,
+      entry,
+    }
+  }
+
+  if (entries.length === 0) {
+    return {
+      title: "Create your first proof record.",
+      detail: "Add the property and start documenting photos.",
+      tone: "setup",
+      action: "create-job",
+      actionLabel: "Create first job",
+      actionIcon: Plus,
+    }
+  }
+
+  return {
+    title: "You're caught up.",
+    detail: "No jobs need action right now.",
+    tone: "clear",
+    action: "none",
+  }
 }
 
 function getMobileJobStatus(entry: OnboardingFirstWorkEntry) {
@@ -1505,20 +1576,35 @@ function MobileOperationalHome({
   onJobAction: (entry: OnboardingFirstWorkEntry) => void
   onOpenLatestReport?: () => void
 }) {
+  const primaryAction = getMobileHeroAction(entries, hasWorkspace)
   const attentionEntries = entries
-    .filter((entry) => {
-      if (!hasRequiredEvidence(entry)) return true
-      if (!entry.report) return true
-
-      return entry.report.status !== "SHARED"
-    })
+    .filter((entry) => !hasRequiredEvidence(entry) && entry.id !== primaryAction.entry?.id)
     .slice(0, 3)
-  const recentEntries = entries.slice(0, 4)
+  const recentEntries = entries
+    .filter((entry) => entry.id !== primaryAction.entry?.id)
+    .slice(0, 6)
+  const HeroActionIcon = primaryAction.actionIcon
 
   function scrollToRecentJobs() {
     document
       .getElementById("mobile-recent-jobs")
       ?.scrollIntoView({ block: "start", behavior: "smooth" })
+  }
+
+  function handlePrimaryAction() {
+    if (primaryAction.action === "create-workspace") {
+      onCreateWorkspace()
+      return
+    }
+
+    if (primaryAction.action === "create-job") {
+      onCreateJob()
+      return
+    }
+
+    if (primaryAction.entry) {
+      onJobAction(primaryAction.entry)
+    }
   }
 
   return (
@@ -1534,17 +1620,16 @@ function MobileOperationalHome({
         </button>
       </header>
 
-      <section className="mobile-home-hero">
+      <section className={`mobile-home-hero mobile-home-hero-${primaryAction.tone}`}>
         <p>Good morning, {getFirstName(userName)}</p>
-        <h1>{getMobileOperationalSummary(summary, entries.length, hasWorkspace)}</h1>
-        <Button
-          className="mobile-create-job-button"
-          type="button"
-          onClick={hasWorkspace ? onCreateJob : onCreateWorkspace}
-        >
-          <Plus aria-hidden="true" size={17} />
-          {hasWorkspace ? "Create new job" : "Create workspace"}
-        </Button>
+        <h1>{primaryAction.title}</h1>
+        <span className="mobile-hero-detail">{primaryAction.detail}</span>
+        {primaryAction.actionLabel && HeroActionIcon ? (
+          <Button className="mobile-primary-action-button" type="button" onClick={handlePrimaryAction}>
+            <HeroActionIcon aria-hidden="true" size={17} />
+            {primaryAction.actionLabel}
+          </Button>
+        ) : null}
       </section>
 
       {attentionEntries.length > 0 ? (
@@ -1596,9 +1681,15 @@ function MobileOperationalHome({
             <p className="eyebrow">Recent jobs</p>
           </div>
 
-          <div className="mobile-job-card-list">
+          <div className="mobile-recent-job-carousel" role="list">
             {recentEntries.map((entry) => (
-              <article className="mobile-job-card" key={entry.id}>
+              <button
+                className="mobile-job-card mobile-recent-job-card"
+                key={entry.id}
+                type="button"
+                onClick={() => onJobAction(entry)}
+                role="listitem"
+              >
                 <div className="mobile-job-card-main">
                   <h2>{entry.jobTitle ?? "Untitled job"}</h2>
                   <p>{entry.propertyAddress ?? "No property address added"}</p>
@@ -1607,15 +1698,11 @@ function MobileOperationalHome({
                     {formatShortDate(entry.workDate)}
                   </span>
                 </div>
-                <Button
-                  className="mobile-job-action"
-                  type="button"
-                  variant="secondary"
-                  onClick={() => onJobAction(entry)}
-                >
+                <span className="mobile-recent-job-cta">
                   {getMobileJobActionLabel(entry)}
-                </Button>
-              </article>
+                  <ArrowRight aria-hidden="true" size={14} />
+                </span>
+              </button>
             ))}
           </div>
         </section>
@@ -1630,7 +1717,11 @@ function MobileOperationalHome({
           <ClipboardList aria-hidden="true" size={18} />
           Jobs
         </button>
-        <button className="mobile-bottom-nav-primary" type="button" onClick={onCreateJob}>
+        <button
+          className="mobile-bottom-nav-primary"
+          type="button"
+          onClick={hasWorkspace ? onCreateJob : onCreateWorkspace}
+        >
           <Plus aria-hidden="true" size={22} />
           <span>New</span>
         </button>

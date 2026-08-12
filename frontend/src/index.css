@@ -3212,18 +3212,33 @@ a:focus-visible {
   font-size: 0.75rem;
   font-weight: 760;
   text-overflow: ellipsis;
+  text-transform: capitalize;
   white-space: nowrap;
 }
 
 .mobile-home-hero {
   display: grid;
-  gap: 12px;
-  padding: 18px;
+  gap: 10px;
+  padding: 17px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   background:
     radial-gradient(circle at 96% 0%, rgba(245, 184, 46, 0.1), transparent 36%),
     rgba(255, 255, 255, 0.035);
+}
+
+.mobile-home-hero-ready {
+  border-color: rgba(245, 196, 0, 0.22);
+  background:
+    radial-gradient(circle at 96% 0%, rgba(245, 196, 0, 0.14), transparent 38%),
+    rgba(255, 255, 255, 0.04);
+}
+
+.mobile-home-hero-attention {
+  border-color: rgba(245, 184, 46, 0.18);
+  background:
+    radial-gradient(circle at 96% 0%, rgba(245, 184, 46, 0.12), transparent 38%),
+    rgba(255, 255, 255, 0.04);
 }
 
 .mobile-home-hero p,
@@ -3243,6 +3258,15 @@ a:focus-visible {
   line-height: 1.12;
 }
 
+.mobile-hero-detail {
+  display: block;
+  max-width: 30ch;
+  color: rgba(247, 248, 250, 0.66);
+  font-size: 0.88rem;
+  line-height: 1.36;
+}
+
+.mobile-primary-action-button.fp-button,
 .mobile-create-job-button.fp-button {
   min-height: 48px;
   border-color: rgba(209, 165, 77, 0.58);
@@ -3251,6 +3275,10 @@ a:focus-visible {
   color: rgba(226, 192, 119, 0.96);
   font-weight: 640;
   justify-content: center;
+}
+
+.mobile-primary-action-button.fp-button {
+  margin-top: 2px;
 }
 
 .mobile-home-section {
@@ -3273,6 +3301,21 @@ a:focus-visible {
   gap: 10px;
 }
 
+.mobile-recent-job-carousel {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  margin: 0 -12px;
+  padding: 0 12px 4px;
+  scroll-padding-inline: 12px;
+  scroll-snap-type: x mandatory;
+  scrollbar-width: none;
+}
+
+.mobile-recent-job-carousel::-webkit-scrollbar {
+  display: none;
+}
+
 .mobile-job-card,
 .mobile-empty-card {
   display: grid;
@@ -3281,6 +3324,22 @@ a:focus-visible {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.032);
+}
+
+.mobile-recent-job-card {
+  flex: 0 0 min(82vw, 304px);
+  min-height: 160px;
+  align-content: space-between;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  scroll-snap-align: start;
+}
+
+.mobile-recent-job-card:focus-visible {
+  outline: 2px solid rgba(245, 196, 0, 0.72);
+  outline-offset: 3px;
 }
 
 .mobile-attention-card {
@@ -3313,6 +3372,15 @@ a:focus-visible {
   color: rgba(247, 248, 250, 0.46);
   font-size: 0.78rem;
   line-height: 1.35;
+}
+
+.mobile-recent-job-cta {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 5px;
+  margin-top: 8px !important;
+  color: rgba(226, 192, 119, 0.94) !important;
+  font-weight: 760;
 }
 
 .mobile-job-action.fp-button {
