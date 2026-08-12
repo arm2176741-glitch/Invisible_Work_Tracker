@@ -244,6 +244,26 @@ export function GenerateReportStep({
           .map((item) => item.label)
           .join(", ")}`
       : "All required items complete"
+  const reportFlowItems = [
+    {
+      label: "Summary",
+      description: hasWorkSummary ? "Work performed added." : "Add work performed.",
+      state: hasWorkSummary ? "complete" : "missing",
+    },
+    {
+      label: "Evidence",
+      description:
+        beforeCount > 0 && afterCount > 0
+          ? `${beforeCount} before / ${afterCount} after`
+          : "Before and After required.",
+      state: beforeCount > 0 && afterCount > 0 ? "complete" : "missing",
+    },
+    {
+      label: "Snapshot",
+      description: readyToGenerate ? "Ready to generate." : "Complete required items.",
+      state: readyToGenerate ? "complete" : "pending",
+    },
+  ]
   const reportIncludeItems = [
     {
       label: "Company branding",
@@ -394,9 +414,9 @@ export function GenerateReportStep({
               <p className="eyebrow">Step 4 of 5</p>
               <h1>Generate your first proof report</h1>
               <p>
-                Review the job information before creating the customer report.
-                FieldProof will save an immutable snapshot from the current job data,
-                summary, photos, and captions.
+                Review the job summary and evidence before creating the customer
+                report. FieldProof saves the current details, photos, and captions
+                into a report snapshot.
               </p>
             </div>
 
@@ -416,8 +436,22 @@ export function GenerateReportStep({
 
             <span className="generate-source-immutable">
               <ShieldCheck aria-hidden="true" size={13} />
-              Immutable snapshot
+              Saved snapshot
             </span>
+          </section>
+
+          <section className="generate-report-flow-strip" aria-label="Report generation flow">
+            <h2>What happens next</h2>
+            <div className="generate-report-flow-cells">
+              {reportFlowItems.map((item) => (
+                <div data-state={item.state} key={item.label}>
+                  <span aria-hidden="true" />
+                  <strong>{item.label}</strong>
+                  <p>{item.description}</p>
+                </div>
+              ))}
+            </div>
+            <p>Review the summary and photos, then generate the report record.</p>
           </section>
 
           <div className="generate-report-main-stack">
