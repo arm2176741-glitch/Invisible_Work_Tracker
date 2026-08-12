@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, type CSSProperties } from "react"
 import {
   AlertTriangle,
   ArrowLeft,
@@ -269,6 +269,13 @@ export function GenerateReportStep({
   const readinessReviewCompletedCount = readinessReviewItems.filter(
     (item) => item.complete,
   ).length
+  const completedReadinessItems = readinessReviewItems.filter((item) => item.complete)
+  const primaryReadinessBlocker = readinessReviewItems.find((item) => !item.complete)
+  const readinessRingStyle = {
+    "--readiness-progress": `${
+      (readinessReviewCompletedCount / readinessReviewItems.length) * 360
+    }deg`,
+  } as CSSProperties
   const evidencePreviewItems = evidence.slice(0, 4)
   const reportIncludeItems = [
     {
@@ -465,48 +472,82 @@ export function GenerateReportStep({
           </section>
 
           <section className="generate-readiness-review" data-ready={readyToGenerate}>
-            <div className="generate-readiness-review-header">
+            <div className="generate-readiness-card-header">
               <div>
                 <p className="eyebrow">Report readiness</p>
                 <h2>
-                  {readyToGenerate ? "Ready to generate" : "Work summary needed"}
+                  Step {readinessReviewCompletedCount} of {readinessReviewItems.length} Complete
                 </h2>
               </div>
-              <strong>
-                {readinessReviewCompletedCount}/{readinessReviewItems.length}
-              </strong>
-            </div>
-
-            <p>
-              {readyToGenerate
-                ? `${formatPhotoCount(totalEvidence)} and your work summary will be organized into the customer report.`
-                : "Add what your crew completed before creating the customer report."}
-            </p>
-
-            <div className="generate-readiness-review-list">
-              {readinessReviewItems.map((item) => (
-                <div data-complete={item.complete} key={item.label}>
-                  {item.complete ? (
-                    <CheckCircle2 aria-hidden="true" size={15} />
-                  ) : (
-                    <AlertTriangle aria-hidden="true" size={15} />
-                  )}
-                  <span>{item.label}</span>
-                  <strong>{item.detail}</strong>
-                </div>
-              ))}
-            </div>
-
-            {!hasWorkSummary ? (
-              <Button
-                className="generate-readiness-summary-button"
-                type="button"
-                variant="secondary"
-                onClick={focusWorkSummary}
+              <div
+                className="generate-readiness-ring"
+                style={readinessRingStyle}
+                aria-label={`${readinessReviewCompletedCount} of ${readinessReviewItems.length} readiness items complete`}
               >
-                Add work summary
-              </Button>
-            ) : null}
+                <span>
+                  {readinessReviewCompletedCount}/{readinessReviewItems.length}
+                </span>
+              </div>
+            </div>
+
+            {primaryReadinessBlocker ? (
+              <div className="generate-readiness-blocker-card">
+                <div className="generate-readiness-blocker-title">
+                  <span aria-hidden="true">
+                    <AlertTriangle size={15} />
+                  </span>
+                  <h3>
+                    {primaryReadinessBlocker.label === "Work summary"
+                      ? "Work summary needed"
+                      : `${primaryReadinessBlocker.label} needed`}
+                  </h3>
+                </div>
+                <p>
+                  Needed before generating. Add what your crew completed to
+                  finalize the document.
+                </p>
+                <Button
+                  className="generate-readiness-summary-button"
+                  type="button"
+                  variant="secondary"
+                  onClick={
+                    primaryReadinessBlocker.label === "Evidence" && onReviewEvidence
+                      ? onReviewEvidence
+                      : focusWorkSummary
+                  }
+                >
+                  {primaryReadinessBlocker.label === "Evidence"
+                    ? "Review evidence"
+                    : "Add work summary"}
+                </Button>
+              </div>
+            ) : (
+              <div className="generate-readiness-blocker-card" data-ready="true">
+                <div className="generate-readiness-blocker-title">
+                  <span aria-hidden="true">
+                    <CheckCircle2 size={15} />
+                  </span>
+                  <h3>Ready to generate</h3>
+                </div>
+                <p>
+                  {formatPhotoCount(totalEvidence)} and your work summary will be
+                  organized into the customer report.
+                </p>
+              </div>
+            )}
+
+            <div className="generate-readiness-completed">
+              <p className="eyebrow">Completed tasks</p>
+              <div>
+                {completedReadinessItems.map((item) => (
+                  <div key={item.label}>
+                    <span aria-hidden="true" />
+                    <strong>{item.label}</strong>
+                    <em>{item.detail}</em>
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
 
           <div className="generate-report-main-stack">
