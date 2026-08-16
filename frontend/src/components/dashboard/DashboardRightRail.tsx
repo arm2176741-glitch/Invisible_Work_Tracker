@@ -4,10 +4,11 @@ import {
   CheckCircle2,
   ChevronRight,
   FileText,
-  Image,
   Plus,
   ShieldCheck,
+  Upload,
 } from "lucide-react"
+import type { LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 import type {
@@ -18,6 +19,7 @@ import type {
 } from "@/types/domain"
 
 type RightRailState = "ERROR" | "NO_WORKSPACE" | "NO_JOBS" | "OPERATIONAL"
+type QuickActionTone = "create" | "upload" | "generate" | "view"
 
 interface DashboardRightRailProps {
   workspace: Workspace | null
@@ -201,6 +203,7 @@ function NeedsAttentionSection({
         {visibleItems.map((item) => (
           <button
             className="right-rail-attention-item"
+            data-tone={item.tone}
             type="button"
             key={item.id}
             onClick={() => onAttentionAction(item.id)}
@@ -247,30 +250,65 @@ function QuickActions({
     <section className="rail-panel-section quick-actions-card">
       <p className="eyebrow">Quick actions</p>
       <div className="quick-action-list">
-        <button type="button" onClick={onCreateJob}>
-          <Plus aria-hidden="true" size={15} />
-          <span>New job</span>
-        </button>
-        {summary.needsEvidence > 0 ? (
-          <button type="button" onClick={onUploadPhotos}>
-            <Image aria-hidden="true" size={15} />
-            <span>Upload photos</span>
-          </button>
-        ) : null}
-        {summary.readyForReport > 0 ? (
-          <button type="button" onClick={onGenerateReport}>
-            <ShieldCheck aria-hidden="true" size={15} />
-            <span>Generate report</span>
-          </button>
-        ) : null}
-        {latestReportId ? (
-          <button type="button" onClick={onOpenLatestReport}>
-            <FileText aria-hidden="true" size={15} />
-            <span>View reports</span>
-          </button>
-        ) : null}
+        <QuickActionRow
+          icon={Plus}
+          label="New job"
+          tone="create"
+          onClick={onCreateJob}
+        />
+        <QuickActionRow
+          disabled={summary.needsEvidence === 0}
+          icon={Upload}
+          label="Upload photos"
+          tone="upload"
+          onClick={onUploadPhotos}
+        />
+        <QuickActionRow
+          disabled={summary.readyForReport === 0}
+          icon={ShieldCheck}
+          label="Generate report"
+          tone="generate"
+          onClick={onGenerateReport}
+        />
+        <QuickActionRow
+          disabled={!latestReportId}
+          icon={FileText}
+          label="View reports"
+          tone="view"
+          onClick={onOpenLatestReport}
+        />
       </div>
     </section>
+  )
+}
+
+function QuickActionRow({
+  disabled = false,
+  icon: Icon,
+  label,
+  tone,
+  onClick,
+}: {
+  disabled?: boolean
+  icon: LucideIcon
+  label: string
+  tone: QuickActionTone
+  onClick: () => void
+}) {
+  return (
+    <button
+      className="quick-action-row"
+      data-tone={tone}
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <span className="quick-action-icon">
+        <Icon aria-hidden="true" size={15} />
+      </span>
+      <span className="quick-action-label">{label}</span>
+      <ChevronRight aria-hidden="true" className="quick-action-arrow" size={14} />
+    </button>
   )
 }
 

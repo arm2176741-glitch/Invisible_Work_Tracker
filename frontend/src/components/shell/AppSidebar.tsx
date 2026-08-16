@@ -1,11 +1,22 @@
 import { useState, type CSSProperties } from "react"
 
+import {
+  getJobFilterFromSearch,
+  JOB_FILTER_ROUTES,
+  type AppView,
+  type JobFilterLabel,
+} from "@/lib/navigation"
+
 type NavItem = {
-  label: string
+  label: AppView
   icon: string
   badge?: string
-  aliases?: string[]
-  children?: string[]
+  aliases?: Array<AppView | "Report preview">
+  children?: Array<{
+    label: JobFilterLabel
+    status: string
+    path: string
+  }>
 }
 
 const iconBasePath = "/icons/sidebar"
@@ -35,7 +46,23 @@ const navGroups: Array<{
       {
         label: "Jobs",
         icon: sidebarIconPaths.workEntries,
-        children: ["Active", "Needs photos", "Ready to send"],
+        children: [
+          {
+            label: "Active",
+            status: "active",
+            path: JOB_FILTER_ROUTES.Active,
+          },
+          {
+            label: "Needs photos",
+            status: "needs-photos",
+            path: JOB_FILTER_ROUTES["Needs photos"],
+          },
+          {
+            label: "Ready to send",
+            status: "ready-to-send",
+            path: JOB_FILTER_ROUTES["Ready to send"],
+          },
+        ],
       },
       { label: "Reports", icon: sidebarIconPaths.reports, aliases: ["Report preview"] },
     ],
@@ -57,12 +84,14 @@ const navGroups: Array<{
 ]
 
 interface AppSidebarProps {
-  activeView: string
+  activeView: AppView | "Report preview"
+  routeSearch?: string
   userName: string
   workspaceName: string | null
   isMobileOpen: boolean
   onClose: () => void
-  onNavigate?: (view: string) => void
+  onNavigate?: (view: AppView) => void
+  onNavigatePath?: (path: string) => void
   onLogout: () => void
 }
 
@@ -112,17 +141,20 @@ function SidebarIcon({
 
 export function AppSidebar({
   activeView,
+  routeSearch = "",
   userName,
   workspaceName,
   isMobileOpen,
   onClose,
   onNavigate,
+  onNavigatePath,
   onLogout,
 }: AppSidebarProps) {
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false)
   const [accountMenuOpen, setAccountMenuOpen] = useState(false)
   const resolvedWorkspaceName = workspaceName ?? "No workspace selected"
   const workspaceInitials = getWorkspaceInitials(workspaceName)
+  const activeJobFilter = getJobFilterFromSearch(routeSearch)
 
   function toggleWorkspaceMenu() {
     setWorkspaceMenuOpen((current) => !current)
@@ -134,10 +166,17 @@ export function AppSidebar({
     setWorkspaceMenuOpen(false)
   }
 
-  function handleNavigate(view: string) {
+  function handleNavigate(view: AppView) {
     setWorkspaceMenuOpen(false)
     setAccountMenuOpen(false)
     onNavigate?.(view)
+    onClose()
+  }
+
+  function handleNavigatePath(path: string) {
+    setWorkspaceMenuOpen(false)
+    setAccountMenuOpen(false)
+    onNavigatePath?.(path)
     onClose()
   }
 
@@ -204,13 +243,18 @@ export function AppSidebar({
               {group.items.map((item) => {
                 const isActive =
                   activeView === item.label || item.aliases?.includes(activeView)
+                const hasActiveChild = Boolean(
+                  item.children?.some((child) =>
+                    activeView === "Jobs" && activeJobFilter === child.status,
+                  ),
+                )
 
                 return (
                   <div className="nav-stack" key={item.label}>
                     <button
                       className={`nav-item ${isActive ? "active" : ""}`}
                       type="button"
-                      aria-current={isActive ? "page" : undefined}
+                      aria-current={isActive && !hasActiveChild ? "page" : undefined}
                       onClick={() => handleNavigate(item.label)}
                       title={item.label}
                     >
@@ -221,12 +265,23 @@ export function AppSidebar({
                       ) : null}
                     </button>
                     {isActive && item.children ? (
-                      <div className="sidebar-subnav">
-                        {item.children.map((child) => (
-                          <button type="button" key={child}>
-                            {child}
-                          </button>
-                        ))}
+                      <div className="sidebar-subnav sidebar-subnav--visible">
+                        {item.children.map((child) => {
+                          const isChildActive =
+                            activeView === "Jobs" && activeJobFilter === child.status
+
+                          return (
+                            <button
+                              className={isChildActive ? "active" : ""}
+                              type="button"
+                              aria-current={isChildActive ? "page" : undefined}
+                              key={child.label}
+                              onClick={() => handleNavigatePath(child.path)}
+                            >
+                              {child.label}
+                            </button>
+                          )
+                        })}
                       </div>
                     ) : null}
                   </div>
@@ -238,7 +293,15 @@ export function AppSidebar({
       </nav>
 
       <div className="sidebar-footer">
-        <button className="sidebar-help-button" type="button" title="Help and support">
+        <button
+          className={`sidebar-help-button ${
+            activeView === "Help & support" ? "active" : ""
+          }`}
+          type="button"
+          aria-current={activeView === "Help & support" ? "page" : undefined}
+          title="Help and support"
+          onClick={() => handleNavigate("Help & support")}
+        >
           <SidebarIcon src={sidebarIconPaths.help} size={15} />
           <span className="help-label">Help & support</span>
         </button>
@@ -269,13 +332,25 @@ export function AppSidebar({
                 <strong>{userName}</strong>
                 <small>{resolvedWorkspaceName}</small>
               </div>
-              <button className="sidebar-menu-text-item" type="button">
+              <button
+                className="sidebar-menu-text-item"
+                type="button"
+                onClick={() => handleNavigate("Profile")}
+              >
                 Your profile
               </button>
-              <button className="sidebar-menu-text-item" type="button">
+              <button
+                className="sidebar-menu-text-item"
+                type="button"
+                onClick={() => handleNavigate("Settings")}
+              >
                 Preferences
               </button>
-              <button className="sidebar-menu-text-item" type="button">
+              <button
+                className="sidebar-menu-text-item"
+                type="button"
+                onClick={() => handleNavigate("Company profile")}
+              >
                 Switch workspace
               </button>
               <button

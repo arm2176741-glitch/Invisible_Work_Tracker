@@ -1,14 +1,22 @@
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 
 import { LoginPage } from "@/components/auth/LoginPage"
 import { DashboardPage } from "@/components/dashboard/DashboardPage"
 import { ReportPreviewPage } from "@/components/reports/ReportPreviewPage"
 import { AppShell } from "@/components/shell/AppShell"
+import { NavigationPages } from "@/components/shell/NavigationPages"
 import {
   deriveOnboardingState,
   type OnboardingDashboardSnapshot,
   type OnboardingFirstWorkEntry,
 } from "@/lib/onboarding"
+import {
+  getPathForView,
+  isAppView,
+  matchAppRoute,
+  type AppRoute,
+  type AppView,
+} from "@/lib/navigation"
 import {
   ApiError,
   getSharedReport,
@@ -36,6 +44,15 @@ const emptyOnboardingDashboard: OnboardingDashboardSnapshot = {
   workEntryCount: 0,
   workEntries: [],
   firstWorkEntry: null,
+}
+
+function getCurrentAppRoute(): AppRoute {
+  return matchAppRoute(window.location.pathname)
+    ?? { view: "Dashboard", reportId: null }
+}
+
+function getCurrentLocationPath() {
+  return `${window.location.pathname}${window.location.search}${window.location.hash}`
 }
 
 function readStoredSession(): LoginResult | null {
@@ -261,6 +278,7 @@ function mapPhotoResponse(photo: WorkEntryPhotoResponse) {
     caption: photo.caption,
     fileName: photo.originalFilename,
     fileSizeBytes: photo.fileSizeBytes,
+    contentUrl: `/api/work-entries/${photo.workEntryId}/photos/${photo.id}/content`,
     createdAt: photo.createdAt,
   }
 }
@@ -501,12 +519,47 @@ function SharedReportRoute({ rawToken }: { rawToken: string }) {
 
 function App() {
   const sharedReportToken = getSharedReportToken()
+  const initialAppRoute = getCurrentAppRoute()
   const [session, setSession] = useState<LoginResult | null>(readStoredSession)
-  const [activeReportId, setActiveReportId] = useState<number | null>(null)
+  const [activeView, setActiveView] = useState<AppView>(initialAppRoute.view)
+  const [activeReportId, setActiveReportId] =
+    useState<number | null>(initialAppRoute.reportId)
   const [completionReportId, setCompletionReportId] = useState<number | null>(null)
   const [dashboardLoadError, setDashboardLoadError] = useState<string | null>(null)
+  const [routeSearch, setRouteSearch] = useState(window.location.search)
   const [onboardingDashboard, setOnboardingDashboard] =
     useState<OnboardingDashboardSnapshot>(emptyOnboardingDashboard)
+
+  const navigateToPath = useCallback((path: string, replace = false) => {
+    const url = new URL(path, window.location.origin)
+    const matchedRoute = matchAppRoute(url.pathname)
+
+    if (!matchedRoute) {
+      return
+    }
+
+    const nextPath = `${url.pathname}${url.search}${url.hash}`
+
+    setActiveView(matchedRoute.view)
+    setRouteSearch(url.search)
+    setActiveReportId(matchedRoute.reportId)
+
+    if (!matchedRoute.reportId) {
+      setCompletionReportId(null)
+    }
+
+    if (getCurrentLocationPath() !== nextPath) {
+      if (replace) {
+        window.history.replaceState(null, "", nextPath)
+      } else {
+        window.history.pushState(null, "", nextPath)
+      }
+    }
+  }, [])
+
+  const navigateToView = useCallback((view: AppView) => {
+    navigateToPath(getPathForView(view))
+  }, [navigateToPath])
 
   useEffect(() => {
     if (!session?.token) {
@@ -561,6 +614,72 @@ function App() {
       isCurrent = false
     }
   }, [session])
+
+  useEffect(() => {
+    function handlePopState() {
+      const nextRoute = getCurrentAppRoute()
+
+      setActiveView(nextRoute.view)
+      setRouteSearch(window.location.search)
+      setActiveReportId(nextRoute.reportId)
+
+      if (!nextRoute.reportId) {
+        setCompletionReportId(null)
+      }
+    }
+
+    window.addEventListener("popstate", handlePopState)
+
+    return () => window.removeEventListener("popstate", handlePopState)
+  }, [])
+
+  useEffect(() => {
+    function handleInternalLinkClick(event: MouseEvent) {
+      if (
+        event.defaultPrevented
+        || event.button !== 0
+        || event.metaKey
+        || event.ctrlKey
+        || event.shiftKey
+        || event.altKey
+      ) {
+        return
+      }
+
+      if (!(event.target instanceof Element)) {
+        return
+      }
+
+      const anchor = event.target.closest("a")
+
+      if (!(anchor instanceof HTMLAnchorElement)) {
+        return
+      }
+
+      if (anchor.target || anchor.hasAttribute("download")) {
+        return
+      }
+
+      const href = anchor.getAttribute("href")
+
+      if (!href || href.startsWith("#")) {
+        return
+      }
+
+      const url = new URL(anchor.href)
+
+      if (url.origin !== window.location.origin || !matchAppRoute(url.pathname)) {
+        return
+      }
+
+      event.preventDefault()
+      navigateToPath(`${url.pathname}${url.search}${url.hash}`)
+    }
+
+    document.addEventListener("click", handleInternalLinkClick)
+
+    return () => document.removeEventListener("click", handleInternalLinkClick)
+  }, [navigateToPath])
 
   function handleLogin(nextSession: LoginResult) {
     persistSession(nextSession)
@@ -623,12 +742,12 @@ function App() {
     )
 
   function handleOpenReport(reportId: number) {
-    setActiveReportId(reportId)
+    navigateToPath(`/reports/${reportId}`)
   }
 
   function handleOpenGeneratedReport(reportId: number) {
     setCompletionReportId(reportId)
-    setActiveReportId(reportId)
+    navigateToPath(`/reports/${reportId}`)
   }
 
   async function handleReportReviewed(reportId: number) {
@@ -658,8 +777,7 @@ function App() {
   }
 
   function handleGoToDashboard() {
-    setActiveReportId(null)
-    setCompletionReportId(null)
+    navigateToView("Dashboard")
 
     if (
       currentSession.dashboardMode !== "operational"
@@ -672,18 +790,27 @@ function App() {
     }
   }
 
-  function handleShellNavigate(view: string) {
+  function handleShellNavigate(view: AppView) {
+    if (!isAppView(view)) {
+      return
+    }
+
     if (view === "Dashboard") {
       handleGoToDashboard()
+      return
     }
+
+    navigateToView(view)
   }
 
   return (
     <AppShell
-      activeView={activeReport ? "Report preview" : "Dashboard"}
+      activeView={activeReport ? "Report preview" : activeView}
+      routeSearch={routeSearch}
       userName={session.userName}
       workspaceName={activeReport?.workspaceName ?? onboardingDashboard.workspace?.name ?? null}
       onNavigate={handleShellNavigate}
+      onNavigatePath={navigateToPath}
       onLogout={handleLogout}
     >
       {activeReport ? (
@@ -697,7 +824,7 @@ function App() {
           onGoToDashboard={handleGoToDashboard}
           onBack={handleGoToDashboard}
         />
-      ) : (
+      ) : activeView === "Dashboard" ? (
         <DashboardPage
           dashboardMode={session.dashboardMode}
           userName={session.userName}
@@ -708,6 +835,18 @@ function App() {
           onExploreDemo={() => updateSession({ ...session, dashboardMode: "operational" })}
           onOpenReport={handleOpenReport}
           onOpenGeneratedReport={handleOpenGeneratedReport}
+          onNavigate={handleShellNavigate}
+        />
+      ) : (
+        <NavigationPages
+          view={activeView}
+          userName={session.userName}
+          authToken={session.token}
+          dashboard={onboardingDashboard}
+          dashboardLoadError={dashboardLoadError}
+          routeSearch={routeSearch}
+          onNavigate={handleShellNavigate}
+          onOpenReport={handleOpenReport}
         />
       )}
     </AppShell>

@@ -3,6 +3,7 @@ package com.iwt.invisibleworktracker.service.impl;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.iwt.invisibleworktracker.dto.report.ReportSnapshotV1;
+import com.iwt.invisibleworktracker.dto.workentry.WorkEntryPhotoContent;
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryPhotoResponse;
 import com.iwt.invisibleworktracker.entity.report.Report;
 import com.iwt.invisibleworktracker.entity.workentry.PhotoCategory;
@@ -137,6 +138,52 @@ public class WorkEntryPhotoServiceImpl implements WorkEntryPhotoService {
                 .stream()
                 .map(WorkEntryPhotoResponse::from)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public WorkEntryPhotoContent getPhotoContent(
+            User currentUser,
+            Long workEntryId,
+            Long photoId
+    ) {
+        WorkEntry workEntry = requireAccessibleWorkEntry(currentUser, workEntryId);
+
+        if (photoId == null) {
+            throw new IllegalArgumentException("Photo id is required");
+        }
+
+        WorkEntryPhoto photo = photoRepository
+                .findByIdAndWorkEntry(photoId, workEntry)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Photo not found"
+                ));
+
+        Path storedFile = uploadRoot
+                .resolve(photo.getStoragePath())
+                .normalize();
+
+        ensurePathStaysInside(storedFile, uploadRoot);
+
+        try {
+            if (!Files.exists(storedFile) || !Files.isRegularFile(storedFile)) {
+                throw new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Photo file not found"
+                );
+            }
+
+            return new WorkEntryPhotoContent(
+                    Files.readAllBytes(storedFile),
+                    photo.getContentType()
+            );
+        } catch (IOException ex) {
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Photo could not be read"
+            );
+        }
     }
 
     @Override

@@ -49,7 +49,8 @@ export interface WorkEntry {
   proofReady: boolean
   reportId?: number
   reportNumber?: string
-  thumbnailUrl: string
+  thumbnailUrl?: string
+  thumbnailContentUrl?: string
   updatedLabel: string
   photoCount: number
   photos: WorkEntryPhoto[]
@@ -92,7 +93,7 @@ export interface AttentionItem {
   title: string
   detail: string
   actionLabel: string
-  tone: "warning" | "info"
+  tone: "warning" | "generate" | "send"
 }
 
 export interface UpcomingItem {

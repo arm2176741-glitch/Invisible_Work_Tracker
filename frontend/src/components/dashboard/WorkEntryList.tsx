@@ -1,13 +1,17 @@
 import type { WorkEntry } from "@/types/domain"
 
-import { ArrowRight } from "lucide-react"
+import { useEffect, useState } from "react"
+import { ArrowRight, Camera } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
 
 interface WorkEntryListProps {
   entries: WorkEntry[]
+  authToken?: string
   onOpenReport: (reportId: number) => void
   onContinueEntry: (entryId: number) => void
+  onViewAllJobs?: () => void
+  title?: string
   emptyMessage?: string
 }
 
@@ -27,19 +31,99 @@ function getStatusTone(entry: WorkEntry) {
   return "warning"
 }
 
+function WorkEntryThumbnail({
+  authToken,
+  entry,
+}: {
+  authToken?: string
+  entry: WorkEntry
+}) {
+  const [fetchedThumbnailUrl, setFetchedThumbnailUrl] = useState<string | null>(null)
+
+  useEffect(() => {
+    setFetchedThumbnailUrl(null)
+
+    if (entry.thumbnailUrl || !entry.thumbnailContentUrl || !authToken) {
+      return
+    }
+
+    const controller = new AbortController()
+    let objectUrl: string | null = null
+    let isCurrent = true
+
+    async function loadThumbnail() {
+      try {
+        const headers = new Headers()
+        headers.set("Authorization", `Bearer ${authToken}`)
+
+        const response = await fetch(entry.thumbnailContentUrl as string, {
+          headers,
+          signal: controller.signal,
+        })
+
+        if (!response.ok || !isCurrent) {
+          return
+        }
+
+        objectUrl = URL.createObjectURL(await response.blob())
+
+        if (isCurrent) {
+          setFetchedThumbnailUrl(objectUrl)
+        }
+      } catch {
+        if (isCurrent) {
+          setFetchedThumbnailUrl(null)
+        }
+      }
+    }
+
+    void loadThumbnail()
+
+    return () => {
+      isCurrent = false
+      controller.abort()
+
+      if (objectUrl) {
+        URL.revokeObjectURL(objectUrl)
+      }
+    }
+  }, [authToken, entry.thumbnailContentUrl, entry.thumbnailUrl])
+
+  const thumbnailUrl = entry.thumbnailUrl ?? fetchedThumbnailUrl
+
+  return (
+    <div className="work-entry-thumbnail" aria-hidden="true">
+      {thumbnailUrl ? (
+        <img src={thumbnailUrl} alt="" />
+      ) : (
+        <span className="work-entry-thumbnail-placeholder">
+          <Camera aria-hidden="true" size={15} />
+        </span>
+      )}
+    </div>
+  )
+}
+
 export function WorkEntryList({
   entries,
+  authToken,
   onOpenReport,
   onContinueEntry,
+  onViewAllJobs,
+  title = "Recent jobs",
   emptyMessage = "Create a job to start documenting work.",
 }: WorkEntryListProps) {
   return (
     <section className="card section-card work-entry-panel">
       <div className="section-title-row">
         <div>
-          <h3>Recent jobs</h3>
+          <h3>{title}</h3>
         </div>
-        <Button variant="ghost" size="sm">View all jobs</Button>
+        {onViewAllJobs ? (
+          <Button variant="ghost" size="sm" onClick={onViewAllJobs}>
+            View all jobs
+          </Button>
+        ) : null}
       </div>
 
       <div className="work-entry-table-header" aria-hidden="true">
@@ -62,9 +146,7 @@ export function WorkEntryList({
           return (
             <article className="work-entry-row" key={entry.id}>
               <div className="work-entry-job-cell">
-                <div className="work-entry-thumbnail" aria-hidden="true">
-                  <img src={entry.thumbnailUrl} alt="" />
-                </div>
+                <WorkEntryThumbnail authToken={authToken} entry={entry} />
 
                 <div className="work-entry-main">
                   <h4 className="work-entry-title">{entry.jobName}</h4>

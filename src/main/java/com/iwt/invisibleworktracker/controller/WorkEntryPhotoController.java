@@ -1,5 +1,6 @@
 package com.iwt.invisibleworktracker.controller;
 
+import com.iwt.invisibleworktracker.dto.workentry.WorkEntryPhotoContent;
 import com.iwt.invisibleworktracker.dto.workentry.WorkEntryPhotoResponse;
 import com.iwt.invisibleworktracker.entity.user.User;
 import com.iwt.invisibleworktracker.service.WorkEntryPhotoService;
@@ -69,6 +70,29 @@ public class WorkEntryPhotoController {
                         workEntryId
                 )
         );
+    }
+
+    @GetMapping("/{photoId}/content")
+    public ResponseEntity<byte[]> getPhotoContent(
+            @PathVariable Long workEntryId,
+            @PathVariable Long photoId,
+            Authentication authentication
+    ) {
+        User currentUser = (User) authentication.getPrincipal();
+
+        WorkEntryPhotoContent content =
+                workEntryPhotoService.getPhotoContent(
+                        currentUser,
+                        workEntryId,
+                        photoId
+                );
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(content.contentType()))
+                .header("Content-Disposition", "inline")
+                .header("Cache-Control", "private, max-age=300")
+                .header("X-Content-Type-Options", "nosniff")
+                .body(content.bytes());
     }
 
     @DeleteMapping("/{photoId}")

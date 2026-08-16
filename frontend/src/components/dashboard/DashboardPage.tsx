@@ -54,6 +54,7 @@ import {
   getOnboardingStepVisualState,
   hasRequiredEvidence,
 } from "@/lib/onboarding"
+import type { AppView } from "@/lib/navigation"
 import type {
   ActivityItem,
   AttentionItem,
@@ -79,6 +80,7 @@ interface DashboardPageProps {
   onExploreDemo: () => void
   onOpenReport: (reportId: number) => void
   onOpenGeneratedReport: (reportId: number) => void
+  onNavigate?: (view: AppView) => void
 }
 
 const onboardingStepIcons: Record<VisibleOnboardingStep, LucideIcon> = {
@@ -188,6 +190,7 @@ function mapUploadedPhotoResponse(
     fileName: photo.originalFilename,
     fileSizeBytes: photo.fileSizeBytes,
     previewUrl,
+    contentUrl: `/api/work-entries/${photo.workEntryId}/photos/${photo.id}/content`,
     createdAt: photo.createdAt,
   }
 }
@@ -202,6 +205,7 @@ export function DashboardPage({
   onExploreDemo,
   onOpenReport,
   onOpenGeneratedReport,
+  onNavigate,
 }: DashboardPageProps) {
   if (dashboardMode === "onboarding") {
     return (
@@ -226,6 +230,7 @@ export function DashboardPage({
       dashboardLoadError={dashboardLoadError}
       onOpenReport={onOpenReport}
       onOpenGeneratedReport={onOpenGeneratedReport}
+      onNavigate={onNavigate}
       userName={userName}
     />
   )
@@ -308,6 +313,9 @@ function buildOperationalEntries(
     const proofReady = hasRequiredEvidence(entry)
     const report = entry.report
     const photoCount = entry.evidence?.length ?? 0
+    const thumbnailEvidence = entry.evidence?.find((item) =>
+      Boolean(item.previewUrl || item.contentUrl),
+    )
 
     return {
       id: entry.id,
@@ -325,8 +333,8 @@ function buildOperationalEntries(
       proofReady,
       reportId: report?.id,
       reportNumber: report?.reportNumber,
-      thumbnailUrl: entry.evidence?.find((item) => item.previewUrl)?.previewUrl
-        ?? "/images/onboarding/step-5-review-report.png",
+      thumbnailUrl: thumbnailEvidence?.previewUrl,
+      thumbnailContentUrl: thumbnailEvidence?.contentUrl,
       updatedLabel: formatShortDate(entry.workDate),
       photoCount,
       photos: (entry.evidence ?? []).map((item) => ({
@@ -335,6 +343,7 @@ function buildOperationalEntries(
         caption: item.caption,
         uploadedAt: item.createdAt,
         previewUrl: item.previewUrl,
+        contentUrl: item.contentUrl,
       })),
     }
   })
@@ -373,9 +382,9 @@ function buildAttentionItems(
       items.push({
         id: entry.id,
         title: entry.jobTitle ?? "Untitled job",
-        detail: "Job documentation is ready for a proof report",
-        actionLabel: "Generate",
-        tone: "info",
+        detail: "Documentation ready",
+        actionLabel: "Generate report",
+        tone: "generate",
       })
       return
     }
@@ -384,9 +393,9 @@ function buildAttentionItems(
       items.push({
         id: entry.id,
         title: entry.jobTitle ?? "Untitled job",
-        detail: "Proof report is ready to send",
+        detail: "Report ready to send",
         actionLabel: "Review & send",
-        tone: "info",
+        tone: "send",
       })
     }
   })
@@ -1807,6 +1816,7 @@ function OperationalDashboard({
   userName,
   onOpenReport,
   onOpenGeneratedReport,
+  onNavigate,
 }: {
   dashboard: OnboardingDashboardSnapshot
   setDashboard: Dispatch<SetStateAction<OnboardingDashboardSnapshot>>
@@ -1815,6 +1825,7 @@ function OperationalDashboard({
   userName: string
   onOpenReport: (reportId: number) => void
   onOpenGeneratedReport: (reportId: number) => void
+  onNavigate?: (view: AppView) => void
 }) {
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false)
   const [showCreateJob, setShowCreateJob] = useState(false)
@@ -2246,8 +2257,10 @@ function OperationalDashboard({
 
               <WorkEntryList
                 entries={operationalEntries}
+                authToken={authToken}
                 onOpenReport={onOpenReport}
                 onContinueEntry={handleContinueWorkEntry}
+                onViewAllJobs={() => onNavigate?.("Jobs")}
                 emptyMessage={
                   hasWorkspace
                     ? "Create a job to start documenting work."

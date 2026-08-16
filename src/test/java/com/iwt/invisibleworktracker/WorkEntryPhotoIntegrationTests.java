@@ -39,6 +39,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -172,6 +173,37 @@ class WorkEntryPhotoIntegrationTests {
                 .andExpect(jsonPath("$[0].originalFilename").value("before.png"))
                 .andExpect(jsonPath("$[1].category").value("AFTER"))
                 .andExpect(jsonPath("$[1].originalFilename").value("after.jpg"));
+    }
+
+    @Test
+    void getPhotoContentReturnsStoredPhotoForAccessibleWorkEntry() throws Exception {
+        String token = registerLoginAndGetToken(
+                "photo-content@example.com",
+                "Password123!",
+                "Photo Content User"
+        );
+
+        Organization organization =
+                createOrganizationAndGetSaved(token, "Content Photo Roofing");
+
+        WorkEntry workEntry =
+                createWorkEntryAndGetSaved(
+                        token,
+                        organization.getId(),
+                        "Content Photo Job"
+                );
+
+        uploadPhoto(token, workEntry.getId(), "BEFORE", pngPhoto("content-before.png"));
+
+        WorkEntryPhoto savedPhoto = photoRepository.findAll().get(0);
+
+        mockMvc.perform(get("/work-entries/{workEntryId}/photos/{photoId}/content",
+                        workEntry.getId(),
+                        savedPhoto.getId())
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.IMAGE_PNG))
+                .andExpect(content().bytes(pngBytes()));
     }
 
     @Test

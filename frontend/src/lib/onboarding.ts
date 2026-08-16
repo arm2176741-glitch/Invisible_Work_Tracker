@@ -7,6 +7,7 @@ export interface OnboardingEvidenceItem {
   fileName?: string
   fileSizeBytes?: number
   previewUrl?: string
+  contentUrl?: string
   createdAt: string
 }
 

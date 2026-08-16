@@ -137,9 +137,9 @@ export const attentionItems: AttentionItem[] = [
   {
     id: 2,
     title: "Storm Damage Inspection",
-    detail: "Inspection pending review",
-    actionLabel: "Generate",
-    tone: "info",
+    detail: "Documentation ready",
+    actionLabel: "Generate report",
+    tone: "generate",
   },
   {
     id: 3,

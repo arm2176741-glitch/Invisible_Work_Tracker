@@ -2,21 +2,26 @@ import { Menu } from "lucide-react"
 import { useState, type ReactNode } from "react"
 
 import { AppSidebar } from "@/components/shell/AppSidebar"
+import type { AppView } from "@/lib/navigation"
 
 interface AppShellProps {
-  activeView: string
+  activeView: AppView | "Report preview"
+  routeSearch?: string
   userName: string
   workspaceName: string | null
-  onNavigate?: (view: string) => void
+  onNavigate?: (view: AppView) => void
+  onNavigatePath?: (path: string) => void
   onLogout: () => void
   children: ReactNode
 }
 
 export function AppShell({
   activeView,
+  routeSearch = "",
   userName,
   workspaceName,
   onNavigate,
+  onNavigatePath,
   onLogout,
   children,
 }: AppShellProps) {
@@ -45,11 +50,13 @@ export function AppShell({
       <div className="app-shell">
         <AppSidebar
           activeView={activeView}
+          routeSearch={routeSearch}
           userName={userName}
           workspaceName={workspaceName}
           isMobileOpen={sidebarOpen}
           onClose={closeSidebar}
           onNavigate={onNavigate}
+          onNavigatePath={onNavigatePath}
           onLogout={onLogout}
         />
         <button

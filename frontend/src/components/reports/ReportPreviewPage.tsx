@@ -18,7 +18,6 @@ import type { ReportSnapshot, ReportStatus, WorkEntryPhoto } from "@/types/domai
 import { Button } from "@/components/ui/button"
 
 const FIRST_REPORT_COMPLETION_SEEN_KEY_PREFIX = "fieldproof.firstReportCompletionDialogSeen"
-const REPORT_PAGE_COUNT = 3
 
 interface ReportPreviewPageProps {
   report: ReportSnapshot
@@ -235,18 +234,22 @@ export function ReportPreviewPage({
   }
 
   const evidenceGroups = groupReportPhotos(report.photos)
-  const beforeDuringPhotos = [
-    ...evidenceGroups.BEFORE,
-    ...evidenceGroups.DURING,
-  ]
   const afterPhotos = evidenceGroups.AFTER
   const totalPhotoCount = report.photos.length
   const documentedStageCount = Object.values(evidenceGroups).filter((photos) => photos.length > 0).length
+  const reportPageCount = totalPhotoCount <= 4 ? 2 : 3
+  const completionDateLabel = formatDate(report.workDate ?? report.generatedAt)
   const scheduleLabel = formatScheduleDateTime(
     report.workDate,
     report.scheduledStartTime,
     report.arrivalWindow,
   )
+  const statusStripItems = [
+    formatStatus(report.workStatus),
+    `${totalPhotoCount} photo${totalPhotoCount === 1 ? "" : "s"}`,
+    `${documentedStageCount}/3 stages documented`,
+    reportStatusLabel,
+  ]
 
   function renderReportHeader(pageNumber: number) {
     return (
@@ -263,7 +266,7 @@ export function ReportPreviewPage({
           <h1>Proof of Work Report</h1>
           <p>
             <span>{report.reportNumber}</span>
-            <span>Page {pageNumber} of {REPORT_PAGE_COUNT}</span>
+            <span>Page {pageNumber} of {reportPageCount}</span>
           </p>
         </div>
       </header>
@@ -302,14 +305,106 @@ export function ReportPreviewPage({
             <div className="proof-report-photo-body">
               <div className="proof-report-photo-meta">
                 <strong>{formatPhotoCategory(photo.category)} Work</strong>
-                <span>{formatDateTime(photo.uploadedAt)}</span>
+                <span>Snapshot evidence</span>
               </div>
               <p>{photo.caption || `${formatPhotoCategory(photo.category)} evidence`}</p>
-              <small>Documented by {report.workspaceName}</small>
+              <dl className="proof-report-photo-details">
+                <div>
+                  <dt>Recorded</dt>
+                  <dd>{formatDateTime(photo.uploadedAt)}</dd>
+                </div>
+                <div>
+                  <dt>Property</dt>
+                  <dd>{report.jobAddress}</dd>
+                </div>
+                <div>
+                  <dt>Documented by</dt>
+                  <dd>{report.workspaceName}</dd>
+                </div>
+              </dl>
             </div>
           </article>
         ))}
       </div>
+    )
+  }
+
+  function renderStageEvidenceSection(
+    stage: WorkEntryPhoto["category"],
+    photos: WorkEntryPhoto[],
+    sectionNumber: number,
+  ) {
+    return (
+      <section className="proof-report-stage-section">
+        <div className="proof-report-stage-heading">
+          <span>{String(sectionNumber).padStart(2, "0")}</span>
+          <div>
+            <h2>{formatPhotoCategory(stage)} Work</h2>
+            <p>{getStageEvidenceSummary(stage, photos.length)}</p>
+          </div>
+        </div>
+        {renderEvidenceCards(
+          photos,
+          `No ${formatPhotoCategory(stage)} photos were included in this report.`,
+        )}
+      </section>
+    )
+  }
+
+  function renderProjectRecordSection() {
+    return (
+      <>
+        <section className="proof-report-section proof-report-project-record">
+          <h2>Project Record</h2>
+          <div className="proof-report-metrics-grid">
+            <div>
+              <span>Photos Captured</span>
+              <strong>{totalPhotoCount} photos</strong>
+            </div>
+            <div>
+              <span>Evidence Stages</span>
+              <strong>{documentedStageCount}/3 documented</strong>
+            </div>
+            <div>
+              <span>Job Status</span>
+              <strong>{formatStatus(report.workStatus)}</strong>
+            </div>
+            <div>
+              <span>Completion Date</span>
+              <strong>{completionDateLabel}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="proof-report-completeness">
+          <div>
+            <h3>Documentation completeness</h3>
+            <p>Required stages recorded in FieldProof for this report.</p>
+          </div>
+          <ul>
+            <li data-complete={evidenceGroups.BEFORE.length > 0 ? "true" : "false"}>
+              <span>{evidenceGroups.BEFORE.length > 0 ? "Complete" : "Missing"}</span>
+              Before documented
+            </li>
+            <li data-complete={evidenceGroups.DURING.length > 0 ? "true" : "false"}>
+              <span>{evidenceGroups.DURING.length > 0 ? "Complete" : "Missing"}</span>
+              During documented
+            </li>
+            <li data-complete={evidenceGroups.AFTER.length > 0 ? "true" : "false"}>
+              <span>{evidenceGroups.AFTER.length > 0 ? "Complete" : "Missing"}</span>
+              After documented
+            </li>
+          </ul>
+        </section>
+
+        <section className="proof-report-record-notice">
+          <strong>About this record</strong>
+          <p>
+            This report reflects the job details, work summary, and photo evidence
+            references recorded in FieldProof at the time the report was generated.
+          </p>
+        </section>
+      </>
     )
   }
 
@@ -377,34 +472,41 @@ export function ReportPreviewPage({
         <article className="report-document report-page proof-report-page">
           {renderReportHeader(1)}
 
+          <section className="proof-report-certificate">
+            <p className="report-label">Proof of Work Report</p>
+            <h2>{report.jobName} - Proof of Work Report</h2>
+            <p>{report.jobAddress}</p>
+            <strong>{formatStatus(report.workStatus)} {completionDateLabel}</strong>
+            <div className="proof-report-status-strip" aria-label="Report status">
+              {statusStripItems.map((item) => (
+                <span key={item}>{item}</span>
+              ))}
+            </div>
+          </section>
+
+          <section className="proof-report-callout">
+            <p className="report-label">Executive Summary</p>
+            <p>{buildCustomerReportSummary(report, evidenceGroups)}</p>
+          </section>
+
           <section className="proof-report-overview">
-            <h2>Job Overview</h2>
+            <h2>Customer / Property</h2>
             <div className="proof-report-overview-grid">
-              <div className="proof-report-overview-row">
-                <span>Job / Description</span>
-                <strong>{report.jobName}</strong>
-              </div>
-              <div className="proof-report-overview-row">
-                <span>Status</span>
-                <strong>
-                  <span className="proof-report-status">{formatStatus(report.workStatus)}</span>
-                </strong>
-              </div>
-              <div className="proof-report-overview-row">
-                <span>Property Address</span>
-                <strong>{report.jobAddress}</strong>
-              </div>
               <div className="proof-report-overview-row">
                 <span>Customer</span>
                 <strong>{report.customerName}</strong>
               </div>
               <div className="proof-report-overview-row">
-                <span>Work Type</span>
-                <strong>{report.workType}</strong>
-              </div>
-              <div className="proof-report-overview-row">
                 <span>Company</span>
                 <strong>{report.workspaceName}</strong>
+              </div>
+              <div className="proof-report-overview-row">
+                <span>Property</span>
+                <strong>{report.jobAddress}</strong>
+              </div>
+              <div className="proof-report-overview-row">
+                <span>Work Type</span>
+                <strong>{report.workType}</strong>
               </div>
               <div className="proof-report-overview-row">
                 <span>Scheduled</span>
@@ -417,33 +519,24 @@ export function ReportPreviewPage({
             </div>
           </section>
 
-          <section className="proof-report-callout">
-            <p className="report-label">Executive Summary</p>
-            <p>
-              {report.workspaceName} documented this job using structured field notes
-              and Before, During, and After photo evidence.
-            </p>
-          </section>
-
           <section className="proof-report-section">
             <h2>Detailed Work Documentation</h2>
-            <div className="proof-report-documentation-list">
+            <div className="proof-report-documentation-cards">
               <article>
-                <span>1. Work Performed</span>
+                <span>Work Performed</span>
                 <p>{report.workPerformed}</p>
               </article>
               <article>
-                <span>2. Evidence Captured</span>
+                <span>Evidence Captured</span>
                 <p>
-                  {totalPhotoCount} photos were attached to this report across{" "}
-                  {documentedStageCount} documented stage{documentedStageCount === 1 ? "" : "s"}.
+                  {totalPhotoCount} recorded photo{totalPhotoCount === 1 ? "" : "s"} across
+                  Before, During, and After stages.
                 </p>
               </article>
               <article>
-                <span>3. Completion Record</span>
+                <span>Completion</span>
                 <p>
-                  Job status at generation was {formatStatus(report.workStatus)}.
-                  This report records the job documentation available when it was generated.
+                  {formatStatus(report.workStatus)} {completionDateLabel} - {report.workspaceName}
                 </p>
               </article>
             </div>
@@ -455,58 +548,41 @@ export function ReportPreviewPage({
         <article className="report-document report-page proof-report-page">
           {renderReportHeader(2)}
 
-          <section className="proof-report-section proof-report-section-first">
-            <h2>Photo Evidence - Before & During Work</h2>
-            {renderEvidenceCards(
-              beforeDuringPhotos,
-              "No Before or During photos were included in this report.",
-            )}
-          </section>
+          {reportPageCount === 2 ? (
+            <>
+              <section className="proof-report-section proof-report-section-first proof-report-story">
+                <h2>Photo Evidence</h2>
+                {renderStageEvidenceSection("BEFORE", evidenceGroups.BEFORE, 1)}
+                {renderStageEvidenceSection("DURING", evidenceGroups.DURING, 2)}
+                {renderStageEvidenceSection("AFTER", evidenceGroups.AFTER, 3)}
+              </section>
+              {renderProjectRecordSection()}
+            </>
+          ) : (
+            <section className="proof-report-section proof-report-section-first proof-report-story">
+              <h2>Photo Evidence - Before & During Work</h2>
+              {renderStageEvidenceSection("BEFORE", evidenceGroups.BEFORE, 1)}
+              {renderStageEvidenceSection("DURING", evidenceGroups.DURING, 2)}
+            </section>
+          )}
 
           {renderReportFooter(2)}
         </article>
 
-        <article className="report-document report-page proof-report-page">
-          {renderReportHeader(3)}
+        {reportPageCount === 3 ? (
+          <article className="report-document report-page proof-report-page">
+            {renderReportHeader(3)}
 
-          <section className="proof-report-section proof-report-section-first">
-            <h2>Photo Evidence - After Work</h2>
-            {renderEvidenceCards(afterPhotos, "No After photos were included in this report.")}
-          </section>
+            <section className="proof-report-section proof-report-section-first proof-report-story">
+              <h2>Photo Evidence - After Work</h2>
+              {renderStageEvidenceSection("AFTER", afterPhotos, 3)}
+            </section>
 
-          <section className="proof-report-section proof-report-metrics-section">
-            <h2>Documentation Metrics</h2>
-            <div className="proof-report-metrics-grid">
-              <div>
-                <span>Total Images Recorded</span>
-                <strong>{totalPhotoCount} photos</strong>
-              </div>
-              <div>
-                <span>Evidence Stages</span>
-                <strong>{documentedStageCount} of 3</strong>
-              </div>
-              <div>
-                <span>Record State</span>
-                <strong>Snapshot Recorded</strong>
-              </div>
-              <div>
-                <span>Delivery Status</span>
-                <strong>{reportStatusLabel}</strong>
-              </div>
-            </div>
-          </section>
+            {renderProjectRecordSection()}
 
-          <section className="proof-report-record-notice">
-            <strong>Official Record Notice</strong>
-            <p>
-              This report presents the saved job details and evidence references
-              available when it was generated. Later edits to the active work entry
-              do not change the saved report details.
-            </p>
-          </section>
-
-          {renderReportFooter(3)}
-        </article>
+            {renderReportFooter(3)}
+          </article>
+        ) : null}
       </div>
 
       {showCompletionDialog ? (
@@ -683,6 +759,71 @@ function formatStatus(status: string) {
 
 function formatPhotoCategory(category: WorkEntryPhoto["category"]) {
   return formatStatus(category)
+}
+
+function completeSentence(value: string) {
+  const trimmedValue = value.trim()
+
+  if (!trimmedValue) {
+    return "The completed work was documented in FieldProof."
+  }
+
+  return /[.!?]$/.test(trimmedValue) ? trimmedValue : `${trimmedValue}.`
+}
+
+function getCapturedStageNames(
+  evidenceGroups: Record<WorkEntryPhoto["category"], WorkEntryPhoto[]>,
+) {
+  return (Object.entries(evidenceGroups) as Array<[WorkEntryPhoto["category"], WorkEntryPhoto[]]>)
+    .filter(([, photos]) => photos.length > 0)
+    .map(([stage]) => formatPhotoCategory(stage))
+}
+
+function formatStageList(stages: string[]) {
+  if (stages.length === 0) {
+    return "No staged photo evidence"
+  }
+
+  if (stages.length === 1) {
+    return stages[0]
+  }
+
+  if (stages.length === 2) {
+    return `${stages[0]} and ${stages[1]}`
+  }
+
+  return `${stages.slice(0, -1).join(", ")}, and ${stages[stages.length - 1]}`
+}
+
+function buildCustomerReportSummary(
+  report: ReportSnapshot,
+  evidenceGroups: Record<WorkEntryPhoto["category"], WorkEntryPhoto[]>,
+) {
+  const workSummary = completeSentence(report.workPerformed)
+  const capturedStages = getCapturedStageNames(evidenceGroups)
+
+  if (capturedStages.length === 0) {
+    return `${report.workspaceName} recorded the completed work for this property: ${workSummary}`
+  }
+
+  return `${report.workspaceName} recorded the completed work for this property: ${workSummary} ${formatStageList(
+    capturedStages,
+  )} evidence was captured for the job record.`
+}
+
+function getStageEvidenceSummary(stage: WorkEntryPhoto["category"], photoCount: number) {
+  const stagePurpose: Record<WorkEntryPhoto["category"], string> = {
+    BEFORE: "initial conditions",
+    DURING: "work progress",
+    AFTER: "completed condition",
+  }
+  const photoLabel = photoCount === 1 ? "photo" : "photos"
+
+  if (photoCount === 0) {
+    return `No ${formatPhotoCategory(stage)} photos documented for this report.`
+  }
+
+  return `${photoCount} ${photoLabel} documenting ${stagePurpose[stage]}.`
 }
 
 function groupReportPhotos(photos: WorkEntryPhoto[]) {
