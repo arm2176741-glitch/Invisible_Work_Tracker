@@ -13,9 +13,9 @@ export const APP_VIEWS = [
 export type AppView = typeof APP_VIEWS[number]
 
 export const JOB_FILTER_ROUTES = {
-  Active: "/jobs?status=active",
-  "Needs photos": "/jobs?status=needs-photos",
-  "Ready to send": "/jobs?status=ready-to-send",
+  All: "/jobs",
+  Open: "/jobs?status=open",
+  Completed: "/jobs?status=completed",
 } as const
 
 export type JobFilterLabel = keyof typeof JOB_FILTER_ROUTES
@@ -71,5 +71,15 @@ export function getPathForView(view: AppView) {
 }
 
 export function getJobFilterFromSearch(search: string) {
-  return new URLSearchParams(search).get("status")
+  const status = new URLSearchParams(search).get("status")
+
+  if (status === "open" || status === "active") {
+    return "open"
+  }
+
+  if (status === "completed") {
+    return "completed"
+  }
+
+  return null
 }

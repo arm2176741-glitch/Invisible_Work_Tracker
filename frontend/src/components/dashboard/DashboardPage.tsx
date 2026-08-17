@@ -54,7 +54,7 @@ import {
   getOnboardingStepVisualState,
   hasRequiredEvidence,
 } from "@/lib/onboarding"
-import type { AppView } from "@/lib/navigation"
+import { JOB_FILTER_ROUTES, type AppView } from "@/lib/navigation"
 import type {
   ActivityItem,
   AttentionItem,
@@ -81,7 +81,20 @@ interface DashboardPageProps {
   onOpenReport: (reportId: number) => void
   onOpenGeneratedReport: (reportId: number) => void
   onNavigate?: (view: AppView) => void
+  dashboardCommand?: DashboardCommand | null
+  onDashboardCommandHandled?: (commandId: number) => void
 }
+
+export type DashboardCommand =
+  | {
+      id: number
+      action: "create-job"
+    }
+  | {
+      id: number
+      action: "add-evidence" | "generate-report"
+      entryId: number
+    }
 
 const onboardingStepIcons: Record<VisibleOnboardingStep, LucideIcon> = {
   CREATE_WORKSPACE: BriefcaseBusiness,
@@ -206,6 +219,8 @@ export function DashboardPage({
   onOpenReport,
   onOpenGeneratedReport,
   onNavigate,
+  dashboardCommand,
+  onDashboardCommandHandled,
 }: DashboardPageProps) {
   if (dashboardMode === "onboarding") {
     return (
@@ -218,6 +233,8 @@ export function DashboardPage({
         onExploreDemo={onExploreDemo}
         onOpenReport={onOpenReport}
         onOpenGeneratedReport={onOpenGeneratedReport}
+        dashboardCommand={dashboardCommand}
+        onDashboardCommandHandled={onDashboardCommandHandled}
       />
     )
   }
@@ -232,6 +249,8 @@ export function DashboardPage({
       onOpenGeneratedReport={onOpenGeneratedReport}
       onNavigate={onNavigate}
       userName={userName}
+      dashboardCommand={dashboardCommand}
+      onDashboardCommandHandled={onDashboardCommandHandled}
     />
   )
 }
@@ -719,6 +738,8 @@ function OnboardingDashboard({
   onExploreDemo,
   onOpenReport,
   onOpenGeneratedReport,
+  dashboardCommand,
+  onDashboardCommandHandled,
 }: {
   dashboard: OnboardingDashboardSnapshot
   setDashboard: Dispatch<SetStateAction<OnboardingDashboardSnapshot>>
@@ -728,6 +749,8 @@ function OnboardingDashboard({
   onExploreDemo: () => void
   onOpenReport: (reportId: number) => void
   onOpenGeneratedReport: (reportId: number) => void
+  dashboardCommand?: DashboardCommand | null
+  onDashboardCommandHandled?: (commandId: number) => void
 }) {
   const [showCreateWorkEntryStep, setShowCreateWorkEntryStep] = useState(false)
   const [showAddEvidenceStep, setShowAddEvidenceStep] = useState(false)
@@ -793,6 +816,41 @@ function OnboardingDashboard({
 
     return () => window.clearTimeout(dismissTimer)
   }, [workspaceSuccess])
+
+  useEffect(() => {
+    if (!dashboardCommand) {
+      return
+    }
+
+    onDashboardCommandHandled?.(dashboardCommand.id)
+
+    if (dashboardCommand.action === "create-job") {
+      if (dashboard.workspace) {
+        setShowCreateWorkEntryStep(true)
+      } else {
+        setWorkspaceCoachVisible(true)
+      }
+
+      return
+    }
+
+    const selectedEntry = getDashboardEntries(dashboard).find(
+      (entry) => entry.id === dashboardCommand.entryId,
+    )
+
+    if (!dashboard.workspace || !selectedEntry || dashboard.firstWorkEntry?.id !== selectedEntry.id) {
+      return
+    }
+
+    if (dashboardCommand.action === "generate-report" && hasRequiredEvidence(selectedEntry)) {
+      setShowAddEvidenceStep(false)
+      setShowGenerateReportStep(true)
+      return
+    }
+
+    setShowGenerateReportStep(false)
+    setShowAddEvidenceStep(true)
+  }, [dashboard, dashboardCommand, onDashboardCommandHandled])
 
   function handleStartFirstReport() {
     writeLocalPreference(ONBOARDING_WELCOME_SEEN_KEY)
@@ -1817,6 +1875,8 @@ function OperationalDashboard({
   onOpenReport,
   onOpenGeneratedReport,
   onNavigate,
+  dashboardCommand,
+  onDashboardCommandHandled,
 }: {
   dashboard: OnboardingDashboardSnapshot
   setDashboard: Dispatch<SetStateAction<OnboardingDashboardSnapshot>>
@@ -1826,6 +1886,8 @@ function OperationalDashboard({
   onOpenReport: (reportId: number) => void
   onOpenGeneratedReport: (reportId: number) => void
   onNavigate?: (view: AppView) => void
+  dashboardCommand?: DashboardCommand | null
+  onDashboardCommandHandled?: (commandId: number) => void
 }) {
   const [showCreateWorkspace, setShowCreateWorkspace] = useState(false)
   const [showCreateJob, setShowCreateJob] = useState(false)
@@ -1847,6 +1909,48 @@ function OperationalDashboard({
   )
   const showDashboardErrorState =
     Boolean(dashboardLoadError && !hasWorkspace && dashboardEntries.length === 0)
+
+  useEffect(() => {
+    if (!dashboardCommand) {
+      return
+    }
+
+    onDashboardCommandHandled?.(dashboardCommand.id)
+
+    if (dashboardCommand.action === "create-job") {
+      if (hasWorkspace) {
+        setShowCreateJob(true)
+      } else {
+        setShowCreateWorkspace(true)
+      }
+
+      return
+    }
+
+    const selectedEntry = dashboardEntries.find(
+      (entry) => entry.id === dashboardCommand.entryId,
+    )
+
+    if (!selectedEntry) {
+      return
+    }
+
+    setActiveLoopWorkEntry(selectedEntry)
+
+    if (dashboardCommand.action === "generate-report" && hasRequiredEvidence(selectedEntry)) {
+      setShowAddEvidenceStep(false)
+      setShowGenerateReportStep(true)
+      return
+    }
+
+    setShowGenerateReportStep(false)
+    setShowAddEvidenceStep(true)
+  }, [
+    dashboardCommand,
+    dashboardEntries,
+    hasWorkspace,
+    onDashboardCommandHandled,
+  ])
 
   async function handleOperationalCreateWorkspace(input: CreateWorkspaceInput) {
     const organization = await createOrganization(authToken, input.name)
@@ -2112,15 +2216,36 @@ function OperationalDashboard({
   }
 
   function handleOpenFirstNeedsPhotos() {
-    if (firstNeedsPhotosEntry) {
-      handleMobileJobAction(firstNeedsPhotosEntry)
+    const targetEntry =
+      firstNeedsPhotosEntry ?? dashboardEntries.find((entry) => !entry.report)
+
+    if (targetEntry) {
+      setActiveLoopWorkEntry(targetEntry)
+      setShowGenerateReportStep(false)
+      setShowAddEvidenceStep(true)
+      return
     }
+
+    setShowCreateJob(true)
   }
 
   function handleOpenFirstReadyForReport() {
-    if (firstReadyForReportEntry) {
-      handleMobileJobAction(firstReadyForReportEntry)
+    const targetEntry =
+      firstReadyForReportEntry
+      ?? firstNeedsPhotosEntry
+      ?? dashboardEntries.find((entry) => !entry.report)
+
+    if (targetEntry) {
+      handleMobileJobAction(targetEntry)
+      return
     }
+
+    if (latestReportEntry?.reportId) {
+      onOpenReport(latestReportEntry.reportId)
+      return
+    }
+
+    setShowCreateJob(true)
   }
 
   if (showAddEvidenceStep && dashboard.workspace && activeLoopWorkEntry) {
@@ -2206,17 +2331,17 @@ function OperationalDashboard({
               </a>
             ) : summary.needsEvidence > 0 ? (
               <>
-                <a className="operational-page-action-link" href="/jobs?status=active">
-                  {pluralizeCount(summary.activeJobs, "active job")}
+                <a className="operational-page-action-link" href={JOB_FILTER_ROUTES.Open}>
+                  {pluralizeCount(summary.activeJobs, "open job")}
                 </a>
                 <span className="operational-page-copy-separator">-</span>
-                <a className="operational-page-action-link" href="/jobs?status=needs-photos">
+                <a className="operational-page-action-link" href={JOB_FILTER_ROUTES.Open}>
                   {formatNeedsPhotosSummary(summary.needsEvidence)}
                 </a>
               </>
             ) : (
-              <a className="operational-page-action-link" href="/jobs?status=active">
-                {pluralizeCount(summary.activeJobs, "active job")}
+              <a className="operational-page-action-link" href={JOB_FILTER_ROUTES.Open}>
+                {pluralizeCount(summary.activeJobs, "open job")}
               </a>
             )}
           </p>
@@ -2275,7 +2400,6 @@ function OperationalDashboard({
           <DashboardRightRail
             workspace={hasWorkspace ? currentWorkspace : null}
             jobCount={dashboardEntries.length}
-            summary={summary}
             attentionItems={attentionItems}
             recentActivity={recentActivities}
             latestReportId={latestReportEntry?.reportId}
@@ -2288,7 +2412,10 @@ function OperationalDashboard({
             onOpenLatestReport={() => {
               if (latestReportEntry?.reportId) {
                 onOpenReport(latestReportEntry.reportId)
+                return
               }
+
+              onNavigate?.("Reports")
             }}
             onRetry={() => window.location.reload()}
           />

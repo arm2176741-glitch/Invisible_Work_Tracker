@@ -11,10 +11,10 @@ import {
 import type { LucideIcon } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { JOB_FILTER_ROUTES } from "@/lib/navigation"
 import type {
   ActivityItem,
   AttentionItem,
-  DashboardSummary,
   Workspace,
 } from "@/types/domain"
 
@@ -24,7 +24,6 @@ type QuickActionTone = "create" | "upload" | "generate" | "view"
 interface DashboardRightRailProps {
   workspace: Workspace | null
   jobCount: number
-  summary: DashboardSummary
   attentionItems: AttentionItem[]
   recentActivity: ActivityItem[]
   latestReportId?: number
@@ -222,7 +221,7 @@ function NeedsAttentionSection({
       </div>
 
       {items.length > visibleItems.length ? (
-        <a className="right-rail-text-link" href="/jobs?status=needs-attention">
+        <a className="right-rail-text-link" href={JOB_FILTER_ROUTES.Open}>
           View all
           <ChevronRight aria-hidden="true" size={15} />
         </a>
@@ -232,14 +231,12 @@ function NeedsAttentionSection({
 }
 
 function QuickActions({
-  summary,
   latestReportId,
   onCreateJob,
   onUploadPhotos,
   onGenerateReport,
   onOpenLatestReport,
 }: {
-  summary: DashboardSummary
   latestReportId?: number
   onCreateJob: () => void
   onUploadPhotos: () => void
@@ -257,23 +254,20 @@ function QuickActions({
           onClick={onCreateJob}
         />
         <QuickActionRow
-          disabled={summary.needsEvidence === 0}
           icon={Upload}
           label="Upload photos"
           tone="upload"
           onClick={onUploadPhotos}
         />
         <QuickActionRow
-          disabled={summary.readyForReport === 0}
           icon={ShieldCheck}
           label="Generate report"
           tone="generate"
           onClick={onGenerateReport}
         />
         <QuickActionRow
-          disabled={!latestReportId}
           icon={FileText}
-          label="View reports"
+          label={latestReportId ? "View latest report" : "View reports"}
           tone="view"
           onClick={onOpenLatestReport}
         />
@@ -347,7 +341,6 @@ function RecentActivitySection({ items }: { items: ActivityItem[] }) {
 export function DashboardRightRail({
   workspace,
   jobCount,
-  summary,
   attentionItems,
   recentActivity,
   latestReportId,
@@ -383,7 +376,6 @@ export function DashboardRightRail({
             onAttentionAction={onAttentionAction}
           />
           <QuickActions
-            summary={summary}
             latestReportId={latestReportId}
             onCreateJob={onCreateJob}
             onUploadPhotos={onUploadPhotos}

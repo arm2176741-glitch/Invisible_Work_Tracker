@@ -5,21 +5,25 @@ import {
   ClipboardList,
   FileText,
   Mail,
+  Search,
   ShieldCheck,
   UserPlus,
   Users,
 } from "lucide-react"
-import type { ReactNode } from "react"
+import { useState, type ReactNode } from "react"
 
-import { WorkEntryList } from "@/components/dashboard/WorkEntryList"
 import { Button } from "@/components/ui/button"
 import { hasRequiredEvidence } from "@/lib/onboarding"
 import type {
   OnboardingDashboardSnapshot,
   OnboardingFirstWorkEntry,
 } from "@/lib/onboarding"
-import type { AppView } from "@/lib/navigation"
-import type { DashboardSummary, ReportStatus, WorkEntry } from "@/types/domain"
+import {
+  JOB_FILTER_ROUTES,
+  getJobFilterFromSearch,
+  type AppView,
+} from "@/lib/navigation"
+import type { ReportStatus, WorkEntry } from "@/types/domain"
 
 interface NavigationPagesProps {
   view: AppView
@@ -30,6 +34,11 @@ interface NavigationPagesProps {
   routeSearch: string
   onNavigate: (view: AppView) => void
   onOpenReport: (reportId: number) => void
+  onStartDashboardCommand: (
+    command:
+      | { action: "create-job" }
+      | { action: "add-evidence" | "generate-report"; entryId: number },
+  ) => void
 }
 
 interface ReportRow {
@@ -124,16 +133,6 @@ function buildOperationalEntries(entries: OnboardingFirstWorkEntry[]): WorkEntry
   })
 }
 
-function buildDashboardSummary(entries: OnboardingFirstWorkEntry[]): DashboardSummary {
-  return {
-    activeJobs: entries.filter((entry) => entry.status !== "COMPLETED").length,
-    needsEvidence: entries.filter((entry) => !hasRequiredEvidence(entry)).length,
-    readyForReport: entries.filter((entry) => hasRequiredEvidence(entry) && !entry.report).length,
-    proofReady: entries.filter((entry) => entry.report && entry.report.status !== "SHARED").length,
-    reportsGenerated: entries.filter((entry) => entry.report).length,
-  }
-}
-
 function getReportRows(entries: OnboardingFirstWorkEntry[]): ReportRow[] {
   return entries
     .flatMap((entry) => {
@@ -156,51 +155,19 @@ function getReportRows(entries: OnboardingFirstWorkEntry[]): ReportRow[] {
     )
 }
 
-function getJobFilter(search: string) {
-  return new URLSearchParams(search).get("status")
-}
-
 function filterEntries(
   entries: OnboardingFirstWorkEntry[],
   filter: string | null,
 ) {
-  if (filter === "needs-photos" || filter === "needs-attention") {
-    return entries.filter((entry) => !hasRequiredEvidence(entry))
-  }
-
-  if (filter === "ready-for-report") {
-    return entries.filter((entry) => hasRequiredEvidence(entry) && !entry.report)
-  }
-
-  if (filter === "ready-to-send") {
-    return entries.filter((entry) => entry.report && entry.report.status !== "SHARED")
-  }
-
-  if (filter === "active") {
+  if (filter === "open") {
     return entries.filter((entry) => entry.status !== "COMPLETED")
   }
 
+  if (filter === "completed") {
+    return entries.filter((entry) => entry.status === "COMPLETED")
+  }
+
   return entries
-}
-
-function getFilterTitle(filter: string | null) {
-  if (filter === "needs-photos" || filter === "needs-attention") {
-    return "Jobs Needing Photos"
-  }
-
-  if (filter === "ready-for-report") {
-    return "Jobs Ready For Report"
-  }
-
-  if (filter === "ready-to-send") {
-    return "Reports Ready To Send"
-  }
-
-  if (filter === "active") {
-    return "Active Jobs"
-  }
-
-  return "Jobs"
 }
 
 function getWorkspaceName(dashboard: OnboardingDashboardSnapshot) {
@@ -248,26 +215,189 @@ function NavigationHeader({
   )
 }
 
+const JOB_PAGE_FILTERS: Array<{
+  label: string
+  status: string | null
+  href: string
+}> = [
+  { label: "All", status: null, href: JOB_FILTER_ROUTES.All },
+  { label: "Open", status: "open", href: JOB_FILTER_ROUTES.Open },
+  { label: "Completed", status: "completed", href: JOB_FILTER_ROUTES.Completed },
+]
+
+interface JobsPageRow {
+  id: number
+  title: string
+  address: string
+  customer: string
+  photoLabel: string
+  reportId?: number
+  reportNumber?: string
+  lifecycleLabel: string
+  lifecycleTone: "open" | "complete"
+  proofLabel: string
+  proofTone: "warning" | "ready" | "complete"
+  nextActionLabel: string
+  nextActionKind: "add-photos" | "generate-report" | "view-report"
+  lastActiveLabel: string
+}
+function getPhotoLabel(photoCount: number) {
+  return `${photoCount} photo${photoCount === 1 ? "" : "s"}`
+}
+
+function getProofLabel(entry: WorkEntry) {
+  const hasBeforePhoto = entry.photos.some((photo) => photo.category === "BEFORE")
+  const hasAfterPhoto = entry.photos.some((photo) => photo.category === "AFTER")
+
+  if (entry.reportId) {
+    return "Report generated"
+  }
+
+  if (hasBeforePhoto && hasAfterPhoto) {
+    return "Ready for report"
+  }
+
+  if (!hasBeforePhoto && !hasAfterPhoto) {
+    return "Needs before and after photos"
+  }
+
+  if (!hasBeforePhoto) {
+    return "Needs before photos"
+  }
+
+  return "Needs after photos"
+}
+
+function getProofTone(entry: WorkEntry): JobsPageRow["proofTone"] {
+  if (entry.reportId) {
+    return "complete"
+  }
+
+  if (entry.proofReady) {
+    return "ready"
+  }
+
+  return "warning"
+}
+
+function getNextActionLabel(entry: WorkEntry) {
+  if (entry.reportId) {
+    return "View report"
+  }
+
+  if (entry.proofReady) {
+    return "Generate report"
+  }
+
+  return "Add photos"
+}
+
+function getNextActionKind(entry: WorkEntry): JobsPageRow["nextActionKind"] {
+  if (entry.reportId) {
+    return "view-report"
+  }
+
+  if (entry.proofReady) {
+    return "generate-report"
+  }
+
+  return "add-photos"
+}
+
+function buildJobsPageRow(entry: WorkEntry): JobsPageRow {
+  return {
+    id: entry.id,
+    title: entry.jobName,
+    address: entry.jobAddress,
+    customer: entry.customerName,
+    photoLabel: getPhotoLabel(entry.photoCount),
+    reportId: entry.reportId,
+    reportNumber: entry.reportNumber,
+    lifecycleLabel: entry.status === "COMPLETED" ? "Completed" : "Open",
+    lifecycleTone: entry.status === "COMPLETED" ? "complete" : "open",
+    proofLabel: getProofLabel(entry),
+    proofTone: getProofTone(entry),
+    nextActionLabel: getNextActionLabel(entry),
+    nextActionKind: getNextActionKind(entry),
+    lastActiveLabel: entry.updatedLabel,
+  }
+}
+
+function getJobsEmptyState(hasWorkspace: boolean, hasAnyJobs: boolean) {
+  if (!hasWorkspace) {
+    return {
+      title: "No workspace selected",
+      copy: "Create or select a workspace before adding job records.",
+    }
+  }
+
+  if (!hasAnyJobs) {
+    return {
+      title: "No jobs yet",
+      copy: "Job records will appear here once work has been created.",
+    }
+  }
+
+  return {
+    title: "No jobs match this view",
+    copy: "Use another Jobs filter or return to the dashboard to continue open work.",
+  }
+}
+
+function getJobsFilterCount(entries: OnboardingFirstWorkEntry[], filter: string | null) {
+  return filterEntries(entries, filter).length
+}
+
 function JobsPage({
   dashboard,
   dashboardLoadError,
   routeSearch,
-  authToken,
-  onNavigate,
   onOpenReport,
+  onStartDashboardCommand,
 }: NavigationPagesProps) {
   const entries = getDashboardEntries(dashboard)
-  const summary = buildDashboardSummary(entries)
-  const filter = getJobFilter(routeSearch)
+  const [searchQuery, setSearchQuery] = useState("")
+  const filter = getJobFilterFromSearch(routeSearch)
   const filteredEntries = filterEntries(entries, filter)
   const operationalEntries = buildOperationalEntries(filteredEntries)
+  const jobRows = operationalEntries.map(buildJobsPageRow)
+  const searchTerm = searchQuery.trim().toLowerCase()
+  const visibleJobRows = searchTerm
+    ? jobRows.filter((row) =>
+        [
+          row.title,
+          row.address,
+          row.customer,
+          row.reportNumber ?? "",
+        ].some((value) => value.toLowerCase().includes(searchTerm)),
+      )
+    : jobRows
   const hasWorkspace = Boolean(dashboard.workspace)
+  const emptyState = getJobsEmptyState(hasWorkspace, entries.length > 0)
+  const displayedEmptyState = searchTerm && jobRows.length > 0
+    ? {
+        title: "No matching jobs",
+        copy: "Try another job name, customer, address, or report number.",
+      }
+    : emptyState
+
+  function handleJobAction(row: JobsPageRow) {
+    if (row.nextActionKind === "view-report" && typeof row.reportId === "number") {
+      onOpenReport(row.reportId)
+      return
+    }
+
+    onStartDashboardCommand({
+      action: row.nextActionKind === "generate-report" ? "generate-report" : "add-evidence",
+      entryId: row.id,
+    })
+  }
 
   return (
     <section className="navigation-page">
       <NavigationHeader
         eyebrow="Work"
-        title={getFilterTitle(filter)}
+        title="Jobs"
         copy={
           dashboardLoadError
             ? "Saved job data could not be loaded."
@@ -276,48 +406,115 @@ function JobsPage({
               : "Create a workspace before adding jobs."
         }
         action={
-          <Button className="dashboard-primary-action" onClick={() => onNavigate("Dashboard")}>
+          <Button
+            className="dashboard-primary-action"
+            onClick={() => onStartDashboardCommand({ action: "create-job" })}
+          >
             <BriefcaseBusiness aria-hidden="true" size={15} />
-            Dashboard
+            New Job
           </Button>
         }
       />
 
-      <div className="navigation-metrics-row">
-        <NavigationMetric
-          label="Active"
-          value={summary.activeJobs}
-          detail="Jobs not marked complete"
-        />
-        <NavigationMetric
-          label="Need photos"
-          value={summary.needsEvidence}
-          detail="Missing required evidence"
-        />
-        <NavigationMetric
-          label="Ready"
-          value={summary.readyForReport}
-          detail="Can generate reports"
-        />
-        <NavigationMetric
-          label="Reports"
-          value={summary.reportsGenerated}
-          detail="Generated proof reports"
+      <div className="jobs-search-row">
+        <Search aria-hidden="true" size={16} />
+        <input
+          aria-label="Search jobs"
+          className="jobs-search-input"
+          type="search"
+          placeholder="Search jobs, customers, addresses, report #..."
+          value={searchQuery}
+          onChange={(event) => setSearchQuery(event.target.value)}
         />
       </div>
 
-      <WorkEntryList
-        title={getFilterTitle(filter)}
-        entries={operationalEntries}
-        authToken={authToken}
-        onOpenReport={onOpenReport}
-        onContinueEntry={() => onNavigate("Dashboard")}
-        emptyMessage={
-          entries.length === 0
-            ? "No jobs have been created yet."
-            : "No jobs match this view."
-        }
-      />
+      <nav className="jobs-filter-bar" aria-label="Job lifecycle filters">
+        {JOB_PAGE_FILTERS.map((item) => {
+          const isActive = item.status === null ? !filter : filter === item.status
+
+          return (
+            <a
+              aria-current={isActive ? "page" : undefined}
+              className={`jobs-filter-chip ${isActive ? "jobs-filter-chip--active" : ""}`}
+              href={item.href}
+              key={item.label}
+            >
+              <span>{item.label}</span>
+              <strong>{getJobsFilterCount(entries, item.status)}</strong>
+            </a>
+          )
+        })}
+      </nav>
+
+      <section className="jobs-record-panel">
+        <div className="jobs-record-header" aria-hidden="true">
+          <span>Job / Property</span>
+          <span>Progress</span>
+          <span>Last active</span>
+          <span>Next step</span>
+        </div>
+
+        <div className="jobs-record-list">
+          {visibleJobRows.length === 0 ? (
+            <div className="jobs-record-empty">
+              <ClipboardList aria-hidden="true" size={22} />
+              <h2>{displayedEmptyState.title}</h2>
+              <p>
+                {dashboardLoadError
+                  ? "Saved job data could not be loaded."
+                  : displayedEmptyState.copy}
+              </p>
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={() => onStartDashboardCommand({ action: "create-job" })}
+              >
+                New job
+              </Button>
+            </div>
+          ) : (
+            visibleJobRows.map((row) => (
+              <article className="jobs-record-row" key={row.id}>
+                <div className="jobs-record-primary">
+                  <strong title={row.title}>{row.title}</strong>
+                  <span title={row.address}>{row.address}</span>
+                  <small>
+                    <span>{row.customer}</span>
+                    <span>{row.photoLabel}</span>
+                  </small>
+                </div>
+
+                <div className="jobs-record-progress" data-label="Progress">
+                  <div className="jobs-record-pill-stack">
+                    <span className={`jobs-record-pill jobs-record-pill--${row.lifecycleTone}`}>
+                      {row.lifecycleLabel}
+                    </span>
+                    <span className={`jobs-record-pill jobs-record-pill--${row.proofTone}`}>
+                      {row.proofLabel}
+                    </span>
+                  </div>
+                  <small>{row.reportNumber ?? "No report yet"}</small>
+                </div>
+
+                <div className="jobs-record-last-active" data-label="Last active">
+                  <span>{row.lastActiveLabel}</span>
+                </div>
+
+                <button
+                  className={`jobs-record-action jobs-record-action--${row.nextActionKind}`}
+                  type="button"
+                  aria-label={`${row.nextActionLabel} for ${row.title}`}
+                  onClick={() => handleJobAction(row)}
+                >
+                  {row.nextActionLabel}
+                  <ArrowRight aria-hidden="true" size={14} />
+                </button>
+              </article>
+            ))
+          )}
+        </div>
+      </section>
+
     </section>
   )
 }

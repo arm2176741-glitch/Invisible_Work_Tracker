@@ -1,6 +1,7 @@
 import { ChevronRight, Plus } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
+import { JOB_FILTER_ROUTES } from "@/lib/navigation"
 import { hasRequiredEvidence, type OnboardingFirstWorkEntry } from "@/lib/onboarding"
 import type { DashboardSummary } from "@/types/domain"
 
@@ -96,13 +97,13 @@ function buildBacklogChips(summary: DashboardSummary): BacklogChip[] {
     {
       label: "need photos",
       value: summary.needsEvidence,
-      href: "/jobs?status=needs-photos",
+      href: JOB_FILTER_ROUTES.Open,
       tone: "warning",
     },
     {
       label: "ready for report",
       value: summary.readyForReport,
-      href: "/jobs?status=ready-for-report",
+      href: JOB_FILTER_ROUTES.Open,
       tone: "ready",
     },
     {

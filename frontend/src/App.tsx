@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from "react"
 
 import { LoginPage } from "@/components/auth/LoginPage"
-import { DashboardPage } from "@/components/dashboard/DashboardPage"
+import {
+  DashboardPage,
+  type DashboardCommand,
+} from "@/components/dashboard/DashboardPage"
 import { ReportPreviewPage } from "@/components/reports/ReportPreviewPage"
 import { AppShell } from "@/components/shell/AppShell"
 import { NavigationPages } from "@/components/shell/NavigationPages"
@@ -527,6 +530,8 @@ function App() {
   const [completionReportId, setCompletionReportId] = useState<number | null>(null)
   const [dashboardLoadError, setDashboardLoadError] = useState<string | null>(null)
   const [routeSearch, setRouteSearch] = useState(window.location.search)
+  const [dashboardCommand, setDashboardCommand] =
+    useState<DashboardCommand | null>(null)
   const [onboardingDashboard, setOnboardingDashboard] =
     useState<OnboardingDashboardSnapshot>(emptyOnboardingDashboard)
 
@@ -790,6 +795,20 @@ function App() {
     }
   }
 
+  function handleStartDashboardCommand(command: Omit<DashboardCommand, "id">) {
+    setDashboardCommand({
+      ...command,
+      id: Date.now(),
+    } as DashboardCommand)
+    handleGoToDashboard()
+  }
+
+  function handleDashboardCommandHandled(commandId: number) {
+    setDashboardCommand((currentCommand) =>
+      currentCommand?.id === commandId ? null : currentCommand,
+    )
+  }
+
   function handleShellNavigate(view: AppView) {
     if (!isAppView(view)) {
       return
@@ -836,6 +855,8 @@ function App() {
           onOpenReport={handleOpenReport}
           onOpenGeneratedReport={handleOpenGeneratedReport}
           onNavigate={handleShellNavigate}
+          dashboardCommand={dashboardCommand}
+          onDashboardCommandHandled={handleDashboardCommandHandled}
         />
       ) : (
         <NavigationPages
@@ -847,6 +868,7 @@ function App() {
           routeSearch={routeSearch}
           onNavigate={handleShellNavigate}
           onOpenReport={handleOpenReport}
+          onStartDashboardCommand={handleStartDashboardCommand}
         />
       )}
     </AppShell>
