@@ -417,7 +417,7 @@ class WorkEntryIntegrationTests {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(statusJson("SUBMITTED")))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Status can only be DRAFT or COMPLETED"));
+                .andExpect(jsonPath("$.message").value("Status can only be DRAFT, COMPLETED, or ARCHIVED"));
 
         WorkEntry unchangedWorkEntry = workEntryRepository.findById(workEntry.getId())
                 .orElseThrow();

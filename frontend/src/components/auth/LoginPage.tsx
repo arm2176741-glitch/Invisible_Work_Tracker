@@ -33,6 +33,12 @@ type AuthError = {
   detail: string
 }
 
+function getInitialAuthMode(): AuthMode {
+  const mode = new URLSearchParams(window.location.search).get("mode")
+
+  return mode === "create" ? "create-account" : "sign-in"
+}
+
 function isValidEmail(value: string) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
 }
@@ -98,7 +104,7 @@ function getFriendlyAuthError(error: unknown): AuthError {
 }
 
 export function LoginPage({ onLogin }: LoginPageProps) {
-  const [authMode, setAuthMode] = useState<AuthMode>("sign-in")
+  const [authMode, setAuthMode] = useState<AuthMode>(getInitialAuthMode)
   const [fullName, setFullName] = useState("")
   const [email, setEmail] = useState("")
   const [resetEmail, setResetEmail] = useState("")

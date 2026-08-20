@@ -30,6 +30,8 @@ export interface OnboardingReportSummary {
 
 export interface OnboardingFirstWorkEntry {
   id: number
+  createdAt?: string
+  updatedAt?: string
   evidenceReady?: boolean
   evidence?: OnboardingEvidenceItem[]
   jobTitle?: string
@@ -46,7 +48,7 @@ export interface OnboardingFirstWorkEntry {
   assignedCrew?: string | null
   siteAccessNotes?: string | null
   internalNotes?: string | null
-  status?: "DRAFT" | "SUBMITTED" | "COMPLETED"
+  status?: "DRAFT" | "SUBMITTED" | "COMPLETED" | "ARCHIVED"
   plannedScope?: string
   workPerformedSummary?: string
   description?: string

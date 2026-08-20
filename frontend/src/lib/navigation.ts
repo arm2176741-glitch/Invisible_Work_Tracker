@@ -16,9 +16,19 @@ export const JOB_FILTER_ROUTES = {
   All: "/jobs",
   Open: "/jobs?status=open",
   Completed: "/jobs?status=completed",
+  Archived: "/jobs?status=archived",
 } as const
 
 export type JobFilterLabel = keyof typeof JOB_FILTER_ROUTES
+
+export const REPORT_FILTER_ROUTES = {
+  "Ready to send": "/reports",
+  "Needs review": "/reports?status=needs-review",
+  Sent: "/reports?status=sent",
+  All: "/reports?status=all",
+} as const
+
+export type ReportFilter = "ready" | "needs-review" | "sent" | "all"
 
 export interface AppRoute {
   view: AppView
@@ -81,5 +91,27 @@ export function getJobFilterFromSearch(search: string) {
     return "completed"
   }
 
+  if (status === "archived") {
+    return "archived"
+  }
+
   return null
+}
+
+export function getReportFilterFromSearch(search: string): ReportFilter {
+  const status = new URLSearchParams(search).get("status")
+
+  if (status === "sent" || status === "shared") {
+    return "sent"
+  }
+
+  if (status === "needs-review" || status === "review") {
+    return "needs-review"
+  }
+
+  if (status === "all") {
+    return "all"
+  }
+
+  return "ready"
 }

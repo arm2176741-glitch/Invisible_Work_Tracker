@@ -92,7 +92,7 @@ export type DashboardCommand =
     }
   | {
       id: number
-      action: "add-evidence" | "generate-report"
+      action: "open-entry" | "add-evidence" | "generate-report"
       entryId: number
     }
 
@@ -338,6 +338,8 @@ function buildOperationalEntries(
 
     return {
       id: entry.id,
+      createdAt: entry.createdAt,
+      updatedAt: entry.updatedAt,
       jobName: entry.jobTitle ?? "Untitled job",
       jobAddress: entry.propertyAddress ?? "No property address added",
       customerName: entry.customerName ?? "Customer not recorded",
@@ -352,9 +354,12 @@ function buildOperationalEntries(
       proofReady,
       reportId: report?.id,
       reportNumber: report?.reportNumber,
+      reportStatus: report?.status,
       thumbnailUrl: thumbnailEvidence?.previewUrl,
       thumbnailContentUrl: thumbnailEvidence?.contentUrl,
-      updatedLabel: formatShortDate(entry.workDate),
+      updatedLabel: formatShortDate(
+        entry.updatedAt ?? entry.report?.generatedAt ?? entry.createdAt ?? entry.workDate,
+      ),
       photoCount,
       photos: (entry.evidence ?? []).map((item) => ({
         id: item.id,
@@ -842,6 +847,12 @@ function OnboardingDashboard({
       return
     }
 
+    if (dashboardCommand.action === "open-entry") {
+      setShowGenerateReportStep(false)
+      setShowAddEvidenceStep(true)
+      return
+    }
+
     if (dashboardCommand.action === "generate-report" && hasRequiredEvidence(selectedEntry)) {
       setShowAddEvidenceStep(false)
       setShowGenerateReportStep(true)
@@ -1013,6 +1024,8 @@ function OnboardingDashboard({
     })
     const nextWorkEntry: OnboardingFirstWorkEntry = {
       id: savedWorkEntry.id,
+      createdAt: savedWorkEntry.createdAt,
+      updatedAt: savedWorkEntry.updatedAt,
       evidence: [],
       evidenceReady: false,
       jobTitle: savedWorkEntry.jobName,
@@ -1937,6 +1950,12 @@ function OperationalDashboard({
 
     setActiveLoopWorkEntry(selectedEntry)
 
+    if (dashboardCommand.action === "open-entry") {
+      setShowGenerateReportStep(false)
+      setShowAddEvidenceStep(true)
+      return
+    }
+
     if (dashboardCommand.action === "generate-report" && hasRequiredEvidence(selectedEntry)) {
       setShowAddEvidenceStep(false)
       setShowGenerateReportStep(true)
@@ -2015,6 +2034,8 @@ function OperationalDashboard({
 
     const nextWorkEntry: OnboardingFirstWorkEntry = {
       id: savedWorkEntry.id,
+      createdAt: savedWorkEntry.createdAt,
+      updatedAt: savedWorkEntry.updatedAt,
       jobTitle: savedWorkEntry.jobName,
       propertyAddress: savedWorkEntry.jobAddress,
       customerName: savedWorkEntry.customerName,
@@ -2100,6 +2121,7 @@ function OperationalDashboard({
     const nextWorkEntryWithReadiness = {
       ...nextWorkEntry,
       evidenceReady: hasRequiredEvidence(nextWorkEntry),
+      updatedAt: new Date().toISOString(),
     }
 
     commitLoopWorkEntry(nextWorkEntryWithReadiness)
@@ -2138,6 +2160,7 @@ function OperationalDashboard({
       ...activeLoopWorkEntry,
       workPerformedSummary: savedWorkEntry.workPerformedSummary,
       description: savedWorkEntry.description,
+      updatedAt: savedWorkEntry.updatedAt,
     }
 
     commitLoopWorkEntry(nextWorkEntry)
@@ -2164,6 +2187,7 @@ function OperationalDashboard({
       workPerformedSummary: savedWorkEntry.workPerformedSummary,
       description: savedWorkEntry.description,
       status: completedWorkEntry.status,
+      updatedAt: completedWorkEntry.updatedAt,
       report: {
         id: report.id,
         status: report.status,

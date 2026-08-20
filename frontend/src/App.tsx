@@ -5,6 +5,7 @@ import {
   DashboardPage,
   type DashboardCommand,
 } from "@/components/dashboard/DashboardPage"
+import { LandingPage } from "@/components/landing/LandingPage"
 import { ReportPreviewPage } from "@/components/reports/ReportPreviewPage"
 import { AppShell } from "@/components/shell/AppShell"
 import { NavigationPages } from "@/components/shell/NavigationPages"
@@ -35,6 +36,7 @@ import {
 import type {
   LoginResult,
   PhotoCategory,
+  ReportIssueChange,
   ReportSnapshot,
   ReportStatus,
   WorkEntryStatus,
@@ -56,6 +58,26 @@ function getCurrentAppRoute(): AppRoute {
 
 function getCurrentLocationPath() {
   return `${window.location.pathname}${window.location.search}${window.location.hash}`
+}
+
+function getPostLoginPath() {
+  const nextPath = new URLSearchParams(window.location.search).get("next")
+
+  if (!nextPath) {
+    return getPathForView("Dashboard")
+  }
+
+  try {
+    const nextUrl = new URL(nextPath, window.location.origin)
+
+    if (nextUrl.origin === window.location.origin && matchAppRoute(nextUrl.pathname)) {
+      return `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`
+    }
+  } catch {
+    return getPathForView("Dashboard")
+  }
+
+  return getPathForView("Dashboard")
 }
 
 function readStoredSession(): LoginResult | null {
@@ -127,7 +149,15 @@ interface StoredReportSnapshot {
     caption?: string | null
     originalFilename?: string
     createdAt?: string
+    area?: string | null
+    locationLabel?: string | null
+    locationVerified?: boolean | null
+    capturedBy?: string | null
   }>
+  issues?: ReportIssueChange[]
+  completionReview?: ReportSnapshot["completionReview"]
+  deliveredAt?: string | null
+  deliveredVersion?: string | null
 }
 
 interface ReportSummaryData {
@@ -188,6 +218,10 @@ function buildReportSnapshot(
       category: photo.category,
       caption: photo.caption ?? photo.originalFilename ?? `${photo.category} evidence`,
       uploadedAt: photo.createdAt ?? generatedAt,
+      area: photo.area,
+      locationLabel: photo.locationLabel,
+      locationVerified: photo.locationVerified,
+      capturedBy: photo.capturedBy,
       contentUrl: encodedSharedToken
         ? `/api/shared/reports/${encodedSharedToken}/photos/${photo.id}/content`
         : `/api/reports/${report.id}/photos/${photo.id}/content`,
@@ -264,6 +298,10 @@ function buildReportSnapshot(
     workStatus:
       workEntrySnapshot?.status
       ?? "COMPLETED",
+    plannedScope:
+      workEntrySnapshot?.plannedScope
+      ?? workEntry?.plannedScope
+      ?? undefined,
     workPerformed:
       workEntrySnapshot?.workPerformedSummary
       ?? workEntrySnapshot?.description
@@ -271,6 +309,10 @@ function buildReportSnapshot(
       ?? workEntry?.description
       ?? "This proof report was generated from documented work and field evidence.",
     photos,
+    issues: storedSnapshot?.issues,
+    completionReview: storedSnapshot?.completionReview,
+    deliveredAt: storedSnapshot?.deliveredAt ?? null,
+    deliveredVersion: storedSnapshot?.deliveredVersion ?? null,
   }
 }
 
@@ -292,6 +334,8 @@ function mapWorkEntryResponse(
 ): OnboardingFirstWorkEntry {
   return {
     id: workEntry.id,
+    createdAt: workEntry.createdAt,
+    updatedAt: workEntry.updatedAt,
     evidence: photos.map(mapPhotoResponse),
     evidenceReady: photos.some((photo) => photo.category === "BEFORE")
       && photos.some((photo) => photo.category === "AFTER"),
@@ -689,6 +733,10 @@ function App() {
   function handleLogin(nextSession: LoginResult) {
     persistSession(nextSession)
     setSession(nextSession)
+
+    if (window.location.pathname === "/login") {
+      navigateToPath(getPostLoginPath(), true)
+    }
   }
 
   function updateSession(nextSession: LoginResult) {
@@ -719,6 +767,10 @@ function App() {
   }
 
   if (!session) {
+    if (window.location.pathname === "/") {
+      return <LandingPage />
+    }
+
     return <LoginPage onLogin={handleLogin} />
   }
 
@@ -867,7 +919,9 @@ function App() {
           dashboardLoadError={dashboardLoadError}
           routeSearch={routeSearch}
           onNavigate={handleShellNavigate}
+          onNavigatePath={navigateToPath}
           onOpenReport={handleOpenReport}
+          onReportStatusChange={handleReportStatusChange}
           onStartDashboardCommand={handleStartDashboardCommand}
         />
       )}

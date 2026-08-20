@@ -1,6 +1,6 @@
 export type MembershipRole = "OWNER" | "ADMIN" | "CREW" | "SUBCONTRACTOR"
 
-export type WorkEntryStatus = "DRAFT" | "SUBMITTED" | "COMPLETED"
+export type WorkEntryStatus = "DRAFT" | "SUBMITTED" | "COMPLETED" | "ARCHIVED"
 
 export type PhotoCategory = "BEFORE" | "DURING" | "AFTER"
 
@@ -25,10 +25,16 @@ export interface WorkEntryPhoto {
   uploadedAt: string
   previewUrl?: string
   contentUrl?: string
+  area?: string | null
+  locationLabel?: string | null
+  locationVerified?: boolean | null
+  capturedBy?: string | null
 }
 
 export interface WorkEntry {
   id: number
+  createdAt?: string
+  updatedAt?: string
   jobName: string
   jobAddress: string
   customerName: string
@@ -49,6 +55,7 @@ export interface WorkEntry {
   proofReady: boolean
   reportId?: number
   reportNumber?: string
+  reportStatus?: ReportStatus
   thumbnailUrl?: string
   thumbnailContentUrl?: string
   updatedLabel: string
@@ -76,8 +83,26 @@ export interface ReportSnapshot {
   arrivalWindow?: string | null
   estimatedDuration?: string | null
   workStatus: WorkEntryStatus
+  plannedScope?: string
   workPerformed: string
   photos: WorkEntryPhoto[]
+  issues?: ReportIssueChange[]
+  completionReview?: {
+    cleanupCompleted?: boolean | null
+    customerWalkthroughCompleted?: boolean | null
+    customerAcknowledgmentReceived?: boolean | null
+  } | null
+  deliveredAt?: string | null
+  deliveredVersion?: string | null
+}
+
+export interface ReportIssueChange {
+  title: string
+  area?: string | null
+  impact?: string | null
+  actionTaken?: string | null
+  customerNotified?: boolean | null
+  evidencePhotoCount?: number | null
 }
 
 export interface DashboardSummary {

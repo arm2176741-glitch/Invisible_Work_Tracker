@@ -30,7 +30,8 @@ public class WorkEntryServiceImpl implements WorkEntryService {
     private static final Set<WorkEntryStatus> USER_SELECTABLE_STATUSES =
             EnumSet.of(
                     WorkEntryStatus.DRAFT,
-                    WorkEntryStatus.COMPLETED
+                    WorkEntryStatus.COMPLETED,
+                    WorkEntryStatus.ARCHIVED
             );
 
     public WorkEntryServiceImpl(
@@ -137,7 +138,7 @@ public class WorkEntryServiceImpl implements WorkEntryService {
         }
 
         if (!USER_SELECTABLE_STATUSES.contains(request.getStatus())) {
-            throw new IllegalArgumentException("Status can only be DRAFT or COMPLETED");
+            throw new IllegalArgumentException("Status can only be DRAFT, COMPLETED, or ARCHIVED");
         }
 
         WorkEntry workEntry = requireAccessibleWorkEntry(currentUser, workEntryId);

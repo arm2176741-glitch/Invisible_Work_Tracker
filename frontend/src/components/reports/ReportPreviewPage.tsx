@@ -234,21 +234,52 @@ export function ReportPreviewPage({
   }
 
   const evidenceGroups = groupReportPhotos(report.photos)
-  const afterPhotos = evidenceGroups.AFTER
+  const evidenceTimeline = buildEvidenceTimeline(report.photos)
+  const featuredEvidence = getFeaturedEvidenceItems(evidenceGroups)
   const totalPhotoCount = report.photos.length
   const documentedStageCount = Object.values(evidenceGroups).filter((photos) => photos.length > 0).length
-  const reportPageCount = totalPhotoCount <= 4 ? 2 : 3
+  const evidencePages = buildEvidenceRecordPages(evidenceTimeline, report.reportNumber)
+  const hasSeparateRecordPage = evidenceTimeline.length > 3
+  const reportPageCount = 1 + evidencePages.length + (hasSeparateRecordPage ? 1 : 0)
+  const reportVersionLabel = "1"
   const completionDateLabel = formatDate(report.workDate ?? report.generatedAt)
-  const scheduleLabel = formatScheduleDateTime(
-    report.workDate,
-    report.scheduledStartTime,
-    report.arrivalWindow,
-  )
-  const statusStripItems = [
-    formatStatus(report.workStatus),
-    `${totalPhotoCount} photo${totalPhotoCount === 1 ? "" : "s"}`,
-    `${documentedStageCount}/3 stages documented`,
-    reportStatusLabel,
+  const issueChanges = report.issues ?? []
+  const workPerformedSummary = getWorkPerformedSummary(report)
+  const proofSummaryItems = [
+    {
+      label: "Pre-work condition",
+      complete: evidenceGroups.BEFORE.length > 0,
+    },
+    {
+      label: "Work performed",
+      complete: evidenceGroups.DURING.length > 0 || Boolean(report.workPerformed),
+    },
+    {
+      label: "Final condition",
+      complete: evidenceGroups.AFTER.length > 0,
+    },
+    {
+      label: `${totalPhotoCount} evidence photo${totalPhotoCount === 1 ? "" : "s"}`,
+      complete: totalPhotoCount > 0,
+    },
+  ]
+  const completionReviewItems = [
+    {
+      label: "Work completed",
+      complete: report.workStatus === "COMPLETED",
+    },
+    {
+      label: "Final condition documented",
+      complete: evidenceGroups.AFTER.length > 0,
+    },
+    {
+      label: "Cleanup completed",
+      complete: report.completionReview?.cleanupCompleted ?? report.workStatus === "COMPLETED",
+    },
+    {
+      label: "Required evidence captured",
+      complete: evidenceGroups.BEFORE.length > 0 && evidenceGroups.AFTER.length > 0,
+    },
   ]
 
   function renderReportHeader(pageNumber: number) {
@@ -265,7 +296,7 @@ export function ReportPreviewPage({
         <div className="proof-report-title-block">
           <h1>Proof of Work Report</h1>
           <p>
-            <span>{report.reportNumber}</span>
+            <span>{report.reportNumber} - Version {reportVersionLabel}</span>
             <span>Page {pageNumber} of {reportPageCount}</span>
           </p>
         </div>
@@ -282,129 +313,210 @@ export function ReportPreviewPage({
     )
   }
 
-  function renderEvidenceCards(photos: WorkEntryPhoto[], emptyMessage: string) {
-    if (photos.length === 0) {
-      return <p className="proof-report-empty">{emptyMessage}</p>
-    }
-
+  function renderPhotoFrame(photo: WorkEntryPhoto | undefined, label: string) {
     return (
-      <div className="proof-report-evidence-grid">
-        {photos.map((photo) => (
-          <article className="proof-report-photo-card" key={photo.id}>
-            <div className="proof-report-photo-frame">
-              {photoObjectUrls[photo.id] ? (
-                <img
-                  src={photoObjectUrls[photo.id]}
-                  alt={photo.caption}
-                  loading="lazy"
-                />
-              ) : (
-                <span>{formatPhotoCategory(photo.category)}</span>
-              )}
-            </div>
-            <div className="proof-report-photo-body">
-              <div className="proof-report-photo-meta">
-                <strong>{formatPhotoCategory(photo.category)} Work</strong>
-                <span>Snapshot evidence</span>
-              </div>
-              <p>{photo.caption || `${formatPhotoCategory(photo.category)} evidence`}</p>
-              <dl className="proof-report-photo-details">
-                <div>
-                  <dt>Recorded</dt>
-                  <dd>{formatDateTime(photo.uploadedAt)}</dd>
-                </div>
-                <div>
-                  <dt>Property</dt>
-                  <dd>{report.jobAddress}</dd>
-                </div>
-                <div>
-                  <dt>Documented by</dt>
-                  <dd>{report.workspaceName}</dd>
-                </div>
-              </dl>
-            </div>
-          </article>
-        ))}
+      <div className="proof-report-photo-frame">
+        {photo && photoObjectUrls[photo.id] ? (
+          <img
+            src={photoObjectUrls[photo.id]}
+            alt={photo.caption || label}
+            loading="lazy"
+          />
+        ) : (
+          <span>{label}</span>
+        )}
       </div>
     )
   }
 
-  function renderStageEvidenceSection(
-    stage: WorkEntryPhoto["category"],
-    photos: WorkEntryPhoto[],
-    sectionNumber: number,
-  ) {
+  function renderFeaturedEvidenceCard(item: FeaturedEvidenceItem) {
     return (
-      <section className="proof-report-stage-section">
-        <div className="proof-report-stage-heading">
-          <span>{String(sectionNumber).padStart(2, "0")}</span>
+      <article className="proof-report-featured-evidence" key={item.stage}>
+        <span>{item.shortLabel.toUpperCase()}</span>
+        {renderPhotoFrame(item.photo, item.shortLabel)}
+        <div>
+          <strong>{item.title}</strong>
+          <p>{item.photo ? getEvidenceCaptionTitle(item.photo) : item.emptyCopy}</p>
+          <small>{item.photo ? formatTime(item.photo.uploadedAt) : "Not captured"}</small>
+        </div>
+      </article>
+    )
+  }
+
+  function renderEvidenceTimelineItem(item: EvidenceTimelineItem) {
+    const photoArea = getEvidenceAreaLabel(report, item.photo)
+    const locationLabel = item.photo.locationLabel || report.jobAddress
+
+    return (
+      <article className="proof-report-timeline-item" key={item.photo.id}>
+        <div className="proof-report-timeline-heading">
+          <span>{String(item.sequence).padStart(2, "0")}</span>
           <div>
-            <h2>{formatPhotoCategory(stage)} Work</h2>
-            <p>{getStageEvidenceSummary(stage, photos.length)}</p>
+            <h3>{item.title}</h3>
+            <p>{item.description}</p>
           </div>
         </div>
-        {renderEvidenceCards(
-          photos,
-          `No ${formatPhotoCategory(stage)} photos were included in this report.`,
+        {renderPhotoFrame(item.photo, item.title)}
+        <div className="proof-report-timeline-caption">
+          <strong>{getEvidenceCaptionTitle(item.photo)}</strong>
+          <dl>
+            <div>
+              <dt>Stage</dt>
+              <dd>{formatPhotoCategory(item.photo.category)}</dd>
+            </div>
+            <div>
+              <dt>Area</dt>
+              <dd>{photoArea}</dd>
+            </div>
+            <div>
+              <dt>Caption</dt>
+              <dd>{getEvidenceCaption(item.photo)}</dd>
+            </div>
+            <div>
+              <dt>Captured</dt>
+              <dd>{formatDateTime(item.photo.uploadedAt)}</dd>
+            </div>
+            <div>
+              <dt>Location</dt>
+              <dd>{locationLabel}</dd>
+            </div>
+            <div>
+              <dt>Verified</dt>
+              <dd>{item.photo.locationVerified === false ? "Address on record" : "Location verified"}</dd>
+            </div>
+            {item.photo.capturedBy ? (
+              <div>
+                <dt>Captured by</dt>
+                <dd>{item.photo.capturedBy}</dd>
+              </div>
+            ) : null}
+          </dl>
+        </div>
+      </article>
+    )
+  }
+
+  function renderIssuesAndChanges() {
+    return (
+      <section className="proof-report-issues-changes">
+        <h2>Issues & Changes</h2>
+        {issueChanges.length === 0 ? (
+          <p>No issues or scope changes were documented.</p>
+        ) : (
+          <div className="proof-report-issue-list">
+            {issueChanges.map((issue, index) => (
+              <article key={`${issue.title}-${index}`}>
+                <strong>{issue.title}</strong>
+                <dl>
+                  {issue.area ? (
+                    <div>
+                      <dt>Area</dt>
+                      <dd>{issue.area}</dd>
+                    </div>
+                  ) : null}
+                  {issue.impact ? (
+                    <div>
+                      <dt>Impact</dt>
+                      <dd>{issue.impact}</dd>
+                    </div>
+                  ) : null}
+                  {issue.actionTaken ? (
+                    <div>
+                      <dt>Action taken</dt>
+                      <dd>{issue.actionTaken}</dd>
+                    </div>
+                  ) : null}
+                  {typeof issue.customerNotified === "boolean" ? (
+                    <div>
+                      <dt>Customer notified</dt>
+                      <dd>{issue.customerNotified ? "Yes" : "No"}</dd>
+                    </div>
+                  ) : null}
+                  {typeof issue.evidencePhotoCount === "number" ? (
+                    <div>
+                      <dt>Evidence</dt>
+                      <dd>
+                        {issue.evidencePhotoCount} photo
+                        {issue.evidencePhotoCount === 1 ? "" : "s"}
+                      </dd>
+                    </div>
+                  ) : null}
+                </dl>
+              </article>
+            ))}
+          </div>
         )}
       </section>
     )
   }
 
-  function renderProjectRecordSection() {
+  function renderCompletionReview() {
     return (
-      <>
-        <section className="proof-report-section proof-report-project-record">
-          <h2>Project Record</h2>
-          <div className="proof-report-metrics-grid">
-            <div>
-              <span>Photos Captured</span>
-              <strong>{totalPhotoCount} photos</strong>
-            </div>
-            <div>
-              <span>Evidence Stages</span>
-              <strong>{documentedStageCount}/3 documented</strong>
-            </div>
-            <div>
-              <span>Job Status</span>
-              <strong>{formatStatus(report.workStatus)}</strong>
-            </div>
-            <div>
-              <span>Completion Date</span>
-              <strong>{completionDateLabel}</strong>
-            </div>
-          </div>
-        </section>
+      <section className="proof-report-completion-review">
+        <h2>Completion review</h2>
+        <ul className="proof-report-completion-list">
+          {completionReviewItems.map((item) => (
+            <li data-complete={item.complete ? "true" : "false"} key={item.label}>
+              <span>{item.complete ? "✓" : "-"}</span>
+              {item.label}
+            </li>
+          ))}
+        </ul>
+      </section>
+    )
+  }
 
-        <section className="proof-report-completeness">
-          <div>
-            <h3>Documentation completeness</h3>
-            <p>Required stages recorded in FieldProof for this report.</p>
-          </div>
-          <ul>
-            <li data-complete={evidenceGroups.BEFORE.length > 0 ? "true" : "false"}>
-              <span>{evidenceGroups.BEFORE.length > 0 ? "Complete" : "Missing"}</span>
-              Before documented
-            </li>
-            <li data-complete={evidenceGroups.DURING.length > 0 ? "true" : "false"}>
-              <span>{evidenceGroups.DURING.length > 0 ? "Complete" : "Missing"}</span>
-              During documented
-            </li>
-            <li data-complete={evidenceGroups.AFTER.length > 0 ? "true" : "false"}>
-              <span>{evidenceGroups.AFTER.length > 0 ? "Complete" : "Missing"}</span>
-              After documented
-            </li>
-          </ul>
-        </section>
+  function renderDocumentRecord() {
+    const deliveryLabel = report.deliveredAt
+      ? formatDateTime(report.deliveredAt)
+      : report.status === "SHARED"
+        ? "Shared link active"
+        : "Not delivered yet"
 
-        <section className="proof-report-record-notice">
-          <strong>About this record</strong>
+    return (
+      <section className="proof-report-document-record">
+        <div>
+          <h2>Document record</h2>
           <p>
-            This report reflects the job details, work summary, and photo evidence
-            references recorded in FieldProof at the time the report was generated.
+            This report is a preserved snapshot of the job documentation available
+            when this version was generated.
           </p>
-        </section>
-      </>
+        </div>
+        <dl>
+          <div>
+            <dt>Report</dt>
+            <dd>{report.reportNumber}</dd>
+          </div>
+          <div>
+            <dt>Version</dt>
+            <dd>{reportVersionLabel}</dd>
+          </div>
+          <div>
+            <dt>Generated</dt>
+            <dd>{formatDateTime(report.generatedAt)}</dd>
+          </div>
+          <div>
+            <dt>Delivered</dt>
+            <dd>{deliveryLabel}</dd>
+          </div>
+          {report.deliveredVersion || report.deliveredAt ? (
+            <div>
+              <dt>Version delivered</dt>
+              <dd>{report.deliveredVersion ?? `v${reportVersionLabel}`}</dd>
+            </div>
+          ) : null}
+        </dl>
+      </section>
+    )
+  }
+
+  function renderEvidencePageRecordSections() {
+    return (
+      <div className="proof-report-record-sections">
+        {renderIssuesAndChanges()}
+        {renderCompletionReview()}
+        {renderDocumentRecord()}
+      </div>
     )
   }
 
@@ -469,120 +581,107 @@ export function ReportPreviewPage({
       </div>
 
       <div className="report-pages">
-        <article className="report-document report-page proof-report-page">
+        <article className="report-document report-page proof-report-page proof-report-summary-page">
           {renderReportHeader(1)}
 
-          <section className="proof-report-certificate">
+          <section className="proof-report-executive">
             <p className="report-label">Proof of Work Report</p>
-            <h2>{report.jobName} - Proof of Work Report</h2>
+            <h2>{report.workType} - {report.jobAddress}</h2>
             <p>{report.jobAddress}</p>
-            <strong>{formatStatus(report.workStatus)} {completionDateLabel}</strong>
-            <div className="proof-report-status-strip" aria-label="Report status">
-              {statusStripItems.map((item) => (
-                <span key={item}>{item}</span>
+            <div className="proof-report-meta-line">
+              <span>Customer: {report.customerName}</span>
+              <span>Contractor: {report.workspaceName}</span>
+              <span>Completed: {completionDateLabel}</span>
+            </div>
+          </section>
+
+          <section className="proof-report-work-summary">
+            <h2>Work performed</h2>
+            <p>{workPerformedSummary}</p>
+          </section>
+
+          <section className="proof-report-proof-summary">
+            <h2>Proof captured</h2>
+            <ul>
+              {proofSummaryItems.map((item) => (
+                <li data-complete={item.complete ? "true" : "false"} key={item.label}>
+                  <span>{item.complete ? "✓" : "-"}</span>
+                  {item.label}
+                </li>
               ))}
-            </div>
+            </ul>
+            <p>
+              {documentedStageCount}/3 evidence stages documented
+              <span aria-hidden="true"> · </span>
+              {formatIssueSummary(issueChanges.length)}
+              <span aria-hidden="true"> · </span>
+              Completed {completionDateLabel}
+            </p>
           </section>
 
-          <section className="proof-report-callout">
-            <p className="report-label">Executive Summary</p>
-            <p>{buildCustomerReportSummary(report, evidenceGroups)}</p>
-          </section>
-
-          <section className="proof-report-overview">
-            <h2>Customer / Property</h2>
-            <div className="proof-report-overview-grid">
-              <div className="proof-report-overview-row">
-                <span>Customer</span>
-                <strong>{report.customerName}</strong>
-              </div>
-              <div className="proof-report-overview-row">
-                <span>Company</span>
-                <strong>{report.workspaceName}</strong>
-              </div>
-              <div className="proof-report-overview-row">
-                <span>Property</span>
-                <strong>{report.jobAddress}</strong>
-              </div>
-              <div className="proof-report-overview-row">
-                <span>Work Type</span>
-                <strong>{report.workType}</strong>
-              </div>
-              <div className="proof-report-overview-row">
-                <span>Scheduled</span>
-                <strong>{scheduleLabel}</strong>
-              </div>
-              <div className="proof-report-overview-row">
-                <span>Report Created</span>
-                <strong>{formatDateTime(report.generatedAt)}</strong>
-              </div>
-            </div>
-          </section>
-
-          <section className="proof-report-section">
-            <h2>Detailed Work Documentation</h2>
-            <div className="proof-report-documentation-cards">
-              <article>
-                <span>Work Performed</span>
-                <p>{report.workPerformed}</p>
-              </article>
-              <article>
-                <span>Evidence Captured</span>
-                <p>
-                  {totalPhotoCount} recorded photo{totalPhotoCount === 1 ? "" : "s"} across
-                  Before, During, and After stages.
-                </p>
-              </article>
-              <article>
-                <span>Completion</span>
-                <p>
-                  {formatStatus(report.workStatus)} {completionDateLabel} - {report.workspaceName}
-                </p>
-              </article>
+          <section className="proof-report-featured-strip">
+            <h2>Before / During / After</h2>
+            <div>
+              {featuredEvidence.map(renderFeaturedEvidenceCard)}
             </div>
           </section>
 
           {renderReportFooter(1)}
         </article>
 
-        <article className="report-document report-page proof-report-page">
-          {renderReportHeader(2)}
+        {evidencePages.map((evidencePage, pageIndex) => {
+          const pageNumber = pageIndex + 2
+          const shouldRenderRecordSections =
+            !hasSeparateRecordPage && pageIndex === evidencePages.length - 1
 
-          {reportPageCount === 2 ? (
-            <>
-              <section className="proof-report-section proof-report-section-first proof-report-story">
-                <h2>Photo Evidence</h2>
-                {renderStageEvidenceSection("BEFORE", evidenceGroups.BEFORE, 1)}
-                {renderStageEvidenceSection("DURING", evidenceGroups.DURING, 2)}
-                {renderStageEvidenceSection("AFTER", evidenceGroups.AFTER, 3)}
+          return (
+            <article
+              className="report-document report-page proof-report-page proof-report-evidence-page"
+              key={`evidence-page-${pageNumber}`}
+            >
+              {renderReportHeader(pageNumber)}
+
+              <section className="proof-report-evidence-timeline">
+                <p className="report-label">Evidence record</p>
+                <h2>{evidencePage.title}</h2>
+                <p>{evidencePage.copy}</p>
+                <div className="proof-report-timeline-list">
+                  {evidencePage.items.length > 0 ? (
+                    evidencePage.items.map(renderEvidenceTimelineItem)
+                  ) : (
+                    <p className="proof-report-empty">
+                      No evidence photos were captured for this report.
+                    </p>
+                  )}
+                </div>
               </section>
-              {renderProjectRecordSection()}
-            </>
-          ) : (
-            <section className="proof-report-section proof-report-section-first proof-report-story">
-              <h2>Photo Evidence - Before & During Work</h2>
-              {renderStageEvidenceSection("BEFORE", evidenceGroups.BEFORE, 1)}
-              {renderStageEvidenceSection("DURING", evidenceGroups.DURING, 2)}
+
+              {shouldRenderRecordSections ? renderEvidencePageRecordSections() : null}
+
+              {renderReportFooter(pageNumber)}
+            </article>
+          )
+        })}
+
+        {hasSeparateRecordPage ? (
+          <article className="report-document report-page proof-report-page proof-report-evidence-page">
+            {renderReportHeader(reportPageCount)}
+
+            <section className="proof-report-evidence-timeline proof-report-evidence-timeline--record">
+              <p className="report-label">Evidence record</p>
+              <h2>Completion and document record</h2>
+              <p>
+                Final review details for {report.reportNumber} and the preserved
+                report version.
+              </p>
             </section>
-          )}
 
-          {renderReportFooter(2)}
-        </article>
+            {renderEvidencePageRecordSections()}
 
-        {reportPageCount === 3 ? (
-          <article className="report-document report-page proof-report-page">
-            {renderReportHeader(3)}
-
-            <section className="proof-report-section proof-report-section-first proof-report-story">
-              <h2>Photo Evidence - After Work</h2>
-              {renderStageEvidenceSection("AFTER", afterPhotos, 3)}
-            </section>
-
-            {renderProjectRecordSection()}
-
-            {renderReportFooter(3)}
+            {renderReportFooter(reportPageCount)}
           </article>
         ) : null}
+
       </div>
 
       {showCompletionDialog ? (
@@ -702,7 +801,7 @@ function formatDate(value?: string | null) {
     month: "short",
     day: "numeric",
     year: "numeric",
-  }).format(new Date(value))
+  }).format(parseReportDate(value))
 }
 
 function formatDateTime(value?: string | null) {
@@ -719,35 +818,24 @@ function formatDateTime(value?: string | null) {
   }).format(new Date(value))
 }
 
-function formatScheduleTime(value?: string | null) {
+function formatTime(value?: string | null) {
   if (!value) {
-    return null
+    return "No time"
   }
 
-  const [hours, minutes = "00"] = value.split(":")
-  const hourNumber = Number(hours)
-
-  if (Number.isNaN(hourNumber)) {
-    return value
-  }
-
-  const period = hourNumber >= 12 ? "PM" : "AM"
-  const twelveHour = hourNumber % 12 || 12
-
-  return `${twelveHour}:${minutes} ${period}`
+  return new Intl.DateTimeFormat("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+  }).format(new Date(value))
 }
 
-function formatScheduleDateTime(
-  workDate?: string | null,
-  scheduledStartTime?: string | null,
-  arrivalWindow?: string | null,
-) {
-  const dateLabel = formatDate(workDate)
-  const timeLabel = formatScheduleTime(scheduledStartTime)
-    ?? arrivalWindow
-    ?? null
+function parseReportDate(value: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split("-").map(Number)
+    return new Date(year, month - 1, day)
+  }
 
-  return timeLabel ? `${dateLabel} - ${timeLabel}` : dateLabel
+  return new Date(value)
 }
 
 function formatStatus(status: string) {
@@ -771,59 +859,182 @@ function completeSentence(value: string) {
   return /[.!?]$/.test(trimmedValue) ? trimmedValue : `${trimmedValue}.`
 }
 
-function getCapturedStageNames(
+function getWorkPerformedSummary(report: ReportSnapshot) {
+  if (report.workPerformed.trim()) {
+    return completeSentence(report.workPerformed)
+  }
+
+  return "The documented work area was photographed before, during, and after completion."
+}
+
+function formatIssueSummary(issueCount: number) {
+  if (issueCount === 0) {
+    return "No issues or scope changes were documented"
+  }
+
+  return `${issueCount} issue or scope change${issueCount === 1 ? "" : "s"} documented`
+}
+
+interface FeaturedEvidenceItem {
+  stage: WorkEntryPhoto["category"]
+  shortLabel: string
+  title: string
+  emptyCopy: string
+  photo?: WorkEntryPhoto
+}
+
+interface EvidenceTimelineItem {
+  sequence: number
+  title: string
+  description: string
+  photo: WorkEntryPhoto
+}
+
+interface EvidenceRecordPage {
+  title: string
+  copy: string
+  items: EvidenceTimelineItem[]
+}
+
+const photoStageOrder: Record<WorkEntryPhoto["category"], number> = {
+  BEFORE: 0,
+  DURING: 1,
+  AFTER: 2,
+}
+
+const featuredEvidenceLabels: Record<
+  WorkEntryPhoto["category"],
+  Omit<FeaturedEvidenceItem, "stage" | "photo">
+> = {
+  BEFORE: {
+    shortLabel: "Before",
+    title: "Pre-work condition",
+    emptyCopy: "No pre-work photo was attached.",
+  },
+  DURING: {
+    shortLabel: "During",
+    title: "Work performed",
+    emptyCopy: "No work-in-progress photo was attached.",
+  },
+  AFTER: {
+    shortLabel: "After",
+    title: "Final condition",
+    emptyCopy: "No final-condition photo was attached.",
+  },
+}
+
+const timelineStageCopy: Record<
+  WorkEntryPhoto["category"],
+  { title: string; description: string }
+> = {
+  BEFORE: {
+    title: "Pre-work condition",
+    description: "Existing condition before work began.",
+  },
+  DURING: {
+    title: "Work performed",
+    description: "Documented work activity and repair progress.",
+  },
+  AFTER: {
+    title: "Final condition",
+    description: "Completed work and final condition.",
+  },
+}
+
+function getFeaturedEvidenceItems(
   evidenceGroups: Record<WorkEntryPhoto["category"], WorkEntryPhoto[]>,
-) {
-  return (Object.entries(evidenceGroups) as Array<[WorkEntryPhoto["category"], WorkEntryPhoto[]]>)
-    .filter(([, photos]) => photos.length > 0)
-    .map(([stage]) => formatPhotoCategory(stage))
+): FeaturedEvidenceItem[] {
+  return (["BEFORE", "DURING", "AFTER"] as const).map((stage) => ({
+    stage,
+    photo: evidenceGroups[stage][0],
+    ...featuredEvidenceLabels[stage],
+  }))
 }
 
-function formatStageList(stages: string[]) {
-  if (stages.length === 0) {
-    return "No staged photo evidence"
+function getEvidenceCaption(photo: WorkEntryPhoto) {
+  const caption = photo.caption.trim()
+
+  if (caption) {
+    return completeSentence(caption)
   }
 
-  if (stages.length === 1) {
-    return stages[0]
-  }
-
-  if (stages.length === 2) {
-    return `${stages[0]} and ${stages[1]}`
-  }
-
-  return `${stages.slice(0, -1).join(", ")}, and ${stages[stages.length - 1]}`
+  return completeSentence(timelineStageCopy[photo.category].description)
 }
 
-function buildCustomerReportSummary(
-  report: ReportSnapshot,
-  evidenceGroups: Record<WorkEntryPhoto["category"], WorkEntryPhoto[]>,
-) {
-  const workSummary = completeSentence(report.workPerformed)
-  const capturedStages = getCapturedStageNames(evidenceGroups)
+function getEvidenceCaptionTitle(photo: WorkEntryPhoto) {
+  const caption = photo.caption.trim()
 
-  if (capturedStages.length === 0) {
-    return `${report.workspaceName} recorded the completed work for this property: ${workSummary}`
+  if (caption) {
+    return caption
   }
 
-  return `${report.workspaceName} recorded the completed work for this property: ${workSummary} ${formatStageList(
-    capturedStages,
-  )} evidence was captured for the job record.`
+  return timelineStageCopy[photo.category].description.replace(/[.]$/, "")
 }
 
-function getStageEvidenceSummary(stage: WorkEntryPhoto["category"], photoCount: number) {
-  const stagePurpose: Record<WorkEntryPhoto["category"], string> = {
-    BEFORE: "initial conditions",
-    DURING: "work progress",
-    AFTER: "completed condition",
-  }
-  const photoLabel = photoCount === 1 ? "photo" : "photos"
-
-  if (photoCount === 0) {
-    return `No ${formatPhotoCategory(stage)} photos documented for this report.`
+function getEvidenceAreaLabel(report: ReportSnapshot, photo: WorkEntryPhoto) {
+  if (photo.area?.trim()) {
+    return photo.area.trim()
   }
 
-  return `${photoCount} ${photoLabel} documenting ${stagePurpose[stage]}.`
+  if (report.workType.trim()) {
+    return `${report.workType.trim()} area`
+  }
+
+  return "Documented work area"
+}
+
+function buildEvidenceTimeline(photos: WorkEntryPhoto[]): EvidenceTimelineItem[] {
+  return [...photos]
+    .sort((firstPhoto, secondPhoto) => {
+      const stageSort = photoStageOrder[firstPhoto.category] - photoStageOrder[secondPhoto.category]
+
+      if (stageSort !== 0) {
+        return stageSort
+      }
+
+      return new Date(firstPhoto.uploadedAt).getTime() - new Date(secondPhoto.uploadedAt).getTime()
+    })
+    .map((photo, index) => ({
+      sequence: index + 1,
+      photo,
+      ...timelineStageCopy[photo.category],
+    }))
+}
+
+function buildEvidenceRecordPages(
+  items: EvidenceTimelineItem[],
+  reportNumber: string,
+): EvidenceRecordPage[] {
+  if (items.length <= 3) {
+    return [{
+      title: `${reportNumber} - Preserved snapshot`,
+      copy: "Before, work, and after evidence captured for this job record.",
+      items,
+    }]
+  }
+
+  return (["BEFORE", "DURING", "AFTER"] as const).flatMap((stage) =>
+    chunkItems(
+      items.filter((item) => item.photo.category === stage),
+      3,
+    ).map((stageItems, index, stageChunks) => ({
+      title: stageChunks.length > 1
+        ? `${timelineStageCopy[stage].title} (${index + 1} of ${stageChunks.length})`
+        : timelineStageCopy[stage].title,
+      copy: timelineStageCopy[stage].description,
+      items: stageItems,
+    })),
+  )
+}
+
+function chunkItems<T>(items: T[], size: number) {
+  const chunks: T[][] = []
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size))
+  }
+
+  return chunks
 }
 
 function groupReportPhotos(photos: WorkEntryPhoto[]) {
